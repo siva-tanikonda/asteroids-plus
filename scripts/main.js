@@ -12,6 +12,7 @@ var old_timestamp = 0;
 ctx.imageSmoothingLevel = "high";
 
 function update(delay) {
+    if (isNaN(delay) || delay == 0) return;
     var left, right, forward, fire, teleport;
     left = right = forward = fire = teleport = false;
     if (person_playing) {

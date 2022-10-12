@@ -7,7 +7,6 @@ function wrap(v) {
         v.y -= canvas_bounds.height;
     while (v.y < 0)
         v.y += canvas_bounds.height;
-    return v;
 }
 
 class Bullet {
@@ -20,8 +19,8 @@ class Bullet {
     }
 
     update(delay) {
-        this.position = add(this.position, multiply(this.velocity, delay));
-        this.position = wrap(this.position);
+        this.position.add(Vector.mul(this.velocity, delay));
+        wrap(this.position);
         this.life -= delay;
         return (this.life <= 0);
     }
@@ -53,10 +52,6 @@ class Bullet {
 
 }
 
-class Asteroid {
-    types = [ [], [], [], [], [], [], [], [], [], [], [], [] ];
-}
-
 class Ship {
 
     constructor() {
@@ -86,34 +81,33 @@ class Ship {
     }
 
     update(left, right, forward, fire, teleport, delay) {
-        if (isNaN(delay) || delay == 0) return;
         if (left) this.angle += delay * Math.PI * this.rotation_speed / 180;
         if (right) this.angle -= delay * Math.PI * this.rotation_speed / 180;
         while (this.angle >= Math.PI * 2) this.angle -= Math.PI * 2;
         while (this.angle < 0) this.angle += Math.PI * 2;
         var direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
         if (this.teleport_buffer == 0 && forward) {
-            direction = multiply(direction, this.acceleration);
-            this.velocity = add(this.velocity, multiply(direction, delay));
+            direction.mul(this.acceleration);
+            this.velocity.add(Vector.mul(direction, delay));
             this.thruster_status += this.thruster_flash_rate * delay;
             while (this.thruster_status >= 1)
                 this.thruster_status--;
         }
         else
             this.thruster_status = 0;
-        var initial_velocity = this.velocity;
-        this.velocity = multiply(this.velocity, 1/(Math.E ** (this.drag_coefficient * delay)));
-        this.position = divide(add(multiply(this.position, this.drag_coefficient), subtract(initial_velocity, this.velocity)), this.drag_coefficient);
+        var initial_velocity = this.velocity.copy();
+        this.velocity.mul(1/(Math.E ** (this.drag_coefficient * delay)));
+        this.position = Vector.div(Vector.add(Vector.mul(this.position, this.drag_coefficient), Vector.sub(initial_velocity, this.velocity)), this.drag_coefficient);
         if (fire && this.bullet_cooldown >= 1 && this.teleport_buffer == 0) {
-            direction = normalize(direction);
-            direction = multiply(direction, this.width / 2 + 5);
-            var bullet_position = add(direction, this.position);
-            direction = normalize(direction);
-            var bullet_velocity = multiply(direction, this.bullet_speed);
+            direction.norm();
+            direction.mul(this.width / 2 + 5);
+            var bullet_position = Vector.add(direction, this.position);
+            direction.norm();
+            var bullet_velocity = Vector.mul(direction, this.bullet_speed);
             this.bullets.push(new Bullet(bullet_position, bullet_velocity, this.bullet_life));
             this.bullet_cooldown = 0;
         }
-        this.position = wrap(this.position);
+        wrap(this.position);
         this.bullet_cooldown = Math.min(1, this.bullet_cooldown + this.fire_rate * delay);
         if (teleport && this.teleport_cooldown >= 1 && this.teleport_buffer <= 0) {
             this.teleport_location = new Vector(Math.floor(Math.random() * canvas_bounds.width), Math.floor(Math.random() * canvas_bounds.height));
