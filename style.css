@@ -1,3 +1,4 @@
 #canvas {
-    background-color: rgb(33, 33, 32);
+    image-rendering: smooth;
+    background-color: black;
 }

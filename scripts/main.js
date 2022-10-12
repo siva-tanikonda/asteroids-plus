@@ -1,5 +1,5 @@
-var fps = 60;
-var user = true;
+var updates_per_second = 60;
+var person_playing = true;
 
 var canvas = document.getElementById("canvas");
 var canvas_bounds = canvas.getBoundingClientRect();
@@ -7,11 +7,21 @@ var ctx = canvas.getContext("2d");
 var user_input = new UserInput();
 var game = new Game();
 
-ctx.imageSmoothingQuality = "high";
+var old_timestamp = 0;
 
-function update() {
-    if (user)
-        game.update(user_input.left, user_input.right, user_input.forward);
+ctx.imageSmoothingLevel = "high";
+
+function update(delay) {
+    var left, right, forward, fire, teleport;
+    left = right = forward = fire = teleport = false;
+    if (person_playing) {
+        left = user_input.left;
+        right = user_input.right;
+        forward = user_input.forward;
+        fire = user_input.fire;
+        teleport = user_input.teleport;
+    }
+    game.update(left, right, forward, fire, teleport, delay);
 }
 
 function draw() {
@@ -19,4 +29,11 @@ function draw() {
     game.draw();
 }
 
-setInterval(() => { update(); draw(); }, 1000 / fps);
+function loop(timestamp) {
+    seconds_passed = (timestamp - old_timestamp) / 1000;
+    old_timestamp = timestamp;
+    update(seconds_passed / (1 / 60) * updates_per_second / 60);
+    draw();
+    window.requestAnimationFrame(loop);
+}
+loop();
