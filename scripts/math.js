@@ -37,6 +37,12 @@ class Vector {
         this.x = nx;
         this.y = ny;
     }
+    dot(v) {
+        return this.x * v.x + this.y * v.y;
+    }
+    cross(v) {
+        return this.x * v.y - this.y * v.x;
+    }
     static copy(v) {
         return new Vector(v.x, v.y);
     }
@@ -64,6 +70,22 @@ class Vector {
         var nx = ((v.x - d.x) * Math.cos(a), (v.y - d.y) * Math.sin(a)) + d.x;
         var ny = ((v.x - d.x) * Math.sin(a), (v.y - d.y) * Math.cos(a)) + d.y;
         return new Vector(nx, ny);
+    }
+    static dot(u, v) {
+        return u.x * v.x + u.y * v.y;
+    }
+    static cross(u, v) {
+        return u.x * v.y - u.y * v.x;
+    }
+    static side(u, v, w) {
+        var uv = Vector.sub(v, u);
+        var vw = Vector.sub(w, v);
+        if (uv.cross(vw) > 0)
+            return -1;
+        else if (uv.cross(vw) < 0)
+            return 1;
+        else
+            return 0;
     }
 }
 
@@ -113,5 +135,33 @@ class Polygon {
     translate(v) {
         for (var i = 0; i < this.points.length; i++)
             this.points[i].add(v);
+    }
+    containsPoint(v) {
+        var result = false;
+        for (var i = 0; i < this.points.length; i++) {
+            var j = (i + 1) % this.points.length;
+            var side = Vector.side(this.points[i], this.points[j], v);
+            if (side == 0) {
+                var min_x = Math.min(this.points[i].x, this.points[j].x);
+                var max_x = Math.max(this.points[i].x, this.points[j].x);
+                if (v.x >= min_x && v.x <= max_x)
+                    return true;
+                else
+                    continue;    
+            }
+            if (this.points[i].y == this.points[j].y)
+                continue;
+            if (this.points[i].y < this.points[j].y) {
+                var side = Vector.side(this.points[i], this.points[j], v);
+                if (side == 1 && v.y >= this.points[i].y && v.y < this.points[j].y)
+                    result = !result;
+            }
+            else {
+                var side = Vector.side(this.points[j], this.points[i], v);
+                if (side == 1 && v.y > this.points[j].y && v.y <= this.points[i].y)
+                    result = !result;
+            }
+        }
+        return result;
     }
 }
