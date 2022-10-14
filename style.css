@@ -1,4 +1,10 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
 #canvas {
     image-rendering: smooth;
-    background-color: black;
+    background-color: rgb(30, 30, 30);
 }

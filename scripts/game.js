@@ -1,3 +1,47 @@
+var asteroid_types = [
+    new Polygon([
+        [-0.1, 0],
+        [0.75, 0],
+        [1.5, 0.4],
+        [1.2, 1],
+        [1.5, 1.6],
+        [1, 2.1],
+        [0.45, 1.6],
+        [-0.1, 2.1],
+        [-0.7, 1.6],
+        [-0.7, 0.4]
+    ]),
+    new Polygon([
+        [-0.25, 0],
+        [0.75, 0.3],
+        [1.15, 0],
+        [1.5, 0.5],
+        [0.6, 0.9],
+        [1.5, 1.35],
+        [1.5, 1.55],
+        [0.5, 2.1],
+        [-0.25, 2.1],
+        [0, 1.5],
+        [-0.7, 1.5],
+        [-0.7, 0.75]
+    ]),
+    new Polygon([
+        [-0.25, 0],
+        [0.1, 0.25],
+        [1, 0],
+        [1.5, 0.75],
+        [1, 1.2],
+        [1.5, 1.7],
+        [1, 2.1],
+        [0.4, 1.7],
+        [-0.25, 2.1],
+        [-0.75, 1.5],
+        [-0.4, 0.9],
+        [-0.7, 0.4]
+    ])
+];
+var sizes = [ 12.5, 25, 50 ];
+
 function wrap(v) {
     while (v.x >= canvas_bounds.width)
         v.x -= canvas_bounds.width;
@@ -7,6 +51,26 @@ function wrap(v) {
         v.y -= canvas_bounds.height;
     while (v.y < 0)
         v.y += canvas_bounds.height;
+}
+
+function drawBounds(item) {
+    ctx.fillStyle = 'rgb(200, 100, 100)';
+    ctx.globalAlpha = 0.75;
+    ctx.beginPath();
+    ctx.moveTo(item.bounds.points[item.bounds.points.length - 1].x, item.bounds.points[item.bounds.points.length - 1].y);
+    for (var i = 0; i < item.bounds.points.length; i++)
+        ctx.lineTo(item.bounds.points[i].x, item.bounds.points[i].y);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+}
+
+function drawCenter(item) {
+    ctx.fillStyle = "rgb(125, 250, 125)";
+    ctx.globalAlpha = 0.75;
+    ctx.beginPath();
+    ctx.arc(item.position.x, this.position.y, this.radius, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.globalAlpha = 1;
 }
 
 class Bullet {
@@ -25,7 +89,7 @@ class Bullet {
         return (this.life <= 0);
     }
 
-    drawPortion(offset) {
+    drawBullet(offset) {
         ctx.strokeStyle = "white";
         ctx.lineWidth = 1.5;
         ctx.translate(offset.x, offset.y);
@@ -36,7 +100,7 @@ class Bullet {
     }
 
     draw() {
-        this.drawPortion(new Vector());
+        this.drawBullet(new Vector());
         var offset = new Vector();
         if (this.position.x + this.radius > canvas_bounds.width)
             offset.x = -canvas_bounds.width;
@@ -46,8 +110,10 @@ class Bullet {
             offset.y = -canvas_bounds.height;
         else if (this.position.y - this.radius < 0)
             offset.y = canvas_bounds.height;
-        if (offset.x != 0 || offset.y != 0)
-            this.drawPortion(offset);
+        if (offset.x != 0)
+            this.drawBullet(new Vector(offset.x, 0));
+        if (offset.y != 0)
+            this.drawBullet(new Vector(0, offset.y));
     }
 
 }
@@ -60,10 +126,15 @@ class Ship {
         this.width = 30
         this.height = 16;
         this.rear_offset = 6;
+        this.bounds = new Polygon([
+            [-this.width / 2, -this.height / 2],
+            [-this.width / 2, this.height / 2],
+            [this.width / 2, 0]
+        ]);
         this.angle = 0;
         this.rotation_speed = 5;
-        this.acceleration = 0.25;
-        this.drag_coefficient = 0.025;
+        this.acceleration = 0.15;
+        this.drag_coefficient = 0.02;
         this.bullets = [];
         this.bullet_cooldown = 1;
         this.fire_rate = 0.05;
@@ -77,12 +148,15 @@ class Ship {
         this.teleport_cooldown = 1;
         this.teleport_recharge_rate = 0.005;
         this.teleport_location = new Vector();
-
+        this.bounds.translate(this.position);
     }
 
     update(left, right, forward, fire, teleport, delay) {
+        var old_position = this.position.copy();
+        var old_angle = this.angle;
         if (left) this.angle += delay * Math.PI * this.rotation_speed / 180;
         if (right) this.angle -= delay * Math.PI * this.rotation_speed / 180;
+        this.bounds.rotate(this.angle - old_angle, this.position);
         while (this.angle >= Math.PI * 2) this.angle -= Math.PI * 2;
         while (this.angle < 0) this.angle += Math.PI * 2;
         var direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
@@ -119,10 +193,10 @@ class Ship {
             if (this.teleport_buffer >= 1) {
                 this.position = this.teleport_location;
                 this.teleport_buffer = 0;
-                //deal with self-destruct here
             }
         }
         this.teleport_cooldown = Math.min(this.teleport_cooldown + this.teleport_recharge_rate * delay, 1);
+        this.bounds.translate(Vector.sub(this.position, old_position));
         var new_bullets = [];
         for (var i = 0; i < this.bullets.length; i++) {
             var dead = this.bullets[i].update(delay);
@@ -133,7 +207,7 @@ class Ship {
         return true;
     }
 
-    drawShip(offset, position, alpha = 1) {
+    drawShip(offset, position, show_bounds, alpha = 1) {
         ctx.strokeStyle = "white";
         ctx.globalAlpha = alpha;
         ctx.lineWidth = 1.5;
@@ -156,46 +230,63 @@ class Ship {
         ctx.stroke();
         ctx.globalAlpha = 1;
         ctx.resetTransform();
+        if (show_bounds) {
+            ctx.translate(offset.x, offset.y);
+            drawBounds(this);
+            ctx.translate(-offset.x, -offset.y);
+        }
     }
 
     draw() {
         if (this.teleport_buffer == 0)
-            this.drawShip(new Vector(), this.position);
+            this.drawShip(new Vector(), this.position, settings.show_bounds);
         else {
-            this.drawShip(new Vector(), this.position, 1 - this.teleport_buffer);
+            this.drawShip(new Vector(), this.position, false, 1 - this.teleport_buffer);
         }
         var offset = new Vector();
-        if (this.position.x + this.width > canvas_bounds.width)
+        if (this.position.x + 2 * this.width > canvas_bounds.width)
             offset.x = -canvas_bounds.width;
-        else if (this.position.x - this.width < 0)
+        else if (this.position.x - 2 * this.width < 0)
             offset.x = canvas_bounds.width;
-        if (this.position.y + this.height > canvas_bounds.height)
+        if (this.position.y + 2 * this.height > canvas_bounds.height)
             offset.y = -canvas_bounds.height;
-        else if (this.position.y - this.height < 0)
+        else if (this.position.y - 2 * this.height < 0)
             offset.y = canvas_bounds.height;
-        if (offset.x != 0 || offset.y != 0) {
+        if (offset.x != 0) {
             if (this.teleport_buffer == 0)
-                this.drawShip(offset, this.position);
+                this.drawShip(new Vector(offset.x, 0), this.position, settings.show_bounds);
             else
-                this.drawShip(offset, this.position, 1 - this.teleport_buffer);
+                this.drawShip(new Vector(offset.x, 0), this.position, false, 1 - this.teleport_buffer);
+        }
+        if (offset.y != 0) {
+            if (this.teleport_buffer == 0)
+                this.drawShip(new Vector(0, offset.y), this.position, settings.show_bounds);
+            else
+                this.drawShip(new Vector(0, offset.y), this.position, false, 1 - this.teleport_buffer);
         }
         if (this.teleport_buffer != 0) {
             if (this.teleport_buffer != 0)
-                this.drawShip(new Vector(), this.teleport_location, this.teleport_buffer);
+                this.drawShip(new Vector(), this.teleport_location, false, this.teleport_buffer);
             offset = new Vector();
-            if (this.teleport_location.x + this.width > canvas_bounds.width)
+            if (this.teleport_location.x + 2 * this.width > canvas_bounds.width)
                 offset.x = -canvas_bounds.width;
-            else if (this.teleport_location.x - this.width < 0)
+            else if (this.teleport_location.x - 2 * this.width < 0)
                 offset.x = canvas_bounds.width;
-            if (this.teleport_location.y + this.height > canvas_bounds.height)
+            if (this.teleport_location.y + 2 * this.height > canvas_bounds.height)
                 offset.y = -canvas_bounds.height;
-            else if (this.teleport_location.y - this.height < 0)
+            else if (this.teleport_location.y - 2 * this.height < 0)
                 offset.y = canvas_bounds.height;
-            if (offset.x != 0 || offset.y != 0) {
+            if (offset.x != 0) {
                 if (this.teleport_buffer == 0)
-                    this.drawShip(offset, this.position);
+                    this.drawShip(new Vector(offset.x, 0), this.position, false);
                 else
-                    this.drawShip(offset, this.teleport_location, this.teleport_buffer);
+                    this.drawShip(new Vector(offset.x, 0), this.teleport_location, false, this.teleport_buffer);
+            }
+            if (offset.y != 0) {
+                if (this.teleport_buffer == 0)
+                    this.drawShip(new Vector(0, offset.y), this.position, false);
+                else
+                    this.drawShip(new Vector(0, offset.y), this.teleport_location, false, this.teleport_buffer);
             }
         }
         for (var i = 0; i < this.bullets.length; i++)
@@ -204,10 +295,77 @@ class Ship {
 
 }
 
+class Asteroid {
+
+    static analyzeAsteroidTypes() {
+        for (var i = 0; i < asteroid_types.length; i++) {
+            var rect = asteroid_types[i].getRect();
+            var shift = new Vector(-rect.left, -rect.top);
+            asteroid_types[i].translate(shift);
+        }
+    }
+
+    constructor(ship, size) {
+        var type = Math.floor(Math.random() * 3);
+        this.size = size;
+        this.bounds = asteroid_types[type].copy();
+        this.bounds.scale(sizes[size]);
+        this.rect = this.bounds.getRect();
+        this.bounds.translate(new Vector(-this.rect.width / 2, -this.rect.height / 2));
+        this.position = new Vector(Math.floor(Math.random() * canvas_bounds.width), Math.floor(Math.random() * canvas_bounds.height));
+        while (Math.abs(ship.position.x - this.position.x) < this.rect.width / 2 || Math.abs(ship.position.y - this.position.y) < this.rect.height / 2) {
+            this.position.x = Math.floor(Math.random() * canvas_bounds.width);
+            this.position.y = Math.floor(Math.random() * canvas_bounds.height);
+        }
+        this.bounds.translate(this.position);
+    }
+
+    update() {
+
+    }
+
+    drawAsteroid(offset) {
+        ctx.translate(offset.x, offset.y);
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(this.bounds.points[this.bounds.points.length - 1].x, this.bounds.points[this.bounds.points.length - 1].y);
+        for (var i = 0; i < this.bounds.points.length; i++)
+            ctx.lineTo(this.bounds.points[i].x, this.bounds.points[i].y);
+        ctx.stroke();
+        ctx.resetTransform();
+        if (settings.show_bounds) {
+            ctx.translate(offset.x, offset.y);
+            drawBounds(this);
+            ctx.translate(-offset.x, -offset.y);
+        }
+    }
+
+    draw() {
+        this.drawAsteroid(new Vector());
+        var offset = new Vector();
+        if (this.position.x + 2 * this.rect.width > canvas_bounds.width)
+            offset.x = -canvas_bounds.width;
+        else if (this.position.x - 2 * this.rect.width < 0)
+            offset.x = canvas_bounds.width;
+        if (this.position.y + 2 * this.rect.height > canvas_bounds.height)
+            offset.y = -canvas_bounds.height;
+        else if (this.position.y - 2 * this.rect.height < 0)
+            offset.y = canvas_bounds.height;
+        if (offset.x != 0)
+            this.drawAsteroid(new Vector(offset.x, 0));
+        if (offset.y != 0)
+            this.drawAsteroid(new Vector(0, offset.y));
+    }
+
+}
+
 class Game {
     
     constructor () {
         this.ship = new Ship();
+        this.asteroids = [];
+        this.asteroids.push(new Asteroid(this.ship, 2));
     }
 
     update(left, right, forward, fire, teleport, delay) {
@@ -216,6 +374,8 @@ class Game {
 
     draw() {
         this.ship.draw();
+        for (var i = 0; i < this.asteroids.length; i++)
+            this.asteroids[i].draw();
     }
 
 }
