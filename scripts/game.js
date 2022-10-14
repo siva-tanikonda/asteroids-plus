@@ -53,6 +53,10 @@ function wrap(v) {
         v.y += canvas_bounds.height;
 }
 
+function calculateRenderWrap() {
+
+}
+
 function drawBounds(item) {
     ctx.fillStyle = 'rgb(200, 100, 100)';
     ctx.globalAlpha = 0.75;
@@ -237,57 +241,38 @@ class Ship {
         }
     }
 
-    draw() {
+    drawWrapBeforeTeleportation(offset) {
         if (this.teleport_buffer == 0)
-            this.drawShip(new Vector(), this.position, settings.show_bounds);
+            this.drawShip(offset, this.position, settings.show_bounds);
         else {
-            this.drawShip(new Vector(), this.position, false, 1 - this.teleport_buffer);
+            this.drawShip(offset, this.position, false, 1 - this.teleport_buffer);
         }
-        var offset = new Vector();
+    }
+
+    drawWrapAfterTeleportation(offset) {
+        this.drawShip(offset, this.teleport_location, false, this.teleport_buffer);
+    }
+
+    draw() {
+        this.drawWrapBeforeTeleportation(new Vector());
         if (this.position.x + 2 * this.width > canvas_bounds.width)
-            offset.x = -canvas_bounds.width;
-        else if (this.position.x - 2 * this.width < 0)
-            offset.x = canvas_bounds.width;
-        if (this.position.y + 2 * this.height > canvas_bounds.height)
-            offset.y = -canvas_bounds.height;
-        else if (this.position.y - 2 * this.height < 0)
-            offset.y = canvas_bounds.height;
-        if (offset.x != 0) {
-            if (this.teleport_buffer == 0)
-                this.drawShip(new Vector(offset.x, 0), this.position, settings.show_bounds);
-            else
-                this.drawShip(new Vector(offset.x, 0), this.position, false, 1 - this.teleport_buffer);
-        }
-        if (offset.y != 0) {
-            if (this.teleport_buffer == 0)
-                this.drawShip(new Vector(0, offset.y), this.position, settings.show_bounds);
-            else
-                this.drawShip(new Vector(0, offset.y), this.position, false, 1 - this.teleport_buffer);
-        }
+            this.drawWrapBeforeTeleportation(new Vector(-canvas_bounds.width, 0))
+        if (this.position.x - 2 * this.width < 0)
+            this.drawWrapBeforeTeleportation(new Vector(canvas_bounds.width, 0));
+        if (this.position.y + 2 * this.width > canvas_bounds.height)
+            this.drawWrapBeforeTeleportation(new Vector(0, -canvas_bounds.height));
+        if (this.position.y - 2 * this.width < 0)
+            this.drawWrapBeforeTeleportation(new Vector(0, canvas_bounds.height));
         if (this.teleport_buffer != 0) {
-            if (this.teleport_buffer != 0)
-                this.drawShip(new Vector(), this.teleport_location, false, this.teleport_buffer);
-            offset = new Vector();
+            this.drawShip(new Vector(), this.teleport_location, false, this.teleport_buffer);
             if (this.teleport_location.x + 2 * this.width > canvas_bounds.width)
-                offset.x = -canvas_bounds.width;
-            else if (this.teleport_location.x - 2 * this.width < 0)
-                offset.x = canvas_bounds.width;
-            if (this.teleport_location.y + 2 * this.height > canvas_bounds.height)
-                offset.y = -canvas_bounds.height;
-            else if (this.teleport_location.y - 2 * this.height < 0)
-                offset.y = canvas_bounds.height;
-            if (offset.x != 0) {
-                if (this.teleport_buffer == 0)
-                    this.drawShip(new Vector(offset.x, 0), this.position, false);
-                else
-                    this.drawShip(new Vector(offset.x, 0), this.teleport_location, false, this.teleport_buffer);
-            }
-            if (offset.y != 0) {
-                if (this.teleport_buffer == 0)
-                    this.drawShip(new Vector(0, offset.y), this.position, false);
-                else
-                    this.drawShip(new Vector(0, offset.y), this.teleport_location, false, this.teleport_buffer);
-            }
+                this.drawShip(new Vector(-canvas_bounds.width, 0), this.teleport_location, false, this.teleport_buffer);
+            if (this.teleport_location.x - 2 * this.width < 0)
+                this.drawShip(new Vector(canvas_bounds.width, 0), this.teleport_location, false, this.teleport_buffer);
+            if (this.teleport_location.y + 2 * this.width > canvas_bounds.height)
+                this.drawShip(new Vector(0, -canvas_bounds.height), this.teleport_location, false, this.teleport_buffer);
+            if (this.teleport_location.y - 2 * this.width < 0)
+                this.drawShip(new Vector(0, canvas_bounds.height), this.teleport_location, false, this.teleport_buffer);
         }
         for (var i = 0; i < this.bullets.length; i++)
             this.bullets[i].draw();
