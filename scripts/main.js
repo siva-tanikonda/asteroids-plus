@@ -1,9 +1,8 @@
 var settings = {
-    updates_per_second: 60,
+    game_speed: 10,
     show_bounds: true,
     show_positions: true,
-    person_playing: true,
-    collision_precision: 10
+    person_playing: true
 };
 
 var canvas = document.getElementById("canvas");
@@ -12,12 +11,13 @@ var ctx = canvas.getContext("2d");
 var user_input = new UserInput();
 var old_timestamp = 0;
 
-ctx.imageSmoothingEnabled = false;
+ctx.imageSmoothingQuality = "high";
 
 resizeCanvas();
-Asteroid.analyzeAsteroidTypes();
+Asteroid.analyzeAsteroidConfigurations();
+Saucer.analyzeSaucerConfigurations();
 
-var game = new Game();
+var game = new Game(true);
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -28,16 +28,20 @@ function resizeCanvas() {
 function update(delay) {
     if (isNaN(delay) || delay == 0) return;
     var left, right, forward, fire, teleport;
-    left = right = forward = fire = teleport = false;
+    left = right = forward = fire = teleport = start = false;
     if (settings.person_playing) {
         left = user_input.left;
         right = user_input.right;
         forward = user_input.forward;
         fire = user_input.fire;
         teleport = user_input.teleport;
+        start = user_input.start;
     }
-    for (var i = 0; i < settings.collision_precision; i++)
-        game.update(left, right, forward, fire, teleport, delay / settings.collision_precision);
+    for (var i = 0; i < settings.game_speed; i++) {
+        var done = game.update(left, right, forward, fire, teleport, start, delay / settings.game_speed);
+        if (done)
+            this.game = new Game();
+    }
 }
 
 function draw() {
@@ -48,7 +52,7 @@ function draw() {
 function loop(timestamp) {
     seconds_passed = (timestamp - old_timestamp) / 1000;
     old_timestamp = timestamp;
-    update(seconds_passed * settings.updates_per_second);
+    update(seconds_passed * 6 * settings.game_speed);
     draw();
     window.requestAnimationFrame(loop);
 }

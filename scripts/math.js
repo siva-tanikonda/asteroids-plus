@@ -43,6 +43,12 @@ class Vector {
     cross(v) {
         return this.x * v.y - this.y * v.x;
     }
+    angle() {
+        return Math.atan2(this.y, this.x);
+    }
+    distance(v) {
+        return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2);
+    }
     static copy(v) {
         return new Vector(v.x, v.y);
     }
@@ -77,6 +83,12 @@ class Vector {
     static cross(u, v) {
         return u.x * v.y - u.y * v.x;
     }
+    static angle(v) {
+        return Math.atan2(v.y, v.x);
+    }
+    static distance(u, v) {
+        return Math.sqrt((u.x - v.x) ** 2, (u.y - v.y) ** 2);
+    }
     static side(u, v, w) {
         var uv = Vector.sub(v, u);
         var vw = Vector.sub(w, v);
@@ -97,6 +109,34 @@ class Rect {
         this.bottom = bottom;
         this.width = right - left;
         this.height = bottom - top;
+    }
+    intersects(r) {
+        return !(this.right < r.left || this.left > r.right || this.top > r.bottom || this.bottom < r.top);
+    }
+}
+
+class LineSegment {
+    constructor(a, b) {
+        this.a = a;
+        this.b = b;
+    }
+    containsPoint(v) {
+        var side = Vector.side(this.a, this.b, v);
+        if (side != 0) return false;
+        var min_x = Math.min(this.a.x, this.b.x);
+        var max_x = Math.max(this.a.x, this.b.x);
+        return (v.x >= min_x && v.x <= max_x);
+    }
+    intersects(l) {
+        if (l.containsPoint(this.a) || l.containsPoint(this.b) || this.containsPoint(l.a) || this.containsPoint(l.b))
+            return true;
+        var s1 = Vector.side(this.a, this.b, l.a);
+        var s2 = Vector.side(this.a, this.b, l.b);
+        var s3 = Vector.side(l.a, l.b, this.a);
+        var s4 = Vector.side(l.a, l.b, this.b);
+        if (s1 == 0 || s2 == 0 || s3 == 0 || s4 == 0)
+            return false;
+        return (s1 != s2 && s3 != s4);
     }
 }
 
@@ -137,6 +177,9 @@ class Polygon {
             this.points[i].add(v);
     }
     containsPoint(v) {
+        var rect = this.getRect();
+        if (v.x < rect.left || v.x > rect.right || v.y < rect.top || v.y > rect.bottom)
+            return false;
         var result = false;
         for (var i = 0; i < this.points.length; i++) {
             var j = (i + 1) % this.points.length;
@@ -164,4 +207,37 @@ class Polygon {
         }
         return result;
     }
+    intersectsLineSegment(l) {
+        for (var i = 0; i < this.points.length; i++) {
+            var j = (i + 1) % this.points.length;
+            var segment = new LineSegment(this.points[i], this.points[j]);
+            if (segment.intersects(l))
+                return true;
+        }
+        return false;
+    }
+    intersectsPolygon(p) {
+        var rect1 = p.getRect();
+        var rect2 = this.getRect();
+        if (!rect1.intersects(rect2)) return false;
+        var inside = true;
+        for (var i = 0; i < p.points.length; i++)
+            inside &= this.containsPoint(p.points[i]);
+        if (inside) return true;
+        for (var i = 0; i < p.points.length; i++) {
+            var j = (i + 1) % p.points.length;
+            var segment = new LineSegment(p.points[i], p.points[j]);
+            if (this.intersectsLineSegment(segment))
+                return true;
+        }
+        return false;
+    }
+}
+
+function randomInRange(range) {
+    return range[0] + Math.random() * (range[1] - range[0]);
+}
+
+function randomInArray(array) {
+    return array[Math.floor(randomInRange([0, array.length]))];
 }
