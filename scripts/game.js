@@ -159,6 +159,41 @@ function drawPosition(item) {
     ctx.globalAlpha = 1;
 }
 
+function drawVelocity(item) {
+    var angle = item.velocity.angle();
+    ctx.translate(item.position.x, item.position.y);
+    ctx.rotate(angle);
+    ctx.translate(-item.position.x, -item.position.y);
+    var scale_velocity = item.velocity.mag() * 10;
+    ctx.strokeStyle = "rgb(250, 250, 100)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(item.position.x, item.position.y);
+    ctx.lineTo(item.position.x + scale_velocity, item.position.y);
+    ctx.lineTo(item.position.x + scale_velocity - 5, item.position.y - 5);
+    ctx.moveTo(item.position.x + scale_velocity, item.position.y);
+    ctx.lineTo(item.position.x + scale_velocity - 5, item.position.y + 5);
+    ctx.stroke();
+    ctx.resetTransform();
+}
+
+function drawAcceleration(item) {
+    ctx.translate(item.position.x, item.position.y);
+    ctx.rotate(-item.angle);
+    ctx.translate(-item.position.x, -item.position.y);
+    var scale_acceleration = item.acceleration * 250;
+    ctx.strokeStyle = "rgb(125, 150, 250)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(item.position.x, item.position.y);
+    ctx.lineTo(item.position.x + scale_acceleration, item.position.y);
+    ctx.lineTo(item.position.x + scale_acceleration - 5, item.position.y - 5);
+    ctx.moveTo(item.position.x + scale_acceleration, item.position.y);
+    ctx.lineTo(item.position.x + scale_acceleration - 5, item.position.y + 5);
+    ctx.stroke();
+    ctx.resetTransform();
+}
+
 class Particle {
     constructor(position, velocity, drag_coefficient, radius, life) {
         this.position = position;
@@ -396,12 +431,12 @@ class Ship {
         return true;
     }
 
-    drawShip(offset, position, show_bounds, show_positions, alpha = 1) {
+    drawShip(offset, position, show_bounds, show_positions, show_velocity, show_acceleration, alpha = 1) {
         if (this.invincibility > 0 && this.invincibility_flash < 0.5)
             return;
         ctx.strokeStyle = "white";
         ctx.globalAlpha = alpha;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2;
         ctx.translate(offset.x, offset.y);
         ctx.translate(position.x, position.y);
         ctx.rotate(-this.angle);
@@ -428,6 +463,10 @@ class Ship {
         }
         if (show_positions)
             drawPosition(this);
+        if (show_velocity)
+            drawVelocity(this);
+        if (show_acceleration)
+            drawAcceleration(this);
     }
 
     drawLife(position) {
@@ -450,14 +489,14 @@ class Ship {
 
     drawWrapBeforeTeleportation(offset) {
         if (this.teleport_buffer == 0)
-            this.drawShip(offset, this.position, settings.show_bounds, settings.show_positions);
+            this.drawShip(offset, this.position, settings.show_bounds, settings.show_positions, settings.show_velocity, settings.show_acceleration);
         else {
-            this.drawShip(offset, this.position, false, settings.show_positions, 1 - this.teleport_buffer);
+            this.drawShip(offset, this.position, false, settings.show_positions, settings.show_velocity, settings.show_acceleration, 1 - this.teleport_buffer);
         }
     }
 
     drawWrapAfterTeleportation(offset) {
-        this.drawShip(offset, this.teleport_location, false, false, this.teleport_buffer);
+        this.drawShip(offset, this.teleport_location, false, false, false, false, this.teleport_buffer);
     }
 
     draw() {
@@ -505,8 +544,6 @@ class Ship {
         var shifted_bounds = this.bounds.copy();
         for (var i = 0; i < 3; i++) {
             for (var j = 0; j < 3; j++) {
-                if ((horizontal[i] != 0 && !this.entered_x) || (vertical[i] != 0 && !this.entered_y))
-                    continue;
                 shifted_bounds.translate(Vector.sub(new Vector(horizontal[i], vertical[j]), old_offset));
                 old_offset = new Vector(horizontal[i], vertical[j]);
                 var hit = item.bounds.intersectsPolygon(shifted_bounds);
@@ -524,6 +561,31 @@ class Ship {
     checkAsteroidCollision(split_asteroids, wave, asteroid, explosions) {
         if (this.checkPolygonCollision(asteroid, explosions))
             asteroid.destroy(split_asteroids, wave);
+    }
+
+    checkSaucerCollision(saucer, explosions) {
+        if (saucer.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
+            return false;
+        var horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
+        var vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
+        var old_offset = new Vector();
+        var shifted_bounds = this.bounds.copy();
+        for (var i = 0; i < 3; i++) {
+            for (var j = 0; j < 3; j++) {
+                if ((horizontal[i] != 0 && !saucer.entered_x) || (vertical[i] != 0 && !saucer.entered_y))
+                    continue;
+                shifted_bounds.translate(Vector.sub(new Vector(horizontal[i], vertical[j]), old_offset));
+                old_offset = new Vector(horizontal[i], vertical[j]);
+                var hit = saucer.bounds.intersectsPolygon(shifted_bounds);
+                if (hit) {
+                    this.dead = saucer.dead = true;
+                    explosions.push(new Explosion(saucer.position));
+                    explosions.push(new Explosion(this.position));
+                    return true;
+                }
+            }    
+        }
+        return false;
     }
 
 }
@@ -575,7 +637,7 @@ class Asteroid {
     drawAsteroid(offset) {
         ctx.translate(offset.x, offset.y);
         ctx.strokeStyle = "white";
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(this.bounds.points[this.bounds.points.length - 1].x, this.bounds.points[this.bounds.points.length - 1].y);
         for (var i = 0; i < this.bounds.points.length; i++)
@@ -589,6 +651,8 @@ class Asteroid {
         }
         if (settings.show_positions)
             drawPosition(this);
+        if (settings.show_velocity)
+            drawVelocity(this);
     }
 
     draw() {
@@ -705,7 +769,7 @@ class Saucer {
     drawSaucer(offset) {
         ctx.translate(offset.x, offset.y);
         ctx.strokeStyle = "white";
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(this.bounds.points[this.bounds.points.length - 1].x, this.bounds.points[this.bounds.points.length - 1].y);
         for (var i = 0; i < this.bounds.points.length; i++)
@@ -719,6 +783,8 @@ class Saucer {
             drawBounds(this);
         if (settings.show_positions)
             drawPosition(this);
+        if (settings.show_velocity)
+            drawVelocity(this);
         ctx.resetTransform();
     }
 
@@ -834,7 +900,7 @@ class Game {
             for (var i = 0; i < this.saucer_bullets.length; i++)
                 this.ship.checkBulletCollision(this.saucer_bullets[i], this.explosions);
             for (var i = 0; i < this.saucers.length; i++)
-                this.ship.checkPolygonCollision(this.saucers[i], this.explosions);
+                this.ship.checkSaucerCollision(this.saucers[i], this.explosions);
             for (var i = 0; i < this.asteroids.length; i++)
                 this.ship.checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[i], this.explosions);
         }
