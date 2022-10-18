@@ -178,6 +178,7 @@ function drawVelocity(item) {
 }
 
 function drawAcceleration(item) {
+    if (!item.accelerating) return;
     ctx.translate(item.position.x, item.position.y);
     ctx.rotate(-item.angle);
     ctx.translate(-item.position.x, -item.position.y);
@@ -355,6 +356,7 @@ class Ship {
         this.invincibility_time = 100;
         this.invincibility_flash = 0;
         this.invincibility_flash_rate = 0.1;
+        this.accelerating = false;
     }
 
     update(left, right, forward, fire, teleport, delay, ship_bullets) {
@@ -390,9 +392,12 @@ class Ship {
             this.thruster_status += this.thruster_flash_rate * delay;
             while (this.thruster_status >= 1)
                 this.thruster_status--;
+            this.accelerating = true;
         }
-        else
+        else {
+            this.accelerating = false;
             this.thruster_status = 0;
+        }
         var initial_velocity = this.velocity.copy();
         this.velocity.mul(1/(Math.E ** (this.drag_coefficient * delay)));
         this.position = Vector.div(Vector.add(Vector.mul(this.position, this.drag_coefficient), Vector.sub(initial_velocity, this.velocity)), this.drag_coefficient);
@@ -842,6 +847,8 @@ class Game {
         this.title_screen = title_screen;
         this.title_flash = 0;
         this.title_flash_rate = 0.025;
+        this.paused = false;
+        this.old_pause = false;
     }
 
     makeAsteroids() {
@@ -865,20 +872,29 @@ class Game {
         this.saucer_cooldown = Math.min(1, this.saucer_cooldown + saucer_configurations.spawn_rate(this.wave) * delay);
     }
 
-    update(left, right, forward, fire, teleport, start, delay) {
+    update(left, right, forward, fire, teleport, start, pause, delay) {
+
+        if (!this.title_screen && !(this.ship.dead && this.ship.lives <= 0) && !this.paused && pause && !this.old_pause)
+            this.paused = true;
+        else if (this.paused && pause && !this.old_pause)
+            this.paused = false;
 
         this.wave = this.score / 1000 + 1;
 
-        if (this.title_screen || (this.ship.dead && this.ship.lives <= 0)) {
+        if (this.title_screen || (this.ship.dead && this.ship.lives <= 0) || this.paused) {
             this.title_flash += this.title_flash_rate * delay;
             while (this.title_flash >= 1)
                 this.title_flash--;
-            if (start) {
+            if (start && !this.paused) {
                 if (!this.ship.dead)
                     this.title_screen = false;
                 return true;
             }
         }
+
+        this.old_pause = pause;
+
+        if (this.paused) return;
 
         if (this.asteroids.length == 0)
             this.makeAsteroids();
@@ -1002,6 +1018,22 @@ class Game {
         }
     }
 
+    drawPause() {
+        ctx.fillStyle = "rgb(30, 30, 30)";
+        ctx.globalAlpha = 0.5;
+        ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "white";
+        ctx.font = "35px Rubik Regular";
+        var textSize = ctx.measureText("Paused");
+        ctx.fillText("Paused", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 - 30);
+        ctx.font = "25px Rubik Regular";
+        if (this.title_flash <= 0.5) {
+            textSize = ctx.measureText("Press Escape to Resume");
+            ctx.fillText("Press Escape to Resume", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 + 30);
+        }
+    }
+
     draw() {
         if (!this.title_screen)
             this.ship.draw();
@@ -1022,6 +1054,9 @@ class Game {
             this.drawTitle();
         if (this.ship.dead && this.ship.lives <= 0) {
             this.drawGameOver();
+        }
+        if (this.paused) {
+            this.drawPause();
         }
     }
 

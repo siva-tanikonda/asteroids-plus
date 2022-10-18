@@ -1,10 +1,10 @@
 var settings = {
     game_speed: 10,
-    show_bounds: false,
-    show_positions: false,
+    show_bounds: true,
+    show_positions: true,
     person_playing: true,
-    show_velocity: false,
-    show_acceleration: false
+    show_velocity: true,
+    show_acceleration: true
 };
 
 var canvas = document.getElementById("canvas");
@@ -30,17 +30,18 @@ function resizeCanvas() {
 function update(delay) {
     if (isNaN(delay) || delay == 0) return;
     var left, right, forward, fire, teleport;
-    left = right = forward = fire = teleport = start = false;
-    if (settings.person_playing) {
-        left = user_input.left;
-        right = user_input.right;
-        forward = user_input.forward;
-        fire = user_input.fire;
-        teleport = user_input.teleport;
-        start = user_input.start;
-    }
+    left = right = forward = fire = teleport = start = pause = false;
     for (var i = 0; i < settings.game_speed; i++) {
-        var done = game.update(left, right, forward, fire, teleport, start, delay / settings.game_speed);
+        if (settings.person_playing) {
+            left = user_input.left;
+            right = user_input.right;
+            forward = user_input.forward;
+            fire = user_input.fire;
+            teleport = user_input.teleport;
+            start = user_input.start;
+            pause = user_input.pause;
+        }
+        var done = game.update(left, right, forward, fire, teleport, start, pause, delay / settings.game_speed);
         if (done)
             this.game = new Game();
     }
