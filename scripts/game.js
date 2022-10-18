@@ -47,10 +47,10 @@ var asteroid_configurations = {
     size_speed: [ 2, 1.5, 1 ],
     speed_scaling: (wave) => {
         var last_wave = Math.max(1, wave - 1);
-        return [ Math.max(1, 1 + 0.05 * Math.log2(last_wave)), Math.max(1, 1 + 0.05 * Math.log2(wave))];
+        return [ Math.max(2, 2 + 0.1 * Math.log2(last_wave)), Math.max(2, 2 + 0.1 * Math.log2(wave))];
     },
     spawn_count: (wave) => {
-        return Math.min(6, wave + 4) / (canvas_bounds.width * canvas_bounds.height / 1.5e6);
+        return Math.min(7, wave + 4);
     }
 };
 
@@ -84,7 +84,7 @@ var saucer_configurations = {
         return Math.min(1e-2, 1 - 1e-2 / wave);
     },
     bullet_accuracy: (wave) => {
-        return Math.PI / 100 * Math.max(0, 100 - 20 * Math.log2(wave));
+        return Math.PI / 100 * Math.max(0, 100 - 25 * Math.log2(wave));
     },
     bullet_speed: (wave) => {
         var last_wave = Math.max(1, wave - 1);
@@ -94,8 +94,8 @@ var saucer_configurations = {
     },
     fire_rate: (wave) => {
         var last_wave = Math.max(1, wave - 1);
-        var upper_bound = Math.min(0.02, wave / 10 * 0.01);
-        var lower_bound = Math.min(0.02, last_wave / 10 * 0.01);
+        var upper_bound = Math.min(0.02, wave / 10 * 0.02);
+        var lower_bound = Math.min(0.02, last_wave / 10 * 0.02);
         return [lower_bound, upper_bound];
     },
     bullet_life: (wave) => {
@@ -979,13 +979,10 @@ class Game {
         ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
         ctx.globalAlpha = 1;
         ctx.fillStyle = "white";
-        ctx.font = "100px Rubik Bold";
-        var textSize = ctx.measureText("Asteroids");
-        ctx.fillText("Asteroids", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 - 100);
         ctx.font = "25px Rubik Regular";
         if (this.title_flash <= 0.5) {
-            textSize = ctx.measureText("Press Enter to Start");
-            ctx.fillText("Press Enter to Start", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 + 50);
+            var textSize = ctx.measureText("Press Enter to Start");
+            ctx.fillText("Press Enter to Start", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2);
         }
     }
 
@@ -995,16 +992,13 @@ class Game {
         ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
         ctx.globalAlpha = 1;
         ctx.fillStyle = "white";
-        ctx.font = "100px Rubik Bold";
-        var textSize = ctx.measureText("Game Over");
-        ctx.fillText("Game Over", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 - 100);
         ctx.font = "35px Rubik Regular";
-        textSize = ctx.measureText("Score: " + this.score);
-        ctx.fillText("Score: " + this.score, canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2);
+        var textSize = ctx.measureText("Score: " + this.score);
+        ctx.fillText("Score: " + this.score, canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 - 30);
         ctx.font = "25px Rubik Regular";
         if (this.title_flash <= 0.5) {
             textSize = ctx.measureText("Press Enter to Try Again");
-            ctx.fillText("Press Enter to Try Again", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 + 100);
+            ctx.fillText("Press Enter to Try Again", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 + 30);
         }
     }
 

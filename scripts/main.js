@@ -1,10 +1,10 @@
 var settings = {
     game_speed: 10,
-    show_bounds: true,
-    show_positions: true,
+    show_bounds: false,
+    show_positions: false,
     person_playing: true,
-    show_velocity: true,
-    show_acceleration: true
+    show_velocity: false,
+    show_acceleration: false
 };
 
 var canvas = document.getElementById("canvas");
