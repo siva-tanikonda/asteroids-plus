@@ -1,8 +1,8 @@
 var settings = {
-    game_speed: 10,
+    game_speed: 20,
+    person_playing: false,
     show_bounds: true,
     show_positions: true,
-    person_playing: true,
     show_velocity: true,
     show_acceleration: true
 };
@@ -20,6 +20,7 @@ Asteroid.analyzeAsteroidConfigurations();
 Saucer.analyzeSaucerConfigurations();
 
 var game = new Game(true);
+var ai = new AI();
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -32,14 +33,21 @@ function update(delay) {
     var left, right, forward, fire, teleport;
     left = right = forward = fire = teleport = start = pause = false;
     for (var i = 0; i < settings.game_speed; i++) {
+        ai.update(game.ship, game.saucers, game.saucer_bullets, game.asteroids, delay / settings.game_speed);
+        pause = user_input.pause;
+        start = user_input.start;
         if (settings.person_playing) {
             left = user_input.left;
             right = user_input.right;
             forward = user_input.forward;
             fire = user_input.fire;
             teleport = user_input.teleport;
-            start = user_input.start;
-            pause = user_input.pause;
+        } else {
+            left = ai.controls.left;
+            right = ai.controls.right;
+            forward = ai.controls.forward;
+            fire = ai.controls.fire;
+            teleport = ai.controls.teleport;
         }
         var done = game.update(left, right, forward, fire, teleport, start, pause, delay / settings.game_speed);
         if (done)

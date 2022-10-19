@@ -88,8 +88,8 @@ var saucer_configurations = {
     },
     bullet_speed: (wave) => {
         var last_wave = Math.max(1, wave - 1);
-        var upper_bound = Math.min(9, 4 + wave / 10 * 4);
-        var lower_bound = Math.min(9, 4 + last_wave / 10 * 4);
+        var upper_bound = Math.min(7, 4 + wave / 10 * 4);
+        var lower_bound = Math.min(7, 4 + last_wave / 10 * 4);
         return [lower_bound, upper_bound];
     },
     fire_rate: (wave) => {
@@ -99,7 +99,7 @@ var saucer_configurations = {
         return [lower_bound, upper_bound];
     },
     bullet_life: (wave) => {
-        return 80 + 6 * Math.log2(wave);
+        return 80;
     },
     spawn_rate: (wave) => {
         return Math.min(1, wave / 1000);
@@ -137,62 +137,6 @@ function renderWrap(position, radius, action, offset_x = true, offset_y = true) 
         for (var j = 0; j < vertical.length; j++)
             if ((horizontal[i] == 0 || offset_x) && (vertical[i] == 0 || offset_y))
                 action(new Vector(horizontal[i], vertical[j]));
-}
-
-function drawBounds(item) {
-    ctx.fillStyle = 'rgb(200, 100, 100)';
-    ctx.globalAlpha = 0.5;
-    ctx.beginPath();
-    ctx.moveTo(item.bounds.points[item.bounds.points.length - 1].x, item.bounds.points[item.bounds.points.length - 1].y);
-    for (var i = 0; i < item.bounds.points.length; i++)
-        ctx.lineTo(item.bounds.points[i].x, item.bounds.points[i].y);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-}
-
-function drawPosition(item) {
-    ctx.fillStyle = "rgb(125, 250, 125)";
-    ctx.globalAlpha = 0.75;
-    ctx.beginPath();
-    ctx.arc(item.position.x, item.position.y, 2, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-}
-
-function drawVelocity(item) {
-    var angle = item.velocity.angle();
-    ctx.translate(item.position.x, item.position.y);
-    ctx.rotate(angle);
-    ctx.translate(-item.position.x, -item.position.y);
-    var scale_velocity = item.velocity.mag() * 10;
-    ctx.strokeStyle = "rgb(250, 250, 100)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(item.position.x, item.position.y);
-    ctx.lineTo(item.position.x + scale_velocity, item.position.y);
-    ctx.lineTo(item.position.x + scale_velocity - 5, item.position.y - 5);
-    ctx.moveTo(item.position.x + scale_velocity, item.position.y);
-    ctx.lineTo(item.position.x + scale_velocity - 5, item.position.y + 5);
-    ctx.stroke();
-    ctx.resetTransform();
-}
-
-function drawAcceleration(item) {
-    if (!item.accelerating) return;
-    ctx.translate(item.position.x, item.position.y);
-    ctx.rotate(-item.angle);
-    ctx.translate(-item.position.x, -item.position.y);
-    var scale_acceleration = item.acceleration * 250;
-    ctx.strokeStyle = "rgb(125, 150, 250)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(item.position.x, item.position.y);
-    ctx.lineTo(item.position.x + scale_acceleration, item.position.y);
-    ctx.lineTo(item.position.x + scale_acceleration - 5, item.position.y - 5);
-    ctx.moveTo(item.position.x + scale_acceleration, item.position.y);
-    ctx.lineTo(item.position.x + scale_acceleration - 5, item.position.y + 5);
-    ctx.stroke();
-    ctx.resetTransform();
 }
 
 class Particle {
@@ -463,15 +407,15 @@ class Ship {
         ctx.resetTransform();
         if (show_bounds) {
             ctx.translate(offset.x, offset.y);
-            drawBounds(this);
+            Debug.drawBounds(this);
             ctx.translate(-offset.x, -offset.y);
         }
         if (show_positions)
-            drawPosition(this);
+            Debug.drawPosition(this);
         if (show_velocity)
-            drawVelocity(this);
+            Debug.drawVelocity(this);
         if (show_acceleration)
-            drawAcceleration(this);
+            Debug.drawAcceleration(this);
     }
 
     drawLife(position) {
@@ -651,13 +595,13 @@ class Asteroid {
         ctx.resetTransform();
         if (settings.show_bounds) {
             ctx.translate(offset.x, offset.y);
-            drawBounds(this);
+            Debug.drawBounds(this);
             ctx.translate(-offset.x, -offset.y);
         }
         if (settings.show_positions)
-            drawPosition(this);
+            Debug.drawPosition(this);
         if (settings.show_velocity)
-            drawVelocity(this);
+            Debug.drawVelocity(this);
     }
 
     draw() {
@@ -785,11 +729,11 @@ class Saucer {
         ctx.lineTo(this.bounds.points[this.bounds.points.length - 3].x, this.bounds.points[this.bounds.points.length - 3].y);
         ctx.stroke();
         if (settings.show_bounds)
-            drawBounds(this);
+            Debug.drawBounds(this);
         if (settings.show_positions)
-            drawPosition(this);
+            Debug.drawPosition(this);
         if (settings.show_velocity)
-            drawVelocity(this);
+            Debug.drawVelocity(this);
         ctx.resetTransform();
     }
 
