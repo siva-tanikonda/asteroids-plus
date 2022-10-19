@@ -278,7 +278,7 @@ class Ship {
         ]);
         this.angle = Math.PI / 2;
         this.bounds.rotate(this.angle, new Vector());
-        this.rotation_speed = 5;
+        this.rotation_speed = 5 * Math.PI / 180;
         this.acceleration = 0.1;
         this.drag_coefficient = 0.01;
         this.bullet_cooldown = 1;
@@ -324,8 +324,8 @@ class Ship {
         if (this.dead) return;
         var old_position = this.position.copy();
         var old_angle = this.angle;
-        if (left) this.angle += delay * Math.PI * this.rotation_speed / 180;
-        if (right) this.angle -= delay * Math.PI * this.rotation_speed / 180;
+        if (left) this.angle += delay * this.rotation_speed;
+        if (right) this.angle -= delay * this.rotation_speed;
         this.bounds.rotate(this.angle - old_angle, this.position);
         while (this.angle >= Math.PI * 2) this.angle -= Math.PI * 2;
         while (this.angle < 0) this.angle += Math.PI * 2;
@@ -345,7 +345,7 @@ class Ship {
         var initial_velocity = this.velocity.copy();
         this.velocity.mul(1/(Math.E ** (this.drag_coefficient * delay)));
         this.position = Vector.div(Vector.add(Vector.mul(this.position, this.drag_coefficient), Vector.sub(initial_velocity, this.velocity)), this.drag_coefficient);
-        if (fire && this.bullet_cooldown >= 1 && this.teleport_buffer == 0) {
+        if (fire && this.bullet_cooldown >= 1 && this.teleport_buffer <= 0) {
             direction.norm();
             direction.mul(this.width / 2 + 5);
             var bullet_position = Vector.add(direction, this.position);

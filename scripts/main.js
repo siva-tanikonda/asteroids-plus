@@ -1,6 +1,6 @@
 var settings = {
-    game_speed: 20,
-    person_playing: false,
+    game_speed: 10,
+    ai_playing: false,
     show_bounds: true,
     show_positions: true,
     show_velocity: true,
@@ -33,10 +33,11 @@ function update(delay) {
     var left, right, forward, fire, teleport;
     left = right = forward = fire = teleport = start = pause = false;
     for (var i = 0; i < settings.game_speed; i++) {
-        ai.update(game.ship, game.saucers, game.saucer_bullets, game.asteroids, delay / settings.game_speed);
+        if (settings.ai_playing)
+            ai.update(game.ship, game.saucers, game.saucer_bullets, game.asteroids, delay / settings.game_speed);
         pause = user_input.pause;
         start = user_input.start;
-        if (settings.person_playing) {
+        if (!settings.ai_playing) {
             left = user_input.left;
             right = user_input.right;
             forward = user_input.forward;
@@ -58,6 +59,7 @@ function update(delay) {
 function draw() {
     ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
     game.draw();
+    ai.drawDebugVisuals();
 }
 
 function loop(timestamp) {
