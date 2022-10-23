@@ -1,10 +1,14 @@
 var settings = {
-    game_speed: 10,
-    ai_playing: false,
+    game_precision: 10,
+    game_speed: 1,
+    ai_playing: true,
     show_bounds: true,
     show_positions: true,
     show_velocity: true,
-    show_acceleration: true
+    show_acceleration: true,
+    show_danger: true,
+    show_target_radius: true,
+    show_danger_radius: true
 };
 
 var canvas = document.getElementById("canvas");
@@ -32,11 +36,17 @@ function update(delay) {
     if (isNaN(delay) || delay == 0) return;
     var left, right, forward, fire, teleport;
     left = right = forward = fire = teleport = start = pause = false;
-    for (var i = 0; i < settings.game_speed; i++) {
+    for (var i = 0; i < settings.game_precision * settings.game_speed; i++) {
         if (settings.ai_playing)
-            ai.update(game.ship, game.saucers, game.saucer_bullets, game.asteroids, delay / settings.game_speed);
+            ai.update(game, delay);
+
         pause = user_input.pause;
         start = user_input.start;
+        forward = user_input.forward;
+        teleport = user_input.teleport;
+        left = user_input.left;
+        right = user_input.right;
+
         if (!settings.ai_playing) {
             left = user_input.left;
             right = user_input.right;
@@ -44,13 +54,13 @@ function update(delay) {
             fire = user_input.fire;
             teleport = user_input.teleport;
         } else {
-            left = ai.controls.left;
+            fire = ai.controls.fire;
+            /*left = ai.controls.left;
             right = ai.controls.right;
             forward = ai.controls.forward;
-            fire = ai.controls.fire;
-            teleport = ai.controls.teleport;
+            teleport = ai.controls.teleport;*/
         }
-        var done = game.update(left, right, forward, fire, teleport, start, pause, delay / settings.game_speed);
+        var done = game.update(left, right, forward, fire, teleport, start, pause, delay / settings.game_precision);
         if (done)
             this.game = new Game();
     }
@@ -59,13 +69,14 @@ function update(delay) {
 function draw() {
     ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
     game.draw();
-    ai.drawDebugVisuals();
+    if (settings.ai_playing)
+        ai.drawDebug(game);
 }
 
 function loop(timestamp) {
     seconds_passed = (timestamp - old_timestamp) / 1000;
     old_timestamp = timestamp;
-    update(seconds_passed * 6 * settings.game_speed);
+    update(seconds_passed * 60 * settings.game_speed);
     draw();
     window.requestAnimationFrame(loop);
 }

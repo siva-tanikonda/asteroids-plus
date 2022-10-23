@@ -83,9 +83,6 @@ var saucer_configurations = {
     direction_change_rate: (wave) => {
         return Math.min(1e-2, 1 - 1e-2 / wave);
     },
-    bullet_accuracy: (wave) => {
-        return Math.PI / 100 * Math.max(0, 100 - 25 * Math.log2(wave));
-    },
     bullet_speed: (wave) => {
         var last_wave = Math.max(1, wave - 1);
         var upper_bound = Math.min(7, 4 + wave / 10 * 4);
@@ -99,7 +96,7 @@ var saucer_configurations = {
         return [lower_bound, upper_bound];
     },
     bullet_life: (wave) => {
-        return 80;
+        return 100;
     },
     spawn_rate: (wave) => {
         return Math.min(1, wave / 1000);
@@ -110,17 +107,6 @@ var point_values = {
     asteroids: 50,
     saucers: 100
 };
-
-function wrap(v, wrap_x = true, wrap_y = true) {
-    while (v.x >= canvas_bounds.width && wrap_x)
-        v.x -= canvas_bounds.width;
-    while (v.x < 0 && wrap_x)
-        v.x += canvas_bounds.width;
-    while (v.y >= canvas_bounds.height && wrap_y)
-        v.y -= canvas_bounds.height;
-    while (v.y < 0 && wrap_y)
-        v.y += canvas_bounds.height;
-}
 
 function renderWrap(position, radius, action, offset_x = true, offset_y = true) {
     var horizontal = [0];
@@ -629,10 +615,10 @@ class Saucer {
         saucer_configurations.shape.translate(new Vector(-rect.left, -rect.top));
     }
 
-    constructor(wave) {
+    constructor(size, wave) {
         this.bounds = saucer_configurations.shape.copy();
-        this.size = randomInArray(saucer_configurations.sizes);
-        this.bounds.scale(this.size);
+        this.size = size;
+        this.bounds.scale(saucer_configurations.sizes[this.size]);
         this.rect = this.bounds.getRect();
         this.bounds.translate(new Vector(-this.rect.width / 2, -this.rect.height / 2));
         this.position = new Vector();
@@ -655,7 +641,6 @@ class Saucer {
         this.fire_rate = randomInRange(saucer_configurations.fire_rate(wave));
         this.bullet_cooldown = 0;
         this.bullet_speed = randomInRange(saucer_configurations.bullet_speed(wave));
-        this.bullet_accuracy = saucer_configurations.bullet_accuracy(wave);
         this.dead = false;
     }
 
@@ -702,11 +687,6 @@ class Saucer {
             var bullet_velocity = this.bestFireDirection(ship);
             bullet_velocity.norm();
             bullet_velocity.mul(this.bullet_speed);
-            var angle_deviation = randomInRange([0, this.bullet_accuracy]);
-            if (randomInArray([0, 1]) == 0)
-                bullet_velocity.rotate(angle_deviation, new Vector());
-            else
-                bullet_velocity.rotate(-angle_deviation, new Vector());
             var bullet_position = this.position.copy();
             bullet_position.add(bullet_velocity);
             saucer_bullets.push(new Bullet(bullet_position, bullet_velocity, this.bullet_life));
@@ -799,10 +779,10 @@ class Game {
         var count = asteroid_configurations.spawn_count(this.wave);
         for (var i = 0; i < count; i++) {
             var position = new Vector(randomInRange([0, canvas_bounds.width]), randomInRange([0, canvas_bounds.height]));
-            var distance = position.distance(this.ship.position);
+            var distance = position.dist(this.ship.position);
             while (distance < asteroid_configurations.max_rect.width * 2) {
                 position = new Vector(randomInRange([0, canvas_bounds.width]), randomInRange([0, canvas_bounds.height]));
-                distance = position.distance(this.ship.position);
+                distance = position.dist(this.ship.position);
             }
             this.asteroids.push(new Asteroid(position, 2, this.wave));
         }
@@ -810,7 +790,7 @@ class Game {
 
     makeSaucer(delay) {
         if (this.saucer_cooldown >= 1) {
-            this.saucers.push(new Saucer(this.wave));
+            this.saucers.push(new Saucer(Math.floor(randomInRange([ 0, saucer_configurations.sizes.length ])), this.wave));
             this.saucer_cooldown = 0;
         }
         this.saucer_cooldown = Math.min(1, this.saucer_cooldown + saucer_configurations.spawn_rate(this.wave) * delay);
@@ -853,6 +833,14 @@ class Game {
 
         if (!this.title_screen)
             this.ship.update(left, right, forward, fire, teleport, delay, this.ship_bullets);
+        for (var i = 0; i < this.ship_bullets.length; i++)
+            this.ship_bullets[i].update(delay);
+        for (var i = 0; i < this.asteroids.length; i++)
+            this.asteroids[i].update(delay);
+        for (var i = 0; i < this.saucers.length; i++)
+            this.saucers[i].update(this.ship, this.saucer_bullets, delay);
+        for (var i = 0; i < this.saucer_bullets.length; i++)
+            this.saucer_bullets[i].update(delay);
 
         var split_asteroids = [];
 
@@ -867,7 +855,6 @@ class Game {
 
         var new_ship_bullets = [];
         for (var i = 0; i < this.ship_bullets.length; i++) {
-            this.ship_bullets[i].update(delay);
             for (var j = 0; j < this.asteroids.length; j++) {
                 var hit = this.ship_bullets[i].checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[j], this.explosions);
                 if (hit)
@@ -885,7 +872,6 @@ class Game {
 
         var new_saucers = [];
         for (var i = 0; i < this.saucers.length; i++) {
-            this.saucers[i].update(this.ship, this.saucer_bullets, delay);
             for (var j = 0; j < this.asteroids.length; j++)
                 this.saucers[i].checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[j], this.explosions);
             if (!this.saucers[i].dead)
@@ -895,7 +881,6 @@ class Game {
 
         var new_saucer_bullets = [];
         for (var i = 0; i < this.saucer_bullets.length; i++) {
-            this.saucer_bullets[i].update(delay);
             for (var j = 0; j < this.asteroids.length; j++)
                 this.saucer_bullets[i].checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[j], this.explosions);
             if (!this.saucer_bullets[i].dead)
@@ -908,7 +893,6 @@ class Game {
 
         var new_asteroids = [];
         for (var i = 0; i < this.asteroids.length; i++) {
-            this.asteroids[i].update(delay);
             if (!this.asteroids[i].dead)
                 new_asteroids.push(this.asteroids[i]);
         }

@@ -44,9 +44,11 @@ class Vector {
         return this.x * v.y - this.y * v.x;
     }
     angle() {
-        return Math.atan2(this.y, this.x);
+        var angle = Math.atan2(this.y, this.x);
+        while (angle < 0) angle += Math.PI * 2;
+        return angle;
     }
-    distance(v) {
+    dist(v) {
         return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2);
     }
     proj_val(v) {
@@ -92,10 +94,12 @@ class Vector {
         return u.x * v.y - u.y * v.x;
     }
     static angle(v) {
-        return Math.atan2(v.y, v.x);
+        var angle = Math.atan2(v.y, v.x);
+        while (angle < 0) angle += Math.PI * 2;
+        return angle;
     }
-    static distance(u, v) {
-        return Math.sqrt((u.x - v.x) ** 2, (u.y - v.y) ** 2);
+    static dist(u, v) {
+        return Math.sqrt((u.x - v.x) ** 2 + (u.y - v.y) ** 2);
     }
     static proj_val(u, v) {
         if (u.mag() == 0) return 0;
@@ -103,7 +107,7 @@ class Vector {
     }
     static proj(u, v) {
         if (u.mag() == 0) return Vector();
-        return Vector.mul(Vector.div(u, u.mag()), Vector.proj_val(u, v));
+        return Vector.mul(Vector.div(u, u.mag()), u.proj_val(v));
     }
     static side(u, v, w) {
         var uv = Vector.sub(v, u);
@@ -248,6 +252,17 @@ class Polygon {
         }
         return false;
     }
+}
+
+function wrap(v, wrap_x = true, wrap_y = true) {
+    while (v.x >= canvas_bounds.width && wrap_x)
+        v.x -= canvas_bounds.width;
+    while (v.x < 0 && wrap_x)
+        v.x += canvas_bounds.width;
+    while (v.y >= canvas_bounds.height && wrap_y)
+        v.y -= canvas_bounds.height;
+    while (v.y < 0 && wrap_y)
+        v.y += canvas_bounds.height;
 }
 
 function randomInRange(range) {
