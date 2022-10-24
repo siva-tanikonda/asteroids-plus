@@ -38,7 +38,7 @@ function update(delay) {
     left = right = forward = fire = teleport = start = pause = false;
     for (var i = 0; i < settings.game_precision * settings.game_speed; i++) {
         if (settings.ai_playing)
-            ai.update(game, delay);
+            ai.update(game, delay / settings.game_precision);
 
         pause = user_input.pause;
         start = user_input.start;
