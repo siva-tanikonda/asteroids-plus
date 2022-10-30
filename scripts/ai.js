@@ -11,7 +11,7 @@ function runInWrap(func) {
     var vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
     for (var i = 0; i < 3; i++)
         for (var j = 0; j < 3; j++) {
-            var result = func(ai, new Vector(horizontal[i], vertical[j]));
+            var result = func(new Vector(horizontal[i], vertical[j]));
             if (result != null)
                 return result;
         }
@@ -20,7 +20,18 @@ function runInWrap(func) {
 class VirtualShip {
     constructor(ship) {
         this.position = ship.position.copy();
+        this.bullet_cooldown = ship.bullet_cooldown;
+        this.bullet_speed = ship.bullet_speed;
         this.angle = ship.angle;
+        this.width = ship.width;
+    }
+}
+
+class VirtualTarget {
+    constructor(target) {
+        this.position = target.position.copy();
+        this.velocity = target.velocity.copy();
+        this.size = target.size;
     }
 }
 
@@ -49,7 +60,7 @@ class AI {
                 if (item.hasOwnProperty("size"))
                     distance -= ai_constants.danger_radius[item.size];
                 var value = Math.E ** (-ai_constants.distance_squish * distance);
-                value *= ai_constants.velocity_squish * (Vector.proj_val(Vector.sub(ship_position, item.position), item.velocity) ** ai_constants.velocity_order);
+                value *= ai_constants.velocity_squish * (Math.max(0, Vector.proj_val(Vector.sub(ship_position, item.position), item.velocity)) ** ai_constants.velocity_order);
                 value = 2 / (1 + Math.E ** (-value)) - 1;
                 danger = Math.max(danger, value);
                 ship_position.sub(new Vector(horizontal[i], vertical[j]));
@@ -57,7 +68,7 @@ class AI {
         return danger;
     }
 
-    getFireTarget(ship, targets) {
+    /*getFireTarget(ship, targets) {
         if (game.ship.bullet_cooldown < 0 || game.ship.teleport_buffer > 0)
             return false;
         var result = runInWrap((ai, offset) => {
@@ -84,7 +95,7 @@ class AI {
             }
         });
         return result;
-    }
+    }*/
 
     update(game, delay) {
 

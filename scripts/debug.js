@@ -1,5 +1,6 @@
 class Debug {
 
+    //Draws the bounds/hitbox of an entity
     static drawBounds(item) {
         ctx.fillStyle = 'rgb(200, 100, 100)';
         ctx.globalAlpha = 0.5;
@@ -8,18 +9,20 @@ class Debug {
         for (var i = 0; i < item.bounds.points.length; i++)
             ctx.lineTo(item.bounds.points[i].x, item.bounds.points[i].y);
         ctx.fill();
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = 1.0;
     }
     
+    //Draws the position of an entity
     static drawPosition(item) {
         ctx.fillStyle = "rgb(125, 250, 125)";
         ctx.globalAlpha = 0.5;
         ctx.beginPath();
         ctx.arc(item.position.x, item.position.y, 2, 0, 2 * Math.PI);
         ctx.fill();
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = 1.0;
     }
     
+    //Draws the velocity of an entity
     static drawVelocity(item) {
         var angle = item.velocity.angle();
         ctx.translate(item.position.x, item.position.y);
@@ -37,9 +40,10 @@ class Debug {
         ctx.lineTo(item.position.x + scale_velocity - 5, item.position.y + 5);
         ctx.stroke();
         ctx.resetTransform();
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = 1.0;
     }
     
+    //Draws the velocity of an entity
     static drawAcceleration(item) {
         if (!item.accelerating) return;
         ctx.translate(item.position.x, item.position.y);
@@ -57,9 +61,10 @@ class Debug {
         ctx.lineTo(item.position.x + scale_acceleration - 5, item.position.y + 5);
         ctx.stroke();
         ctx.resetTransform();
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = 1.0;
     }
 
+    //Draws danger level of an object
     static drawDangerLevel(item) {
         var danger = ai.calculateDangerLevel(game.ship, item).toFixed(2).toString();
         var textSize = ctx.measureText(danger);
@@ -67,9 +72,10 @@ class Debug {
         ctx.fillStyle = "rgb(230, 140, 250)";
         ctx.globalAlpha = 0.75;
         ctx.fillText(danger, item.position.x - textSize.width / 2, item.position.y - 5);
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = 1.0;
     }
 
+    //Draws the danger radius of an object
     static drawDangerRadius(item) {
         var radius = 0;
         if (item.hasOwnProperty("size"))
@@ -79,9 +85,10 @@ class Debug {
         ctx.beginPath();
         ctx.arc(item.position.x, item.position.y, radius, 0, 2 * Math.PI);
         ctx.stroke();
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = 1.0;
     }
 
+    //Draws the targeting radius of an object
     static drawTargetRadius(item) {
         var radius = 0;
         if (item.hasOwnProperty("size"))
@@ -91,7 +98,7 @@ class Debug {
         ctx.beginPath();
         ctx.arc(item.position.x, item.position.y, radius, 0, 2 * Math.PI);
         ctx.stroke();
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = 1.0;
     }
 
 }
