@@ -8,7 +8,8 @@ var settings = {
     show_velocity: true,
     show_acceleration: true,
     show_target_radius: true,
-    show_danger_radius: true
+    show_danger_radius: true,
+    show_target_min_distance: true
 };
 
 //Some basic canvas rendering variables
@@ -88,9 +89,10 @@ function update(delay) {
 //Draws the game
 function draw() {
     ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
-    game.draw();
+    game.drawGame();
     if (settings.ai_playing)
         ai.drawDebug();
+    game.drawOverlay();
 }
 
 //The game loop is created and executed

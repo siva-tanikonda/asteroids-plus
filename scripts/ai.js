@@ -38,6 +38,7 @@ class AI {
             fire: false
         };
         this.targets = [];
+        this.ship = null;
         this.attacked_targets = {};
     }
     
@@ -87,8 +88,9 @@ class AI {
     //Find future position of a book assuming no more thrust applied
     findFutureShipPosition(time) {
         var initial_velocity = this.ship.velocity.copy();
-        this.ship.velocity.mul(1 / (Math.E ** (this.ship.drag_coefficient * time)));
-        return Vector.div(Vector.add(Vector.mul(this.ship.position, this.ship.drag_coefficient), Vector.sub(initial_velocity, this.ship.velocity)), this.ship.drag_coefficient);
+        var velocity = Vector.mul(this.ship.velocity, 1 / (Math.E ** (this.ship.drag_coefficient * time)));
+        var position = Vector.div(Vector.add(Vector.mul(this.ship.position, this.ship.drag_coefficient), Vector.sub(initial_velocity, velocity)), this.ship.drag_coefficient);
+        return position
     }
 
     //Calculate if we should or should not shoot at current angle and position
@@ -108,10 +110,18 @@ class AI {
             direction.norm();
             var bullet_position = Vector.add(this.ship.position, Vector.mul(direction, this.ship.bullet_speed));
             var execution_time = this.findCircleCollisionTime(bullet_position, bullet_velocity, 0, this.targets[i].position, this.targets[i].velocity, ai_constants.target_radius[this.targets[i].size]);
-            if (execution_time > this.ship.bullet_life) continue;
+            if (execution_time == null || execution_time > this.ship.bullet_life) continue;
             var future_ship_position = this.findFutureShipPosition(execution_time);
             var future_target_position = Vector.add(this.targets[i].position, Vector.mul(this.targets[i].velocity, execution_time));
-            if (Vector.dist(future_ship_position, future_target_position) - ai_constants.danger_radius[this.targets[i].size] < ai_constants.target_min_distance) continue;
+            var shortest_distance = this.optimizeInWrap((offset) => {
+                future_ship_position.add(offset);
+                var distance = Vector.dist(future_ship_position, future_target_position);
+                future_ship_position.sub(offset);
+                return distance;
+            }, (best, next) => {
+                return (best == null || (next != null && next < best));
+            });
+            if (shortest_distance - ai_constants.danger_radius[this.targets[i].size] < ai_constants.target_min_distance) continue;
             if (min_time > execution_time) {
                 casualty = this.targets[i];
                 min_time = execution_time;
@@ -145,6 +155,8 @@ class AI {
             Debug.drawTargetRadius(item);
         if (settings.show_danger_radius)
             Debug.drawDangerRadius(item);
+        if (settings.show_target_min_distance)
+            Debug.drawDangerMinDistance(item);
     }
 
     //Draws all debug info for the ai
@@ -157,6 +169,7 @@ class AI {
                 this.drawDebugForItem(game.saucers[i]);
             for (var i = 0; i < game.saucer_bullets.length; i++)
                 this.drawDebugForItem(game.saucer_bullets[i]);
+            this.drawDebugForItem(game.ship);
             ctx.translate(-offset.x, -offset.y);
         });
     }

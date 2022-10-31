@@ -88,4 +88,15 @@ class Debug {
         ctx.globalAlpha = 1.0;
     }
 
+    //Draws the minimum fire range of the ship
+    static drawDangerMinDistance(item) {
+        if (!item.hasOwnProperty("lives") || game.title_screen || item.lives <= 0) return;
+        ctx.fillStyle = "rgb(250, 140, 75)";
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(item.position.x, item.position.y, ai_constants.target_min_distance, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+
 }

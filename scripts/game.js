@@ -942,7 +942,7 @@ class Game {
     //Make asteroids from scratch
     makeAsteroids() {
         var count = asteroid_configurations.spawn_count(this.wave);
-        for (var i = 0; i < count; i++) {
+        for (var i = 0; i < 1; i++) {
             var position = new Vector(randomInRange([0, canvas_bounds.width]), randomInRange([0, canvas_bounds.height]));
             var distance = position.dist(this.ship.position);
             while (distance < asteroid_configurations.max_rect.width * 2) {
@@ -997,8 +997,8 @@ class Game {
             this.makeAsteroids();
 
         //Check if we need to make a new saucer and if so, then make one
-        if (!this.title_screen && this.saucers.length == 0)
-            this.makeSaucer(delay);
+        //if (!this.title_screen && this.saucers.length == 0)
+            //this.makeSaucer(delay);
 
         //Check if player get's an extra life
         if (this.score >= (1 + this.extra_lives) * point_values.extra_life && this.ship.lives != 0) {
@@ -1151,7 +1151,7 @@ class Game {
     }
 
     //Draw loop function for the game
-    draw() {
+    drawGame() {
         if (!this.title_screen)
             this.ship.draw();
         for (var i = 0; i < this.asteroids.length; i++)
@@ -1164,17 +1164,18 @@ class Game {
             this.saucers[i].draw();
         for (var i = 0; i < this.explosions.length; i++)
             this.explosions[i].draw();
+    }
+
+    drawOverlay() {
         if (!this.title_screen && !this.ship.dead) {
             this.drawScore();
             this.ship.drawLives();
         } else if (this.title_screen)
             this.drawTitle();
-        if (this.ship.dead && this.ship.lives <= 0) {
+        if (this.ship.dead && this.ship.lives <= 0)
             this.drawGameOver();
-        }
-        if (this.paused) {
+        if (this.paused)
             this.drawPause();
-        }
     }
 
 }
