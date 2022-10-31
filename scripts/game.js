@@ -942,7 +942,7 @@ class Game {
     //Make asteroids from scratch
     makeAsteroids() {
         var count = asteroid_configurations.spawn_count(this.wave);
-        for (var i = 0; i < 1; i++) {
+        for (var i = 0; i < count; i++) {
             var position = new Vector(randomInRange([0, canvas_bounds.width]), randomInRange([0, canvas_bounds.height]));
             var distance = position.dist(this.ship.position);
             while (distance < asteroid_configurations.max_rect.width * 2) {

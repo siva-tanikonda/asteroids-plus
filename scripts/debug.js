@@ -67,7 +67,7 @@ class Debug {
     //Draws the danger of an entity
     static drawDangerLevel(item) {
         if (item.hasOwnProperty("lives")) return;
-        ctx.font = "15px Roboto Mono Regular"
+        ctx.font = "12px Roboto Mono Bold"
         ctx.fillStyle = "rgb(210, 140, 240)";
         var danger = +ai.calculateDangerLevel(item).toFixed(2);
         var size = ctx.measureText(danger);
@@ -83,6 +83,33 @@ class Debug {
         ctx.beginPath();
         ctx.arc(item.position.x, item.position.y, ai_constants.danger_radius[item.size], 0, 2 * Math.PI);
         ctx.stroke();
+        ctx.globalAlpha = 1.0;
+    }
+
+    static drawDangerFlee(item) {
+        if (!item.hasOwnProperty("lives") || game.title_screen || game.paused || game.ship.lives <= 0) return;
+        ctx.strokeStyle = "rgb(210, 140, 240)";
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.5;
+        ctx.translate(item.position.x, item.position.y);
+        ctx.rotate(-item.angle);
+        ctx.translate(-item.position.x, -item.position.y);
+        for (var i = 0; i < 4; i++) {
+            var scale_flee = ai.flee_values[i] * 75;
+            ctx.beginPath();
+            ctx.moveTo(item.position.x, item.position.y);
+            ctx.lineTo(item.position.x + scale_flee, item.position.y);
+            ctx.lineTo(item.position.x + scale_flee - 5, item.position.y - 5);
+            ctx.moveTo(item.position.x + scale_flee, item.position.y);
+            ctx.lineTo(item.position.x + scale_flee - 5, item.position.y + 5);
+            ctx.stroke();
+            ctx.translate(item.position.x, item.position.y);
+            ctx.rotate(Math.PI / 2);
+            ctx.translate(-item.position.x, -item.position.y);
+        }
+        ctx.translate(item.position.x, item.position.y);
+        ctx.rotate(item.angle);
+        ctx.translate(-item.position.x, -item.position.y);
         ctx.globalAlpha = 1.0;
     }
 

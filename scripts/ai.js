@@ -1,8 +1,12 @@
 var ai_constants = {
     danger_radius: [ 16.5, 32.5, 65 ],
-    danger_scaling: 1,
-    danger_distance_squish: 5e-3,
+    danger_scaling: 0.75,
+    danger_distance_squish: 2e-3,
     danger_velocity_order: 1,
+    danger_ship_forward_velocity_scaling: 0.1,
+    danger_ship_reverse_velocity_scaling: 0.5,
+    danger_directional_multiplier: 2,
+    danger_action_threshold: 0.5,
     target_radius: [ 10, 17.5, 30 ],
     target_min_distance: 100
 };
@@ -27,6 +31,22 @@ class VirtualShip {
         this.teleport_buffer = ship.teleport_buffer;
         this.drag_coefficient = ship.drag_coefficient;
         this.velocity = ship.velocity.copy();
+        this.teleport_cooldown = ship.teleport_cooldown;
+        this.rotation_speed = ship.rotation_speed;
+        this.acceleration = ship.acceleration;
+    }
+}
+
+class Danger {
+    constructor(target) {
+        this.type = (target.hasOwnProperty("fire_rate")) ? "s" : "a";
+        this.position = target.position.copy();
+        if (target.hasOwnProperty("size"))
+            this.size = target.size;
+        this.velocity = target.velocity.copy();
+        this.danger_level = ai.calculateDangerLevel(this);
+        if (this.danger_level >= 0.5)
+            ai.in_danger = true;
     }
 }
 
@@ -41,8 +61,11 @@ class AI {
             fire: false
         };
         this.targets = [];
+        this.dangers = [];
+        this.flee_values = [];
         this.ship = null;
         this.attacked_targets = {};
+        this.in_danger = false;
     }
     
     //Allows us to just run a function in the wrap
@@ -77,6 +100,8 @@ class AI {
                 value -= ai_constants.danger_radius[danger.size];
             value = ai_constants.danger_scaling * (Math.E ** (-ai_constants.danger_distance_squish * value));
             var proj_sv = Vector.proj_val(r, this.ship.velocity);
+            if (proj_sv > 0) proj_sv *= ai_constants.danger_ship_forward_velocity_scaling;
+            else proj_sv *= ai_constants.danger_ship_reverse_velocity_scaling;
             var proj_dv = Vector.proj_val(r, danger.velocity);
             value *= Math.max(0, proj_dv - proj_sv) ** ai_constants.danger_velocity_order;
             return sigmoid(value) * 2 - 1;
@@ -115,6 +140,7 @@ class AI {
 
     //Calculate if we should or should not shoot at current angle and position
     manageFire(delay) {
+        if (this.ship.bullet_cooldown < 1 || this.ship.teleport_buffer > 0 || this.controls.teleport) return;
         var keys = Object.keys(this.attacked_targets);
         for (var i = 0; i < keys.length; i++) {
             this.attacked_targets[keys[i]] -= delay;
@@ -153,18 +179,137 @@ class AI {
         }
     }
 
+    //Calculates the need to go in both directions (forward, left, rear, right)
+    getFleeValues() {
+        var values = [ 0, 0, 0, 0 ];
+        for (var i = 0; i < this.dangers.length; i++) {
+            if (this.dangers[i].danger_level < 0.5) continue;
+            var direction = this.optimizeInWrap((offset) => {
+                return Vector.sub(Vector.add(this.ship.position, offset), this.dangers[i].position);
+            }, (best, next) => {
+                return (best == null || next.mag() < best.mag());
+            });
+            direction.norm();
+            direction.mul(this.dangers[i].danger_level * ai_constants.danger_directional_multiplier);
+            direction.rotate(-this.ship.angle, new Vector());
+            if (direction.x > 0)
+                values[0] += direction.x;
+            else 
+                values[2] -= direction.x;
+            if (direction.y < 0)
+                values[1] -= direction.y;
+            else
+                values[3] += direction.y;
+        }
+        return values
+    }
+
+    //Simulates the ship doing certain movements
+    simulateMove(delay) {
+
+        if (this.controls.left) {
+            this.ship.angle += this.ship.rotation_speed * delay;
+            while (this.ship.angle >= Math.PI * 2)
+                this.ship.angle -= Math.PI * 2;
+        } else if (this.controls.right) {
+            this.ship.angle -= this.ship.rotation_speed * delay;
+            while (this.ship.angle < 0)
+                this.ship.angle += Math.PI * 2;
+        }
+        var direction = new Vector(Math.cos(this.ship.angle), -Math.sin(this.ship.angle));
+        if (this.ship.teleport_buffer == 0 && this.controls.forward) {
+            direction.mul(this.ship.acceleration);
+            this.ship.velocity.add(Vector.mul(direction, delay));
+        }
+        this.ship.position = this.findFutureShipPosition(delay);
+    }
+
+    //Decides on the movement of the ship (when in flee mode)
+    manageFlee(delay) {
+        if (!this.in_danger) return;
+        var forward, rear, left, right;
+        [forward, left, rear, right] = this.flee_values;
+        var dforward = forward >= ai_constants.danger_action_threshold;
+        var dleft = left >= ai_constants.danger_action_threshold;
+        var drear = rear >= ai_constants.danger_action_threshold;
+        var dright = right >= ai_constants.danger_action_threshold;
+        if (dforward && drear) {
+            if (dleft && dright) {
+                this.controls.teleport = true;
+                return;
+            } else if (dleft)
+                this.controls.left = true;
+            else if (dright)
+                this.controls.right = true;
+            else {
+                if (left >= right)
+                    this.controls.left = true;
+                else
+                    this.controls.right = true;
+            }
+        } else if (dforward) {
+            if (dleft && dright)
+                this.controls.forward = true;
+            else if (dleft)
+                this.controls.forward = this.controls.left = true;
+            else if (dright)
+                this.controls.forward = this.controls.right = true;
+            else {
+                this.controls.forward = true;
+                if (left >= right)
+                    this.controls.left = true;
+                else
+                    this.controls.right = true;
+            }
+        } else if (drear) {
+            if (dleft && dright) {
+                this.controls.teleport = true;
+                return;
+            }
+            else if (dleft)
+                this.controls.left = true;
+            else if (dright)
+                this.controls.right = true;
+            else {
+                if (left >= right)
+                    this.controls.left = true;
+                else
+                    this.controls.right = true;
+            }
+        } else {
+            if (dleft && dright)
+                this.controls.forward = true;
+            if (dleft)
+                this.controls.left = this.controls.forward = true;
+            else if (dright)
+                this.controls.right = this.controls.forward = true;    
+        }
+        this.simulateMove(delay);
+    }
+
     //Just the update function for the ai
     update(delay) {
         
         //Setup virtual targets and reset controls
         this.controls.left = this.controls.right = this.controls.forward = this.controls.teleport = this.controls.fire = false;
+        this.in_danger = false;
         this.targets = [];
+        this.dangers = [];
         this.ship = new VirtualShip(game.ship);
-        for (var i = 0; i < game.asteroids.length; i++)
+        for (var i = 0; i < game.asteroids.length; i++) {
             this.targets.push(new Target(game.asteroids[i]));
-        for (var i = 0; i < game.saucers.length; i++)
+            this.dangers.push(new Danger(game.asteroids[i]));
+        }
+        for (var i = 0; i < game.saucers.length; i++) {
             this.targets.push(new Target(game.saucers[i]));
-    
+            this.dangers.push(new Danger(game.saucers[i]));
+        }
+        for (var i = 0; i < game.saucer_bullets.length; i++)
+            this.dangers.push(new Danger(game.saucer_bullets[i]));
+        this.flee_values = this.getFleeValues();
+        
+        //The ai actions
+        this.manageFlee(delay);
         this.manageFire(delay);
 
     }
@@ -179,6 +324,8 @@ class AI {
             Debug.drawTargetMinDistance(item);
         if (settings.show_danger_level)
             Debug.drawDangerLevel(item);
+        if (settings.show_danger_flee)
+            Debug.drawDangerFlee(item);
     }
 
     //Draws all debug info for the ai
