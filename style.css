@@ -1,8 +1,15 @@
 @font-face {
-    font-family: 'Roboto Mono';
+    font-family: 'Roboto Mono Light';
     src: url('fonts/Roboto Mono.ttf') format('truetype');
     font-style: normal;
     font-weight: 300;
+}
+
+@font-face {
+    font-family: 'Roboto Mono Regular';
+    src: url('fonts/Roboto Mono.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 400;
 }
 
 body {

@@ -9,6 +9,7 @@ var settings = {
     show_acceleration: true,
     show_target_radius: true,
     show_danger_radius: true,
+    show_danger_level: true,
     show_target_min_distance: true
 };
 
@@ -60,7 +61,7 @@ function update(delay) {
         left = user_input.left;
         right = user_input.right;
         forward = user_input.forward;
-        //fire = user_input.fire;
+        fire = user_input.fire;
         teleport = user_input.teleport;
 
         if (!settings.ai_playing) {
@@ -70,7 +71,7 @@ function update(delay) {
             fire = user_input.fire;
             teleport = user_input.teleport;
         } else {
-            fire = ai.controls.fire;
+            //fire = ai.controls.fire;
             //left = ai.controls.left;
             //right = ai.controls.right;
             //forward = ai.controls.forward;

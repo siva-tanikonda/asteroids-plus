@@ -285,3 +285,7 @@ function solveQuadratic(a, b, c) {
         return result;
     }
 }
+
+function sigmoid(x) {
+    return 1 / (1 + Math.E ** (-x));
+}

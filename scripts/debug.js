@@ -64,16 +64,14 @@ class Debug {
         ctx.globalAlpha = 1.0;
     }
 
-    //Draws the target radius of an entity
-    static drawTargetRadius(item) {
-        if (!item.hasOwnProperty("size")) return;
-        ctx.strokeStyle = "rgb(250, 140, 75)";
-        ctx.lineWidth = 1.5;
-        ctx.globalAlpha = 0.5;
-        ctx.beginPath();
-        ctx.arc(item.position.x, item.position.y, ai_constants.target_radius[item.size], 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.globalAlpha = 1.0;
+    //Draws the danger of an entity
+    static drawDangerLevel(item) {
+        if (item.hasOwnProperty("lives")) return;
+        ctx.font = "15px Roboto Mono Regular"
+        ctx.fillStyle = "rgb(210, 140, 240)";
+        var danger = +ai.calculateDangerLevel(item).toFixed(2);
+        var size = ctx.measureText(danger);
+        ctx.fillText(danger, item.position.x - size.width / 2, item.position.y - 10);
     }
 
     //Draws the danger radius of an entity
@@ -88,11 +86,23 @@ class Debug {
         ctx.globalAlpha = 1.0;
     }
 
+    //Draws the target radius of an entity
+    static drawTargetRadius(item) {
+        if (!item.hasOwnProperty("size")) return;
+        ctx.strokeStyle = "rgb(250, 140, 75)";
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(item.position.x, item.position.y, ai_constants.target_radius[item.size], 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+    }
+
     //Draws the minimum fire range of the ship
-    static drawDangerMinDistance(item) {
+    static drawTargetMinDistance(item) {
         if (!item.hasOwnProperty("lives") || game.title_screen || item.lives <= 0) return;
         ctx.fillStyle = "rgb(250, 140, 75)";
-        ctx.globalAlpha = 0.5;
+        ctx.globalAlpha = 0.1;
         ctx.beginPath();
         ctx.arc(item.position.x, item.position.y, ai_constants.target_min_distance, 0, 2 * Math.PI);
         ctx.fill();

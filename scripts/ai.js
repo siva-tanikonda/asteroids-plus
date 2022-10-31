@@ -1,5 +1,8 @@
 var ai_constants = {
     danger_radius: [ 16.5, 32.5, 65 ],
+    danger_scaling: 1,
+    danger_distance_squish: 5e-3,
+    danger_velocity_order: 1,
     target_radius: [ 10, 17.5, 30 ],
     target_min_distance: 100
 };
@@ -63,6 +66,23 @@ class AI {
                     best = value;
             }
         return best;
+    }
+
+    //Calculates the danger value of a danger (saucer, asteroid, or saucer_bullet)
+    calculateDangerLevel(danger) {
+        return this.optimizeInWrap((offset) => {
+            var r = Vector.sub(Vector.add(this.ship.position, offset), danger.position);
+            var value = r.mag();
+            if (danger.hasOwnProperty("size"))
+                value -= ai_constants.danger_radius[danger.size];
+            value = ai_constants.danger_scaling * (Math.E ** (-ai_constants.danger_distance_squish * value));
+            var proj_sv = Vector.proj_val(r, this.ship.velocity);
+            var proj_dv = Vector.proj_val(r, danger.velocity);
+            value *= Math.max(0, proj_dv - proj_sv) ** ai_constants.danger_velocity_order;
+            return sigmoid(value) * 2 - 1;
+        }, (best, next) => {
+            return (best == null || next > best);
+        });
     }
 
     //Calculates how long it will take for two circles to collide (or if they will never collide)
@@ -156,7 +176,9 @@ class AI {
         if (settings.show_danger_radius)
             Debug.drawDangerRadius(item);
         if (settings.show_target_min_distance)
-            Debug.drawDangerMinDistance(item);
+            Debug.drawTargetMinDistance(item);
+        if (settings.show_danger_level)
+            Debug.drawDangerLevel(item);
     }
 
     //Draws all debug info for the ai
