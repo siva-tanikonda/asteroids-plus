@@ -104,7 +104,7 @@ class Debug {
             ctx.lineTo(item.position.x + scale_flee - 5, item.position.y + 5);
             ctx.stroke();
             ctx.translate(item.position.x, item.position.y);
-            ctx.rotate(Math.PI / 2);
+            ctx.rotate(-Math.PI / 2);
             ctx.translate(-item.position.x, -item.position.y);
         }
         ctx.translate(item.position.x, item.position.y);

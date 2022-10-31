@@ -997,8 +997,8 @@ class Game {
             this.makeAsteroids();
 
         //Check if we need to make a new saucer and if so, then make one
-        //if (!this.title_screen && this.saucers.length == 0)
-            //this.makeSaucer(delay);
+        if (!this.title_screen && this.saucers.length == 0)
+            this.makeSaucer(delay);
 
         //Check if player get's an extra life
         if (this.score >= (1 + this.extra_lives) * point_values.extra_life && this.ship.lives != 0) {

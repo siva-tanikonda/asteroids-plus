@@ -59,11 +59,11 @@ function update(delay) {
         pause = user_input.pause;
         start = user_input.start;
 
-        left = user_input.left;
-        right = user_input.right;
-        forward = user_input.forward;
-        fire = user_input.fire;
-        teleport = user_input.teleport;
+        //left = user_input.left;
+        //right = user_input.right;
+        //forward = user_input.forward;
+        //fire = user_input.fire;
+        //teleport = user_input.teleport;
 
         if (!settings.ai_playing) {
             left = user_input.left;
@@ -72,11 +72,11 @@ function update(delay) {
             fire = user_input.fire;
             teleport = user_input.teleport;
         } else {
-            //fire = ai.controls.fire;
-            //left = ai.controls.left;
-            //right = ai.controls.right;
-            //forward = ai.controls.forward;
-            //teleport = ai.controls.teleport;
+            fire = ai.controls.fire;
+            left = ai.controls.left;
+            right = ai.controls.right;
+            forward = ai.controls.forward;
+            teleport = ai.controls.teleport;
         }
 
         //Updates the game and creates a new game if the player chose to restart the game

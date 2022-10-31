@@ -1,8 +1,8 @@
 var ai_constants = {
     danger_radius: [ 16.5, 32.5, 65 ],
-    danger_scaling: 0.75,
-    danger_distance_squish: 2e-3,
-    danger_velocity_order: 1,
+    danger_scaling: 1,
+    danger_distance_squish: 5e-3,
+    danger_velocity_order: 0.75,
     danger_ship_forward_velocity_scaling: 0.1,
     danger_ship_reverse_velocity_scaling: 0.5,
     danger_directional_multiplier: 2,
@@ -205,7 +205,6 @@ class AI {
 
     //Simulates the ship doing certain movements
     simulateMove(delay) {
-
         if (this.controls.left) {
             this.ship.angle += this.ship.rotation_speed * delay;
             while (this.ship.angle >= Math.PI * 2)
@@ -221,6 +220,7 @@ class AI {
             this.ship.velocity.add(Vector.mul(direction, delay));
         }
         this.ship.position = this.findFutureShipPosition(delay);
+        wrap(this.ship.position);
     }
 
     //Decides on the movement of the ship (when in flee mode)
