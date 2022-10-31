@@ -6,7 +6,6 @@ var ai_constants = {
     danger_ship_forward_velocity_scaling: 0.1,
     danger_ship_reverse_velocity_scaling: 0.5,
     danger_directional_multiplier: 2,
-    danger_action_threshold: 0.5,
     target_radius: [ 10, 17.5, 30 ],
     target_min_distance: 100
 };
@@ -229,10 +228,10 @@ class AI {
         if (!this.in_danger) return;
         var forward, rear, left, right;
         [forward, left, rear, right] = this.flee_values;
-        var dforward = forward >= ai_constants.danger_action_threshold;
-        var dleft = left >= ai_constants.danger_action_threshold;
-        var drear = rear >= ai_constants.danger_action_threshold;
-        var dright = right >= ai_constants.danger_action_threshold;
+        var dforward = forward >= 0.5;
+        var dleft = left >= 0.5;
+        var drear = rear >= 0.5;
+        var dright = right >= 0.5;
         if (dforward && drear) {
             if (dleft && dright) {
                 this.controls.teleport = true;
