@@ -2,7 +2,7 @@
 var settings = {
     game_precision: 10,
     game_speed: 1,
-    ai_playing: true,
+    ai_playing: false,
     show_bounds: true,
     show_positions: true,
     show_velocity: true,
