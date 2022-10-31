@@ -55,7 +55,7 @@ class AI {
         this.targets = [];
     }
 
-    findWithWrap(func, comp) {
+    findExtremaWithWrap(func, comp) {
         var horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
         var vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         var best = null;
@@ -69,21 +69,27 @@ class AI {
     }
 
     getCollisionTime(p1, v1, r1, p2, v2, r2) {
-        var a = (v1.x - v2.x) ** 2 + (v1.y - v2.y) ** 2;
-        var b = 2 * ((p1.x - p2.x) * (v1.x - v2.x) + (p1.y - p2.y) * (v1.y - v2.y));
-        var c = (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 - (r1 + r2) ** 2;
-        var solutions = solveQuadratic(a, b, c);
-        if (solutions.length > 0) {
-            if (solutions[0] >= 0)
-                return solutions[0];
-            else if (solutions.length > 1 && solutions[1] >= 0)
-                return solutions[1];
-        }
-        return null;
+        return this.findExtremaWithWrap((offset) => {
+            p1.add(offset);
+            var a = (v1.x - v2.x) ** 2 + (v1.y - v2.y) ** 2;
+            var b = 2 * ((p1.x - p2.x) * (v1.x - v2.x) + (p1.y - p2.y) * (v1.y - v2.y));
+            var c = (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 - (r1 + r2) ** 2;
+            p1.sub(offset);
+            var solutions = solveQuadratic(a, b, c);
+            if (solutions.length > 0) {
+                if (solutions[0] >= 0)
+                    return solutions[0];
+                else if (solutions.length > 1 && solutions[1] >= 0)
+                    return solutions[1];
+            }
+            return null;
+        }, (best, next) => {
+            return (best == null || (next != null && next < best));
+        });
     }
 
     calculateDanger(ship, danger) {
-        return this.findWithWrap((offset) => {
+        return this.findExtremaWithWrap((offset) => {
             ship.position.add(offset);
             var distance = Vector.dist(danger.position, ship.position);
             if (danger.hasOwnProperty("size"))
@@ -135,28 +141,21 @@ class AI {
     getHitTime(ship, target) {
         if (target in this.attacked_targets)
             return null;
-        var result = this.findWithWrap((offset) => {
-            target.position.add(offset);
-            var direction = new Vector(Math.cos(ship.angle), -Math.sin(ship.angle));
-            var bv = Vector.mul(direction, ship.bullet_speed);
-            var bp = Vector.add(ship.position, Vector.mul(direction, ship.width / 2 + 5));
-            target.position.sub(offset);
-            var collision_time = this.getCollisionTime(bp, bv, 0, target.position, target.velocity, ai_constants.target_radius[target.size]);
-            if (collision_time != null) {
-                return new HitTracker(target, collision_time);
-            }
-        }, (best, next) => {
-            return (best == null || (next != null && best.time > next.time));
-        });
-        return result;
+        var direction = new Vector(Math.cos(ship.angle), -Math.sin(ship.angle));
+        var bv = Vector.mul(direction, ship.bullet_speed);
+        var bp = Vector.add(ship.position, Vector.mul(direction, ship.width / 2 + 5));
+        wrap(bp);
+        var collision_time = this.getCollisionTime(bp, bv, 0, target.position, target.velocity, ai_constants.target_radius[target.size]);
+        if (collision_time != null)
+            return new HitTracker(target, collision_time);
     }
 
     //Finds the target we will hit if we actuall shoot (it returns null if we shouldn't shoot)
-    findFiringTarget(ship) {
+    findFiringCasualty(ship) {
         var target = null;
         for (var i = 0; i < this.targets.length; i++) {
             var result = this.getHitTime(ship, this.targets[i]);
-            var distance = this.findWithWrap((offset) => {
+            var distance = this.findExtremaWithWrap((offset) => {
                 return Vector.sub(Vector.add(ship.position, offset), this.targets[i].position).mag();
             }, (best, next) => {
                 return (best == null || next < best);
@@ -173,7 +172,7 @@ class AI {
         this.controls.fire = false;
         if (ship.bullet_cooldown <= 0 || ship.teleport_buffer > 0 || ship.dead || game.title_screen || game.paused)
             return;
-        var fire_target = this.findFiringTarget(ship);
+        var fire_target = this.findFiringCasualty(ship);
         if (fire_target != null) {
             this.attacked_targets[fire_target.target] = {
                 pointer: fire_target.pointer,
