@@ -272,3 +272,16 @@ function randomInRange(range) {
 function randomInArray(array) {
     return array[Math.floor(randomInRange([0, array.length]))];
 }
+
+function solveQuadratic(a, b, c) {
+    var dsc = b ** 2 - 4 * a * c;
+    if (dsc < 0) return [];
+    else if (dsc == 0)
+        return [-b / (2 * a)];
+    else {
+        var result = [(-b + Math.sqrt(dsc)) / (2 * a), (-b - Math.sqrt(dsc)) / (2 * a)];
+        if (result[1] < result[0])
+            [result[0], result[1]] = [result[1], result[0]];
+        return result;
+    }
+}

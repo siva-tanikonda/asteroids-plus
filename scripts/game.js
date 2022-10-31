@@ -417,8 +417,8 @@ class Ship {
 
     //Manage firing
     fire(fire, delay, ship_bullets) {
-        var direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
         if (fire && this.bullet_cooldown >= 1 && this.teleport_buffer <= 0) {
+            var direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
             direction.mul(this.width / 2 + 5);
             var bullet_position = Vector.add(direction, this.position);
             direction.norm();
@@ -986,7 +986,7 @@ class Game {
             }
         }
 
-        //See if the game used to be paused
+        //See if the pause button was down in the previous frame
         this.old_pause = pause;
 
         //Don't update the game if the game is paused
@@ -1006,7 +1006,7 @@ class Game {
             this.extra_lives++;
         }
 
-        //Update, move, and shoot each asteroid, saucer, and ship
+        //Update each asteroid, saucer, and ship (everything but collision stuff)
         if (!this.title_screen)
             this.ship.update(left, right, forward, fire, teleport, delay, this.ship_bullets);
         for (var i = 0; i < this.ship_bullets.length; i++)

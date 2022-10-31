@@ -2,14 +2,15 @@
 var settings = {
     game_precision: 10,
     game_speed: 1,
-    ai_playing: false,
+    ai_playing: true,
     show_bounds: true,
     show_positions: true,
     show_velocity: true,
     show_acceleration: true,
     show_danger: true,
     show_target_radius: true,
-    show_danger_radius: true
+    show_danger_radius: true,
+    show_primary_target: true
 };
 
 //Some basic canvas rendering variables
@@ -56,6 +57,7 @@ function update(delay) {
         //Updates user inputs based on whether the ai or player is playing
         pause = user_input.pause;
         start = user_input.start;
+
         if (!settings.ai_playing) {
             left = user_input.left;
             right = user_input.right;
