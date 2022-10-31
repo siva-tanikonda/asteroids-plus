@@ -3,7 +3,7 @@ class Debug {
     //Draws the bounds/hitbox of an entity
     static drawBounds(item) {
         ctx.fillStyle = 'rgb(200, 100, 100)';
-        ctx.globalAlpha = 0.5;
+        ctx.globalAlpha = 0.35;
         ctx.beginPath();
         ctx.moveTo(item.bounds.points[item.bounds.points.length - 1].x, item.bounds.points[item.bounds.points.length - 1].y);
         for (var i = 0; i < item.bounds.points.length; i++)

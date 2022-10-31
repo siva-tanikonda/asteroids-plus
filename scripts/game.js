@@ -487,7 +487,7 @@ class Ship {
             return;
         ctx.strokeStyle = "white";
         ctx.globalAlpha = alpha;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.translate(offset.x, offset.y);
         ctx.translate(position.x, position.y);
         ctx.rotate(-this.angle);
@@ -523,7 +523,7 @@ class Ship {
     //Draws a life for the ship
     drawLife(position) {
         ctx.strokeStyle = "white";
-        ctx.lineWidth = 2 * 4 / 3;
+        ctx.lineWidth = 1.5 * 4 / 3;
         ctx.scale(0.75, 0.75);
         ctx.translate(position.x, position.y);
         ctx.rotate(-Math.PI / 2);
@@ -712,7 +712,7 @@ class Asteroid {
     drawAsteroid(offset) {
         ctx.translate(offset.x, offset.y);
         ctx.strokeStyle = "white";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(this.bounds.points[this.bounds.points.length - 1].x, this.bounds.points[this.bounds.points.length - 1].y);
         for (var i = 0; i < this.bounds.points.length; i++)
@@ -857,7 +857,7 @@ class Saucer {
     drawSaucer(offset) {
         ctx.translate(offset.x, offset.y);
         ctx.strokeStyle = "white";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(this.bounds.points[this.bounds.points.length - 1].x, this.bounds.points[this.bounds.points.length - 1].y);
         for (var i = 0; i < this.bounds.points.length; i++)
@@ -1096,7 +1096,7 @@ class Game {
 
     //Draws the current player's score on the corner of the screen during the game
     drawScore() {
-        ctx.font = "20px Rubik Regular";
+        ctx.font = "20px Roboto Mono";
         ctx.fillStyle = "white";
         var text_size = ctx.measureText(this.score);
         ctx.fillText(this.score, 15, 15 + text_size.actualBoundingBoxAscent);
@@ -1109,7 +1109,7 @@ class Game {
         ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
         ctx.globalAlpha = 1;
         ctx.fillStyle = "white";
-        ctx.font = "25px Rubik Regular";
+        ctx.font = "25px Roboto Mono";
         if (this.title_flash <= 0.5) {
             var textSize = ctx.measureText("Press Enter to Start");
             ctx.fillText("Press Enter to Start", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2);
@@ -1123,10 +1123,10 @@ class Game {
         ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
         ctx.globalAlpha = 1;
         ctx.fillStyle = "white";
-        ctx.font = "35px Rubik Regular";
+        ctx.font = "35px Roboto Mono";
         var textSize = ctx.measureText("Score: " + this.score);
         ctx.fillText("Score: " + this.score, canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 - 30);
-        ctx.font = "25px Rubik Regular";
+        ctx.font = "25px Roboto Mono";
         if (this.title_flash <= 0.5) {
             textSize = ctx.measureText("Press Enter to Try Again");
             ctx.fillText("Press Enter to Try Again", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 + 30);
@@ -1140,10 +1140,10 @@ class Game {
         ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
         ctx.globalAlpha = 1;
         ctx.fillStyle = "white";
-        ctx.font = "35px Rubik Regular";
+        ctx.font = "35px Roboto Mono";
         var textSize = ctx.measureText("Paused");
         ctx.fillText("Paused", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 - 30);
-        ctx.font = "25px Rubik Regular";
+        ctx.font = "25px Roboto Mono";
         if (this.title_flash <= 0.5) {
             textSize = ctx.measureText("Press Escape to Resume");
             ctx.fillText("Press Escape to Resume", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 + 30);

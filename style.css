@@ -1,13 +1,8 @@
 @font-face {
-    font-family: 'Rubik Regular';
-    src: url('fonts/Rubik.ttf') format('truetype');
-    font-weight: normal;
-}
-
-@font-face {
-    font-family: 'Rubik Bold';
-    src: url('fonts/Rubik.ttf') format('truetype');
-    font-weight: bold;
+    font-family: 'Roboto Mono';
+    src: url('fonts/Roboto Mono.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 300;
 }
 
 body {
@@ -17,6 +12,6 @@ body {
 }
 
 #canvas {
-    image-rendering: crisp-edges;
+    image-rendering: pixelated;
     background-color: rgb(30, 30, 30);
 }

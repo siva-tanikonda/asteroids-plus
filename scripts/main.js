@@ -6,11 +6,7 @@ var settings = {
     show_bounds: true,
     show_positions: true,
     show_velocity: true,
-    show_acceleration: true,
-    show_danger: true,
-    show_target_radius: true,
-    show_danger_radius: true,
-    show_primary_target: true
+    show_acceleration: true
 };
 
 //Some basic canvas rendering variables
@@ -20,8 +16,8 @@ var ctx = canvas.getContext("2d");
 var user_input = new UserInput();
 var old_timestamp = 0;
 
-//Set anti-aliasing to high
-ctx.imageSmoothingQuality = "high";
+//Turn-off anti-aliasing
+ctx.imageSmoothingEnabled = false;
 
 //Do initial setup steps for the game
 resizeCanvas();
