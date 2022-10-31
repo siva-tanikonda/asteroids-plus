@@ -99,7 +99,7 @@ class AI {
     }
 
     //Finds the best target to shoot at
-    calculateBestTarget(ship, dangers) {
+    /*calculateBestTarget(ship, dangers) {
         var target = null;
         var max_danger = -Infinity;
         for (var i = 0; i < dangers.length; i++) {
@@ -129,7 +129,7 @@ class AI {
 
         }
         return target;
-    }
+    }*/
 
     //Finds the amount of time needed for bullet to hit a target from current ship position and angle
     getHitTime(ship, target) {
@@ -183,11 +183,11 @@ class AI {
         }
     }
 
-    acquireTarget(game, ship) {
+    /*acquireTarget(game, ship) {
         this.primary_target = this.calculateBestTarget(ship, this.targets);
         if (ship.lives <= 0 || game.title_screen)
             this.primary_target = null;
-    }
+    }*/
 
     updateAttackedTargets(delay) {
         var attacked_keys = Object.keys(this.attacked_targets);
@@ -198,7 +198,7 @@ class AI {
         }
     }
 
-    aim(ship, delay) {
+    /*aim(ship, delay) {
         this.controls.left = this.controls.right = false;
         if (this.primary_target == null) return;
         var old_angle = ship.angle;
@@ -249,7 +249,7 @@ class AI {
             while (ship.angle < 0)
                 ship.angle += 2 * Math.PI;
         }
-    }
+    }*/
 
     update(game, delay) {
 
