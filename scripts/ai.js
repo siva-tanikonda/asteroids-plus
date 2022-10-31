@@ -27,13 +27,6 @@ class VirtualShip {
     }
 }
 
-class HitTracker {
-    constructor(target, timer) {
-        this.target = target;
-        this.timer = timer;
-    }
-}
-
 class AI {
 
     constructor() {
@@ -206,7 +199,6 @@ AIMING:
     - Got to use calculus to predict future position of ship
     - Find minimum total time to execute a target while predicting target's future motion
     - Check total time added together to aim
-
 
 FLEEING:
 - For each danger, calculate the danger value between 0 (no danger) to 1 (you're prolly dead already)
