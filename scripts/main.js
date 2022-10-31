@@ -2,11 +2,13 @@
 var settings = {
     game_precision: 10,
     game_speed: 1,
-    ai_playing: false,
+    ai_playing: true,
     show_bounds: true,
     show_positions: true,
     show_velocity: true,
-    show_acceleration: true
+    show_acceleration: true,
+    show_target_radius: true,
+    show_danger_radius: true
 };
 
 //Some basic canvas rendering variables
@@ -48,11 +50,17 @@ function update(delay) {
 
         //If the ai is playing, update the ai
         if (settings.ai_playing)
-            ai.update(game, delay / settings.game_precision);
+            ai.update(delay / settings.game_precision);
 
         //Updates user inputs based on whether the ai or player is playing
         pause = user_input.pause;
         start = user_input.start;
+
+        left = user_input.left;
+        right = user_input.right;
+        forward = user_input.forward;
+        //fire = user_input.fire;
+        teleport = user_input.teleport;
 
         if (!settings.ai_playing) {
             left = user_input.left;
@@ -62,10 +70,10 @@ function update(delay) {
             teleport = user_input.teleport;
         } else {
             fire = ai.controls.fire;
-            left = ai.controls.left;
-            right = ai.controls.right;
-            forward = ai.controls.forward;
-            teleport = ai.controls.teleport;
+            //left = ai.controls.left;
+            //right = ai.controls.right;
+            //forward = ai.controls.forward;
+            //teleport = ai.controls.teleport;
         }
 
         //Updates the game and creates a new game if the player chose to restart the game
@@ -82,7 +90,7 @@ function draw() {
     ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
     game.draw();
     if (settings.ai_playing)
-        ai.drawDebug(game);
+        ai.drawDebug();
 }
 
 //The game loop is created and executed

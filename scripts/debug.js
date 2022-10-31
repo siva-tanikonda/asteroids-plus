@@ -30,7 +30,7 @@ class Debug {
         ctx.translate(-item.position.x, -item.position.y);
         var scale_velocity = item.velocity.mag() * 10;
         ctx.strokeStyle = "rgb(250, 250, 100)";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.5;
         ctx.beginPath();
         ctx.moveTo(item.position.x, item.position.y);
@@ -51,7 +51,7 @@ class Debug {
         ctx.translate(-item.position.x, -item.position.y);
         var scale_acceleration = item.acceleration * 250;
         ctx.strokeStyle = "rgb(125, 150, 250)";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.5;
         ctx.beginPath();
         ctx.moveTo(item.position.x, item.position.y);
@@ -61,6 +61,30 @@ class Debug {
         ctx.lineTo(item.position.x + scale_acceleration - 5, item.position.y + 5);
         ctx.stroke();
         ctx.resetTransform();
+        ctx.globalAlpha = 1.0;
+    }
+
+    //Draws the target radius of an entity
+    static drawTargetRadius(item) {
+        if (!item.hasOwnProperty("size")) return;
+        ctx.strokeStyle = "rgb(250, 140, 75)";
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(item.position.x, item.position.y, ai_constants.target_radius[item.size], 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+    }
+
+    //Draws the danger radius of an entity
+    static drawDangerRadius(item) {
+        if (!item.hasOwnProperty("size")) return;
+        ctx.strokeStyle = "rgb(210, 140, 240)";
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(item.position.x, item.position.y, ai_constants.danger_radius[item.size], 0, 2 * Math.PI);
+        ctx.stroke();
         ctx.globalAlpha = 1.0;
     }
 
