@@ -1001,7 +1001,7 @@ class Game {
             this.makeSaucer(delay);
 
         //Check if player get's an extra life
-        if (this.score >= (1 + this.extra_lives) * point_values.extra_life) {
+        if (this.score >= (1 + this.extra_lives) * point_values.extra_life && this.ship.lives != 0) {
             this.ship.lives++;
             this.extra_lives++;
         }
@@ -1036,12 +1036,12 @@ class Game {
         for (var i = 0; i < this.ship_bullets.length; i++) {
             for (var j = 0; j < this.asteroids.length; j++) {
                 var hit = this.ship_bullets[i].checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[j], this.explosions);
-                if (hit)
+                if (hit && this.ship.lives != 0)
                     this.score += point_values.asteroids;
             }
             for (var j = 0; j < this.saucers.length; j++) {
                 var hit = this.ship_bullets[i].checkCollision(this.saucers[j], this.explosions);
-                if (hit)
+                if (hit && this.ship.lives != 0)
                     this.score += point_values.saucers;
             }
             if (!this.ship_bullets[i].dead)
