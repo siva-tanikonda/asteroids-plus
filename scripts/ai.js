@@ -1,10 +1,10 @@
 var ai_constants = {
     danger_radius: [ 16.5, 32.5, 65 ],
     danger_scaling: 1,
-    danger_distance_squish: 5e-3,
-    danger_velocity_order: 0.75,
-    danger_ship_forward_velocity_scaling: 0.1,
-    danger_ship_reverse_velocity_scaling: 0.5,
+    danger_distance_squish: 2e-3,
+    danger_velocity_order: 0.5,
+    danger_ship_forward_velocity_scaling: 0.25,
+    danger_ship_reverse_velocity_scaling: 1,
     danger_directional_multiplier: 2,
     target_radius: [ 10, 17.5, 30 ],
     target_min_distance: 100
@@ -16,6 +16,7 @@ class Target {
         this.position = target.position.copy();
         this.size = target.size;
         this.velocity = target.velocity.copy();
+        this.pointer = target;
     }
 }
 
@@ -137,45 +138,68 @@ class AI {
         return position
     }
 
+    //Calculate distance between two dangers while applying danger bounds
+    getShortestDistance(a, b) {
+        return this.optimizeInWrap((offset) => {
+            a.add(offset);
+            var distance = Vector.dist(a, b);
+            a.sub(offset);
+            return distance;
+        }, (best, next) => {
+            return (best == null || (next != null && next < best));
+        });
+    }
+
+    //Calculate the bullet collision time assuming you are trying to hit a certain target
+    findBulletCollisionTime(target) {
+        return this.optimizeInWrap((offset) => {
+            this.ship.position.add(offset);
+            var direction = new Vector(Math.cos(this.ship.angle), -Math.sin(this.ship.angle));
+            direction.mul(this.ship.width / 2 + 5);
+            var bullet_position = Vector.add(direction, this.ship.position);
+            direction.norm();
+            var bullet_velocity = Vector.mul(direction, this.ship.bullet_speed);
+            bullet_velocity.add(this.ship.velocity);
+            this.ship.position.sub(offset);
+            return this.findCircleCollisionTime(bullet_position, bullet_velocity, 0, target.position, target.velocity, ai_constants.target_radius[target.size]);
+        }, (best, next) => {
+            return (best == null || (next != null && next < best));
+        });
+    }
+
     //Calculate if we should or should not shoot at current angle and position
     manageFire(delay) {
+
         if (this.ship.bullet_cooldown < 1 || this.ship.teleport_buffer > 0 || this.controls.teleport) return;
+
         var keys = Object.keys(this.attacked_targets);
         for (var i = 0; i < keys.length; i++) {
             this.attacked_targets[keys[i]] -= delay;
             if (this.attacked_targets[keys[i]] <= 0)
                 delete this.attacked_targets[keys[i]];
         }
+
+        this.simulateMove(delay);
+
         var casualty = null;
         var min_time = Infinity;
         for (var i = 0; i < this.targets.length; i++) {
-            var direction = new Vector(Math.cos(this.ship.angle), -Math.sin(this.ship.angle));
-            direction.norm();
-            var bullet_velocity = Vector.mul(direction, this.ship.bullet_speed);
-            direction.norm();
-            var bullet_position = Vector.add(this.ship.position, Vector.mul(direction, this.ship.bullet_speed));
-            var execution_time = this.findCircleCollisionTime(bullet_position, bullet_velocity, 0, this.targets[i].position, this.targets[i].velocity, ai_constants.target_radius[this.targets[i].size]);
+            var execution_time = this.findBulletCollisionTime(this.targets[i]);
             if (execution_time == null || execution_time > this.ship.bullet_life) continue;
             var future_ship_position = this.findFutureShipPosition(execution_time);
             var future_target_position = Vector.add(this.targets[i].position, Vector.mul(this.targets[i].velocity, execution_time));
-            var shortest_distance = this.optimizeInWrap((offset) => {
-                future_ship_position.add(offset);
-                var distance = Vector.dist(future_ship_position, future_target_position);
-                future_ship_position.sub(offset);
-                return distance;
-            }, (best, next) => {
-                return (best == null || (next != null && next < best));
-            });
-            if (shortest_distance - ai_constants.danger_radius[this.targets[i].size] < ai_constants.target_min_distance) continue;
+            var shortest_distance = this.getShortestDistance(future_ship_position, future_target_position);
+            if (shortest_distance - ai_constants.danger_radius[this.targets[i].size] < ai_constants.target_min_distance && this.targets[i].size > 0 && this.targets[i].type == 'a') continue;
             if (min_time > execution_time) {
                 casualty = this.targets[i];
                 min_time = execution_time;
             }
         }
-        if (casualty != null && !(casualty in this.attacked_targets)) {
+        if (casualty != null && !(casualty.pointer in this.attacked_targets)) {
             this.controls.fire = true;
-            this.attacked_targets[casualty] = min_time;
+            this.attacked_targets[casualty.pointer] = min_time;
         }
+
     }
 
     //Calculates the need to go in both directions (forward, left, rear, right)
@@ -224,7 +248,7 @@ class AI {
     }
 
     //Decides on the movement of the ship (when in flee mode)
-    manageFlee(delay) {
+    manageFlee() {
         if (!this.in_danger) return;
         var forward, rear, left, right;
         [forward, left, rear, right] = this.flee_values;
@@ -250,16 +274,11 @@ class AI {
             if (dleft && dright)
                 this.controls.forward = true;
             else if (dleft)
-                this.controls.forward = this.controls.left = true;
-            else if (dright)
-                this.controls.forward = this.controls.right = true;
-            else {
                 this.controls.forward = true;
-                if (left >= right)
-                    this.controls.left = true;
-                else
-                    this.controls.right = true;
-            }
+            else if (dright)
+                this.controls.forward = true;
+            else
+                this.controls.forward = true;
         } else if (drear) {
             if (dleft && dright) {
                 this.controls.teleport = true;
@@ -279,11 +298,82 @@ class AI {
             if (dleft && dright)
                 this.controls.forward = true;
             if (dleft)
-                this.controls.left = this.controls.forward = true;
+                this.controls.forward = true;
             else if (dright)
-                this.controls.right = this.controls.forward = true;    
+                this.controls.forward = true;    
         }
-        this.simulateMove(delay);
+    }
+
+    //Decides on the best target to aim at
+    findBestTarget() {
+        var target = null;
+        var highest_danger_level = 0;
+        for (var i = 0; i < this.targets.length; i++) {
+            if (this.targets[i].pointer in this.attacked_targets)
+                continue;
+            var danger_level = this.calculateDangerLevel(this.targets[i]);
+            if (highest_danger_level < danger_level) {
+                target = this.targets[i];
+                highest_danger_level = danger_level;
+            }
+        }
+        return target;
+    }
+
+    //Decides on aiming of the ship (when in aim mode)
+    manageAim(delay) {
+        var most_dangerous = this.findBestTarget();
+        if (most_dangerous == null) return;
+        var old_angle = this.ship.angle;
+        var old_position = this.ship.position.copy();
+        var time = 1;
+        var best_rotation = 0;
+        var best_time = Infinity;
+        var collision_time = this.findBulletCollisionTime(most_dangerous);
+        if (collision_time != null && collision_time * this.ship.bullet_speed >= this.ship.target_min_distance) {
+            if (collision_time < best_time) {
+                best_rotation = 0;
+                best_time = collision_time;
+            }
+        }
+        while (time * this.ship.rotation_speed <= Math.PI) {
+            this.ship.position = this.findFutureShipPosition(time);
+            this.ship.angle = old_angle + time * this.ship.rotation_speed;
+            while (this.ship.angle >= Math.PI * 2)
+                this.ship.angle -= Math.PI * 2;
+            collision_time = this.findBulletCollisionTime(most_dangerous);
+            if (collision_time != null) {
+                if (time + collision_time < best_time) {
+                    best_rotation = 1;
+                    best_time = time + collision_time;
+                }
+            }
+            this.ship.angle = old_angle - time * this.ship.rotation_speed;
+            while (this.ship.angle < 0)
+                this.ship.angle += Math.PI * 2;
+            collision_time = this.findBulletCollisionTime(most_dangerous);
+            if (collision_time != null) {
+                if (time + collision_time < best_time) {
+                    best_rotation = -1;
+                    best_time = time + collision_time;
+                }
+            }
+            time++;
+        }
+        this.ship.angle = old_angle;
+        this.ship.position = old_position;
+        if (best_rotation == 1) {
+            this.controls.left = true;
+            this.ship.angle += this.ship.rotation_speed * delay;
+            while (this.ship.angle >= Math.PI * 2)
+                this.ship.angle -= Math.PI * 2;
+        }
+        else if (best_rotation == -1) {
+            this.controls.right = true;
+            this.ship.angle -= this.ship.rotation_speed * delay;
+            while (this.ship.angle < 0)
+                this.ship.angle += Math.PI * 2;
+        }
     }
 
     //Just the update function for the ai
@@ -307,8 +397,24 @@ class AI {
             this.dangers.push(new Danger(game.saucer_bullets[i]));
         this.flee_values = this.getFleeValues();
         
+        //Find out if there is a danger that is too close to shoot
+        var proximal_danger = false;
+        for (var i = 0; i < this.dangers.length; i++) {
+            if (this.dangers[i].danger_level < 0.5) continue;
+            var distance = this.getShortestDistance(this.dangers[i].position, this.ship.position);
+            if (this.dangers[i].hasOwnProperty("size"))
+                if (distance - ai_constants.danger_radius[this.targets[i].size] < ai_constants.target_min_distance)
+                    proximal_danger = true;
+            else
+                if (distance < ai_constants.target_min_distance)
+                    proximal_danger = true;
+        }
+        
         //The ai actions
-        this.manageFlee(delay);
+        if (proximal_danger)
+            this.manageFlee(delay);
+        else
+            this.manageAim(delay);
         this.manageFire(delay);
 
     }
