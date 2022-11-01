@@ -3,9 +3,9 @@ var ai_constants = {
     danger_scaling: 1,
     danger_distance_squish: 2e-3,
     danger_velocity_order: 0.75,
-    danger_ship_forward_velocity_scaling: 0,
+    danger_ship_forward_velocity_scaling: 0.25,
     danger_ship_reverse_velocity_scaling: 1,
-    danger_direction_multiplier: 2,
+    danger_direction_multiplier: 1,
     target_radius: [ 10, 17.5, 30 ],
     target_min_distance: 100
 };
@@ -17,10 +17,13 @@ class Target {
         this.size = target.size;
         this.velocity = target.velocity.copy();
         this.pointer = target;
-        if (this.type == 'a')
+        if (this.type == 'a') {
             this.group = this.size;
-        else
+            ai.groups[this.size]++;
+        } else {
             this.group = 3;
+            ai.groups[3]++;
+        }
     }
 }
 
@@ -70,7 +73,7 @@ class AI {
         this.ship = null;
         this.attacked_targets = {};
         this.in_danger = false;
-        this.counts = [ 0, 0, 0, 0 ];
+        this.groups = [ 0, 0, 0, 0 ];
     }
     
     //Allows us to just run a function in the wrap
@@ -155,6 +158,15 @@ class AI {
         });
     }
 
+    //Checks if there are already targets of smaller sizes available
+    checkForbiddenGroup(target) {
+        if (target.group == 3) return false;
+        var earlier_empty = false;
+        for (var i = 0; i < target.group; i++)
+            if (this.groups[i] > 0) earlier_empty = true;
+        return earlier_empty;
+    }
+
     //Calculate the bullet collision time assuming you are trying to hit a certain target
     findBulletCollisionTime(target) {
         return this.optimizeInWrap((offset) => {
@@ -172,17 +184,27 @@ class AI {
         });
     }
 
-    //Calculate if we should or should not shoot at current angle and position
-    manageFire(delay) {
-
-        if (this.ship.bullet_cooldown < 1 || this.ship.teleport_buffer > 0 || this.controls.teleport) return;
-
+    //Update the statuses of the kill confirms
+    updateAttackedTargets() {
         var keys = Object.keys(this.attacked_targets);
         for (var i = 0; i < keys.length; i++) {
             this.attacked_targets[keys[i]] -= delay;
+            if (keys[i].hasOwnProperty("fire_rate"))
+                this.groups[3]--;
+            else if (keys[i].size > 0) {
+                this.groups[keys[i].size]--;
+                this.groups[keys[i].size - 1] += 2;
+            }
             if (this.attacked_targets[keys[i]] <= 0)
                 delete this.attacked_targets[keys[i]];
         }
+    }
+
+    //Calculate if we should or should not shoot at current angle and position
+    manageFire(delay) {
+
+        if (this.ship.bullet_cooldown < 1 || this.ship.teleport_buffer > 0 || this.controls.teleport)
+            return;
 
         this.simulateMove(delay);
 
@@ -200,7 +222,7 @@ class AI {
                 min_time = execution_time;
             }
         }
-        if (casualty != null && !(casualty.pointer in this.attacked_targets)) {
+        if (casualty != null && !(casualty.pointer in this.attacked_targets) && !this.checkForbiddenGroup(casualty)) {
             this.controls.fire = true;
             this.attacked_targets[casualty.pointer] = min_time;
         }
@@ -314,7 +336,7 @@ class AI {
         var target = null;
         var highest_danger_level = 0;
         for (var i = 0; i < this.targets.length; i++) {
-            if (this.targets[i].pointer in this.attacked_targets)
+            if (this.targets[i].pointer in this.attacked_targets || this.checkForbiddenGroup(this.targets[i]))
                 continue;
             var danger_level = this.calculateDangerLevel(this.targets[i]);
             if (highest_danger_level < danger_level) {
@@ -389,7 +411,7 @@ class AI {
         this.in_danger = false;
         this.targets = [];
         this.dangers = [];
-        this.counts = [ 0, 0, 0, 0 ];
+        this.groups = [ 0, 0, 0, 0 ];
         this.ship = new VirtualShip(game.ship);
         for (var i = 0; i < game.asteroids.length; i++) {
             this.targets.push(new Target(game.asteroids[i]));
@@ -402,25 +424,11 @@ class AI {
         for (var i = 0; i < game.saucer_bullets.length; i++)
             this.dangers.push(new Danger(game.saucer_bullets[i]));
         this.flee_values = this.getFleeValues();
-        
-        //Find out if there is a danger that is too close to shoot
-        var proximal_danger = false;
-        for (var i = 0; i < this.dangers.length; i++) {
-            if (this.dangers[i].danger_level < 0.5) continue;
-            var distance = this.getShortestDistance(this.dangers[i].position, this.ship.position);
-            if (this.dangers[i].hasOwnProperty("size"))
-                if (distance - ai_constants.danger_radius[this.targets[i].size] < ai_constants.target_min_distance)
-                    proximal_danger = true;
-            else
-                if (distance < ai_constants.target_min_distance)
-                    proximal_danger = true;
-        }
+        this.updateAttackedTargets();
         
         //The ai actions
-        if (proximal_danger)
-            this.manageFlee(delay);
-        else
-           this.manageAim(delay);
+        this.manageFlee(delay);
+        this.manageAim(delay);
         this.manageFire(delay);
 
     }
