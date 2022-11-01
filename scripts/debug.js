@@ -95,14 +95,16 @@ class Debug {
         ctx.rotate(-item.angle);
         ctx.translate(-item.position.x, -item.position.y);
         for (var i = 0; i < 4; i++) {
-            var scale_flee = ai.flee_values[i] * 75;
-            ctx.beginPath();
-            ctx.moveTo(item.position.x, item.position.y);
-            ctx.lineTo(item.position.x + scale_flee, item.position.y);
-            ctx.lineTo(item.position.x + scale_flee - 5, item.position.y - 5);
-            ctx.moveTo(item.position.x + scale_flee, item.position.y);
-            ctx.lineTo(item.position.x + scale_flee - 5, item.position.y + 5);
-            ctx.stroke();
+            if (ai.flee_values[i] > 0) {
+                var scale_flee = ai.flee_values[i] * 75;
+                ctx.beginPath();
+                ctx.moveTo(item.position.x, item.position.y);
+                ctx.lineTo(item.position.x + scale_flee, item.position.y);
+                ctx.lineTo(item.position.x + scale_flee - 5, item.position.y - 5);
+                ctx.moveTo(item.position.x + scale_flee, item.position.y);
+                ctx.lineTo(item.position.x + scale_flee - 5, item.position.y + 5);
+                ctx.stroke();
+            }
             ctx.translate(item.position.x, item.position.y);
             ctx.rotate(-Math.PI / 2);
             ctx.translate(-item.position.x, -item.position.y);

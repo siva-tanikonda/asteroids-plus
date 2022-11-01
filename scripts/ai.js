@@ -2,10 +2,10 @@ var ai_constants = {
     danger_radius: [ 16.5, 32.5, 65 ],
     danger_scaling: 1,
     danger_distance_squish: 2e-3,
-    danger_velocity_order: 0.5,
-    danger_ship_forward_velocity_scaling: 0.25,
+    danger_velocity_order: 0.75,
+    danger_ship_forward_velocity_scaling: 0,
     danger_ship_reverse_velocity_scaling: 1,
-    danger_directional_multiplier: 2,
+    danger_direction_multiplier: 2,
     target_radius: [ 10, 17.5, 30 ],
     target_min_distance: 100
 };
@@ -17,6 +17,10 @@ class Target {
         this.size = target.size;
         this.velocity = target.velocity.copy();
         this.pointer = target;
+        if (this.type == 'a')
+            this.group = this.size;
+        else
+            this.group = 3;
     }
 }
 
@@ -66,6 +70,7 @@ class AI {
         this.ship = null;
         this.attacked_targets = {};
         this.in_danger = false;
+        this.counts = [ 0, 0, 0, 0 ];
     }
     
     //Allows us to just run a function in the wrap
@@ -213,7 +218,7 @@ class AI {
                 return (best == null || next.mag() < best.mag());
             });
             direction.norm();
-            direction.mul(this.dangers[i].danger_level * ai_constants.danger_directional_multiplier);
+            direction.mul(this.dangers[i].danger_level * ai_constants.danger_direction_multiplier);
             direction.rotate(-this.ship.angle, new Vector());
             if (direction.x > 0)
                 values[0] += direction.x;
@@ -274,9 +279,9 @@ class AI {
             if (dleft && dright)
                 this.controls.forward = true;
             else if (dleft)
-                this.controls.forward = true;
+                this.controls.forward = this.controls.left = true;
             else if (dright)
-                this.controls.forward = true;
+                this.controls.forward = this.controls.right = true;
             else
                 this.controls.forward = true;
         } else if (drear) {
@@ -298,9 +303,9 @@ class AI {
             if (dleft && dright)
                 this.controls.forward = true;
             if (dleft)
-                this.controls.forward = true;
+                this.controls.forward = this.controls.left = true;
             else if (dright)
-                this.controls.forward = true;    
+                this.controls.forward = this.controls.right = true;    
         }
     }
 
@@ -384,6 +389,7 @@ class AI {
         this.in_danger = false;
         this.targets = [];
         this.dangers = [];
+        this.counts = [ 0, 0, 0, 0 ];
         this.ship = new VirtualShip(game.ship);
         for (var i = 0; i < game.asteroids.length; i++) {
             this.targets.push(new Target(game.asteroids[i]));
@@ -414,7 +420,7 @@ class AI {
         if (proximal_danger)
             this.manageFlee(delay);
         else
-            this.manageAim(delay);
+           this.manageAim(delay);
         this.manageFire(delay);
 
     }
