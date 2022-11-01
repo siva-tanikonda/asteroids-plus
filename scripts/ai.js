@@ -1,13 +1,13 @@
 var ai_constants = {
-    danger_radius: [ 16.5, 32.5, 65 ],
+    danger_radius: [ 20, 35, 70 ],
     danger_scaling: 1,
     danger_distance_squish: 2e-3,
-    danger_velocity_order: 0.75,
-    danger_ship_forward_velocity_scaling: 0.25,
+    danger_velocity_order: 1,
+    danger_ship_forward_velocity_scaling: 0.75,
     danger_ship_reverse_velocity_scaling: 1,
-    danger_direction_multiplier: 1,
+    danger_direction_multiplier: 2,
     target_radius: [ 10, 17.5, 30 ],
-    target_min_distance: 100
+    target_min_distance: 125
 };
 
 class Target {
@@ -54,6 +54,13 @@ class Danger {
         this.danger_level = ai.calculateDangerLevel(this);
         if (this.danger_level >= 0.5)
             ai.in_danger = true;
+    }
+}
+
+class HitTracker {
+    constructor(pointer, time) {
+        this.pointer = pointer;
+        this.time = time;
     }
 }
 
@@ -188,14 +195,23 @@ class AI {
     updateAttackedTargets(delay) {
         var keys = Object.keys(this.attacked_targets);
         for (var i = 0; i < keys.length; i++) {
-            this.attacked_targets[keys[i]] -= delay;
-            if (keys[i].hasOwnProperty("fire_rate"))
-                this.groups[3]--;
-            else if (keys[i].size > 0) {
-                this.groups[keys[i].size]--;
-                this.groups[keys[i].size - 1] += 2;
+            var tracked = this.attacked_targets[keys[i]];
+            var in_targets = false;
+            for (var j = 0; j < this.targets.length; j++)
+                if (Object.is(this.targets[j].pointer, tracked.pointer))
+                    in_targets = true;
+            if (!in_targets) {
+                delete this.attacked_targets[keys[i]];
+                continue;
             }
-            if (this.attacked_targets[keys[i]] <= 0)
+            tracked.time -= delay;
+            if (tracked.pointer.hasOwnProperty("fire_rate"))
+                this.groups[3]--;
+            else if (tracked.pointer.size > 0) {
+                this.groups[tracked.pointer.size]--;
+                this.groups[tracked.pointer.size - 1] += 2;
+            }
+            if (tracked.time <= 0)
                 delete this.attacked_targets[keys[i]];
         }
     }
@@ -224,7 +240,7 @@ class AI {
         }
         if (casualty != null && !(casualty.pointer in this.attacked_targets) && !this.checkForbiddenGroup(casualty)) {
             this.controls.fire = true;
-            this.attacked_targets[casualty.pointer] = min_time;
+            this.attacked_targets[casualty.pointer] = new HitTracker(casualty.pointer, min_time);
         }
 
     }
@@ -285,8 +301,14 @@ class AI {
         var dright = right >= 0.5;
         if (dforward && drear) {
             if (dleft && dright) {
-                this.controls.teleport = true;
-                return;
+                if (forward >= rear)
+                    this.controls.forward = true;
+                if (left >= right)
+                    this.controls.left = true;
+                else
+                    this.controls.right = true;
+                //this.controls.teleport = true;
+                //return;
             } else if (dleft)
                 this.controls.left = true;
             else if (dright)
@@ -308,8 +330,12 @@ class AI {
                 this.controls.forward = true;
         } else if (drear) {
             if (dleft && dright) {
-                this.controls.teleport = true;
-                return;
+                if (left >= right)
+                    this.controls.left = true;
+                else
+                    this.controls.right = true;
+                //this.controls.teleport = true;
+                //return;
             }
             else if (dleft)
                 this.controls.left = true;
@@ -427,8 +453,10 @@ class AI {
         this.updateAttackedTargets(delay);
         
         //The ai actions
-        this.manageFlee(delay);
-        this.manageAim(delay);
+        if (this.in_danger)
+            this.manageFlee(delay);
+        else
+            this.manageAim(delay);
         this.manageFire(delay);
 
     }

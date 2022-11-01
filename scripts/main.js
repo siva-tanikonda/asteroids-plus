@@ -1,7 +1,7 @@
 //Settings, including debug settings, ai settings, and game speed settings
 var settings = {
     game_precision: 10,
-    game_speed: 1,
+    game_speed: 2,
     ai_playing: true,
     show_bounds: true,
     show_positions: true,
@@ -11,7 +11,10 @@ var settings = {
     show_danger_radius: true,
     show_danger_level: true,
     show_danger_flee: true,
-    show_target_min_distance: true
+    show_target_min_distance: true,
+    tester_iterations: 100,
+    tester_console_updates: true,
+    optimization_mode: false
 };
 
 //Some basic canvas rendering variables
@@ -32,6 +35,7 @@ Saucer.analyzeSaucerConfigurations();
 //Objects for the game and the ai
 var game = new Game(true);
 var ai = new AI();
+var tester = new Tester(settings.tester_iterations, settings.tester_console_updates);
 
 //Resizes the HTML5 canvas
 function resizeCanvas() {
@@ -49,21 +53,23 @@ function update(delay) {
     left = right = forward = fire = teleport = start = pause = false;
 
     //Based on settings.game_speed, we update to allow for precise collision code and simultaneously whatever speed the player wants the game to run
-    for (var i = 0; i < settings.game_precision * settings.game_speed; i++) {
+    var iterations = settings.game_precision * settings.game_speed;
+    for (var i = 0; i < iterations; i++) {
 
         //If the ai is playing, update the ai
         if (settings.ai_playing)
             ai.update(delay / settings.game_precision);
 
+        if (tester.running)
+            tester.update();
+
         //Updates user inputs based on whether the ai or player is playing
         pause = user_input.pause;
-        start = user_input.start;
 
-        left = user_input.left;
-        right = user_input.right;
-        forward = user_input.forward;
-        fire = user_input.fire;
-        teleport = user_input.teleport;
+        if (!tester.running)
+            start = user_input.start;
+        else 
+            start = tester.controls.start;
 
         if (!settings.ai_playing) {
             left = user_input.left;
@@ -90,7 +96,6 @@ function update(delay) {
 
 //Draws the game
 function draw() {
-    ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
     game.drawGame();
     if (settings.ai_playing)
         ai.drawDebug();
@@ -101,8 +106,10 @@ function draw() {
 function loop(timestamp) {
     seconds_passed = (timestamp - old_timestamp) / 1000;
     old_timestamp = timestamp;
-    update(seconds_passed * 60 * settings.game_speed);
+    update(seconds_passed * 60);
+    ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
     draw();
     window.requestAnimationFrame(loop);
 }
-loop();
+if (!settings.optimization_mode)
+    loop();
