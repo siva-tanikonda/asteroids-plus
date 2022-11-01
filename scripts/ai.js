@@ -185,7 +185,7 @@ class AI {
     }
 
     //Update the statuses of the kill confirms
-    updateAttackedTargets() {
+    updateAttackedTargets(delay) {
         var keys = Object.keys(this.attacked_targets);
         for (var i = 0; i < keys.length; i++) {
             this.attacked_targets[keys[i]] -= delay;
@@ -424,7 +424,7 @@ class AI {
         for (var i = 0; i < game.saucer_bullets.length; i++)
             this.dangers.push(new Danger(game.saucer_bullets[i]));
         this.flee_values = this.getFleeValues();
-        this.updateAttackedTargets();
+        this.updateAttackedTargets(delay);
         
         //The ai actions
         this.manageFlee(delay);
