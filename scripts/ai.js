@@ -1,11 +1,11 @@
 var ai_constants = {
     danger_radius: [ 20, 35, 70 ],
     danger_scaling: 1,
-    danger_distance_squish: 2e-3,
-    danger_velocity_order: 1,
-    danger_ship_forward_velocity_scaling: 0.75,
-    danger_ship_reverse_velocity_scaling: 1,
-    danger_direction_multiplier: 2,
+    danger_distance_squish: 1.5e-3,
+    danger_velocity_order: 0.75,
+    danger_ship_forward_velocity_scaling: 0.5,
+    danger_ship_reverse_velocity_scaling: 1.5,
+    danger_direction_multiplier: 1,
     target_radius: [ 10, 17.5, 30 ],
     target_min_distance: 125
 };
@@ -114,6 +114,7 @@ class AI {
             if (danger.hasOwnProperty("size"))
                 value -= ai_constants.danger_radius[danger.size];
             value = ai_constants.danger_scaling * (Math.E ** (-ai_constants.danger_distance_squish * value));
+            r.norm();
             var proj_sv = Vector.proj_val(r, this.ship.velocity);
             if (proj_sv > 0) proj_sv *= ai_constants.danger_ship_forward_velocity_scaling;
             else proj_sv *= ai_constants.danger_ship_reverse_velocity_scaling;
@@ -299,61 +300,76 @@ class AI {
         var dleft = left >= 0.5;
         var drear = rear >= 0.5;
         var dright = right >= 0.5;
-        if (dforward && drear) {
-            if (dleft && dright) {
+
+        if (dleft && dright) {
+            if (dforward && drear) {
                 if (forward >= rear)
                     this.controls.forward = true;
                 if (left >= right)
                     this.controls.left = true;
                 else
                     this.controls.right = true;
-                //this.controls.teleport = true;
-                //return;
-            } else if (dleft)
-                this.controls.left = true;
-            else if (dright)
-                this.controls.right = true;
-            else {
+            } else if (dforward) {
+                this.controls.forward = true;
+            } else if (drear) {
                 if (left >= right)
                     this.controls.left = true;
                 else
                     this.controls.right = true;
-            }
-        } else if (dforward) {
-            if (dleft && dright)
+            } else {
                 this.controls.forward = true;
-            else if (dleft)
+            }
+        } else if (dleft) {
+            if (dforward && drear)
+                this.controls.left = true;
+            else if (dforward)
                 this.controls.forward = this.controls.left = true;
-            else if (dright)
-                this.controls.forward = this.controls.right = true;
-            else
-                this.controls.forward = true;
-        } else if (drear) {
-            if (dleft && dright) {
-                if (left >= right)
-                    this.controls.left = true;
-                else
-                    this.controls.right = true;
-                //this.controls.teleport = true;
-                //return;
-            }
-            else if (dleft)
+            else if (drear)
                 this.controls.left = true;
-            else if (dright)
+            else {
+                if (forward >= rear)
+                    this.controls.forward = true;
+                this.controls.left = true;
+            }
+        } else if (dright) {
+            if (dforward && drear)
+                this.controls.right = true;
+            else if (dforward)
+                this.controls.forward = this.controls.right = true;
+            else if (rear)
                 this.controls.right = true;
             else {
-                if (left >= right)
-                    this.controls.left = true;
-                else
-                    this.controls.right = true;
+                if (forward >= rear)
+                    this.controls.forward = true;
+                this.controls.right = true;
             }
         } else {
-            if (dleft && dright)
+            if (dforward && drear) {
+                if (forward >= rear)
+                    this.controls.forward = true;
+                if (left >= right)
+                    this.controls.left = true;
+                else
+                    this.controls.right = true;
+            } else if (dforward) {
                 this.controls.forward = true;
-            if (dleft)
-                this.controls.forward = this.controls.left = true;
-            else if (dright)
-                this.controls.forward = this.controls.right = true;    
+                if (left >= right)
+                    this.controls.left = true;
+                else
+                    this.controls.right = true;
+            } else if (drear) {
+                if (left >= right)
+                    this.controls.left = true;
+                else
+                    this.controls.right = true;
+            } else {
+                if (forward >= rear)
+                    this.controls.forward = true;
+                if (left >= right)
+                    this.controls.left = true;
+                else
+                    this.controls.right = true;
+            }
         }
     }
 
