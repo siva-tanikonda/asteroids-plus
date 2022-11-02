@@ -100,3 +100,4 @@ function loop(timestamp) {
     draw();
     window.requestAnimationFrame(loop);
 }
+loop();
