@@ -1,13 +1,11 @@
 var ai_constants = {
     danger_radius: [ 20, 35, 70 ],
-    danger_scaling: 1,
-    danger_distance_squish: 1.5e-3,
-    danger_velocity_order: 0.75,
-    danger_ship_forward_velocity_scaling: 0.5,
-    danger_ship_reverse_velocity_scaling: 1.5,
-    danger_direction_multiplier: 1,
+    danger_distance_weight: 2.5e4,
+    danger_danger_velocity_weight: 1e-2,
+    danger_ship_front_velocity_weight: 2e-2,
+    danger_ship_rear_velocity_weight: 1e-2,
     target_radius: [ 10, 17.5, 30 ],
-    target_min_distance: 125
+    target_min_distance: 150
 };
 
 class Target {
@@ -106,21 +104,22 @@ class AI {
         return best;
     }
 
-    //Calculates the danger value of a danger (saucer, asteroid, or saucer_bullet)
     calculateDangerLevel(danger) {
         return this.optimizeInWrap((offset) => {
             var r = Vector.sub(Vector.add(this.ship.position, offset), danger.position);
             var value = r.mag();
             if (danger.hasOwnProperty("size"))
-                value -= ai_constants.danger_radius[danger.size];
-            value = ai_constants.danger_scaling * (Math.E ** (-ai_constants.danger_distance_squish * value));
-            r.norm();
-            var proj_sv = Vector.proj_val(r, this.ship.velocity);
-            if (proj_sv > 0) proj_sv *= ai_constants.danger_ship_forward_velocity_scaling;
-            else proj_sv *= ai_constants.danger_ship_reverse_velocity_scaling;
-            var proj_dv = Vector.proj_val(r, danger.velocity);
-            value *= Math.max(0, proj_dv - proj_sv) ** ai_constants.danger_velocity_order;
-            return sigmoid(value) * 2 - 1;
+                value = Math.max(1, value - ai_constants.danger_radius[danger.size]);
+            var value = (1 / (r.mag() ** 2)) * ai_constants.danger_distance_weight;
+            value += ai_constants.danger_danger_velocity_weight * Vector.proj_val(r, danger.velocity);
+            var ship_velocity_factor = Vector.proj_val(Vector.mul(r, -1), this.ship.velocity);
+            if (ship_velocity_factor > 0)
+                ship_velocity_factor *= ai_constants.danger_ship_front_velocity_weight;
+            else
+                ship_velocity_factor *= ai_constants.danger_ship_rear_velocity_weight;
+            value += ship_velocity_factor;
+            value = sigmoid(value) * 2 - 1;
+            return value;
         }, (best, next) => {
             return (best == null || next > best);
         });
@@ -176,7 +175,7 @@ class AI {
     }
 
     //Calculate the bullet collision time assuming you are trying to hit a certain target
-    findBulletCollisionTime(target) {
+    findBulletCollisionTime(target, pessimistic_bounds = false) {
         return this.optimizeInWrap((offset) => {
             this.ship.position.add(offset);
             var direction = new Vector(Math.cos(this.ship.angle), -Math.sin(this.ship.angle));
@@ -186,7 +185,10 @@ class AI {
             var bullet_velocity = Vector.mul(direction, this.ship.bullet_speed);
             bullet_velocity.add(this.ship.velocity);
             this.ship.position.sub(offset);
-            return this.findCircleCollisionTime(bullet_position, bullet_velocity, 0, target.position, target.velocity, ai_constants.target_radius[target.size]);
+            var size = ai_constants.target_radius[target.size];
+            if (pessimistic_bounds)
+                size = ai_constants.danger_radius[target.size];
+            return this.findCircleCollisionTime(bullet_position, bullet_velocity, 0, target.position, target.velocity, size);
         }, (best, next) => {
             return (best == null || (next != null && next < best));
         });
@@ -217,6 +219,17 @@ class AI {
         }
     }
 
+    //Checks if there's a chance of collateral damage with certain target being fired at (this is part of clutter optimization)
+    checkCollateralDamage(target) {
+        var collision_time = this.findBulletCollisionTime(target);
+        for (var i = 0; i < this.targets.length; i++) {
+            if (Object.is(this.targets[i], target)) continue;
+            if (this.findBulletCollisionTime(this.targets[i], true) < collision_time)
+                return true;
+        }
+        return false;
+    }
+
     //Calculate if we should or should not shoot at current angle and position
     manageFire(delay) {
 
@@ -239,7 +252,7 @@ class AI {
                 min_time = execution_time;
             }
         }
-        if (casualty != null && !(casualty.pointer in this.attacked_targets) && !this.checkForbiddenGroup(casualty)) {
+        if (casualty != null && !(casualty.pointer in this.attacked_targets) && !this.checkForbiddenGroup(casualty) && !this.checkCollateralDamage(casualty)) {
             this.controls.fire = true;
             this.attacked_targets[casualty.pointer] = new HitTracker(casualty.pointer, min_time);
         }
@@ -257,7 +270,7 @@ class AI {
                 return (best == null || next.mag() < best.mag());
             });
             direction.norm();
-            direction.mul(this.dangers[i].danger_level * ai_constants.danger_direction_multiplier);
+            direction.mul(this.dangers[i].danger_level);
             direction.rotate(-this.ship.angle, new Vector());
             if (direction.x > 0)
                 values[0] += direction.x;
@@ -324,8 +337,9 @@ class AI {
                 this.controls.left = true;
             else if (dforward)
                 this.controls.forward = this.controls.left = true;
-            else if (drear)
+            else if (drear) {
                 this.controls.left = true;
+            }
             else {
                 if (forward >= rear)
                     this.controls.forward = true;
@@ -378,7 +392,7 @@ class AI {
         var target = null;
         var highest_danger_level = 0;
         for (var i = 0; i < this.targets.length; i++) {
-            if (this.targets[i].pointer in this.attacked_targets || this.checkForbiddenGroup(this.targets[i]))
+            if (this.targets[i].pointer in this.attacked_targets || this.checkForbiddenGroup(this.targets[i]) || this.getShortestDistance(this.ship.position, this.targets[i].position) < ai_constants.target_min_distance)
                 continue;
             var danger_level = this.calculateDangerLevel(this.targets[i]);
             if (highest_danger_level < danger_level) {

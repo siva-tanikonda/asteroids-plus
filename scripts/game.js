@@ -54,11 +54,11 @@ var asteroid_configurations = {
     //The function for the speed scaling of the asteroids
     speed_scaling: (wave) => {
         var last_wave = Math.max(1, wave - 1);
-        return [ Math.max(2, 2 + 0.1 * Math.log2(last_wave)), Math.max(2, 2 + 0.1 * Math.log2(wave))];
+        return [ Math.max(1, 1 + 0.1 * Math.log2(last_wave)), Math.max(1, 1 + 0.1 * Math.log2(wave))];
     },
     //The function for the number of asteroids that spawn in the game after all have been destroyed
     spawn_count: (wave) => {
-        return Math.min(7, wave + 4);
+        return Math.min(5, wave + 2);
     }
 };
 
@@ -105,8 +105,8 @@ var saucer_configurations = {
     //The function to calculate the bullet speed of the saucer
     bullet_speed: (wave) => {
         var last_wave = Math.max(1, wave - 1);
-        var upper_bound = Math.min(7, 4 + wave / 10 * 4);
-        var lower_bound = Math.min(7, 4 + last_wave / 10 * 4);
+        var upper_bound = Math.min(6, 4 + wave / 10 * 4);
+        var lower_bound = Math.min(6, 4 + last_wave / 10 * 4);
         return [lower_bound, upper_bound];
     },
     //The function to calculate the fire rate of the saucer
@@ -117,7 +117,7 @@ var saucer_configurations = {
         return [lower_bound, upper_bound];
     },
     //The bullet life of the saucer's bullets
-    bullet_life: 100,
+    bullet_life: 200,
     //The spawn rate of the saucer (given that no saucer is already in the game)
     spawn_rate: (wave) => {
         return Math.min(1, wave / 1000);
