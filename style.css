@@ -1,3 +1,12 @@
+/*Font Loading*/
+
+@font-face {
+    font-family: 'Roboto Mono Thin';
+    src: url('fonts/Roboto Mono.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 100;
+}
+
 @font-face {
     font-family: 'Roboto Mono Light';
     src: url('fonts/Roboto Mono.ttf') format('truetype');
@@ -19,6 +28,8 @@
     font-weight: 700;
 }
 
+/*Game Screen Styling*/
+
 body {
     margin: 0;
     padding: 0;
@@ -26,6 +37,169 @@ body {
 }
 
 #canvas {
-    image-rendering: pixelated;
-    background-color: rgb(30, 30, 30);
+    position: absolute;
+    right: 0px;
+    image-rendering: crisp-edges;
+    background-color: rgb(20, 20, 20);
+}
+
+/*Side Bar Content Styling*/
+
+.form-control {
+    font-family: system-ui, sans-serif;
+    font-size: 2rem;
+    font-weight: bold;
+    line-height: 1.1;
+    display: grid;
+    grid-template-columns: 1em auto;
+    gap: 0.5em;
+}
+
+input[type="checkbox"] {
+    font: inherit;
+    position: relative;
+    appearance: none;
+    background-color: transparent;
+    margin: 0px;
+    top: 2.5px;
+    font: inherit;
+    border-radius: 0px;
+    color: white;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid currentColor;
+    display: inline-block;
+    padding-left: 1.5px;
+    padding-top: 1px;
+}
+
+input[type="checkbox"]::before {
+    content: "";
+    width: 11px;
+    height: 11px;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    transform: scale(0);
+    transform-origin: bottom left;
+    background-color: white;
+    display: block;
+}
+
+input[type="checkbox"]:checked::before {
+    transform: scale(1);
+}
+
+input[type="checkbox"]:disabled {
+    opacity: 0.5;
+}
+
+.setting-container {
+    white-space: no-wrap;
+    overflow-x: auto;
+    vertical-align: center;
+    margin-bottom: -20px;
+}
+
+.setting {
+    font-family: 'Roboto Mono Light';
+    color: white;
+    display: inline-block;
+    vertical-align: center;
+}
+
+#side-bar {
+    position: absolute;
+    padding: 0px;
+    left: 0px;
+    top: 0px;
+    width: 400px;
+    height: 100%;
+    background-color: rgb(22, 22, 22);
+    border-right: 1.5px solid white;
+}
+
+#title-container {
+    position: relative;
+    left: 22.5px;
+    top: 25px;
+    width: 350px;
+    height: 75px;
+    text-align: center;
+    vertical-align: center;
+    border: 1.5px solid white;
+}
+
+#title {
+    position: relative;
+    top: -5px;
+    font-family: 'Roboto Mono Light';
+    color: white;
+}
+
+#debug-container {
+    position: relative;
+    left: 22.5px;
+    top: 30px;
+    width: 300px;
+    height: 75px;
+    text-align: left;
+    padding: 0px;
+    margin: 0px;
+}
+
+#debug-title-container {
+    position: relative;
+    width: 202px;
+    height: 40px;
+    border-bottom: 1.5px solid white;
+    vertical-align: bottom;
+    padding: 0px;
+}
+
+#debug-title {
+    position: relative;
+    font-family: 'Roboto Mono Light';
+    color: white;
+}
+
+#debug-settings {
+    list-style-type: None;
+}
+
+#game-speed-input {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    vertical-align: center;
+    background: transparent;
+    color: white;
+    border: None;
+    font-size: 18px;
+    border-bottom: 1.5px solid white;
+    font-family: 'Roboto Mono Light'
+}
+
+#ai-container {
+    position: relative;
+    left: 22.5px;
+    top: 215px;
+    width: 300px;
+    height: 75px;
+    text-align: left;
+    padding: 0px;
+    margin: 0px;
+}
+
+#ai-title-container {
+    position: relative;
+    width: 159px;
+    height: 40px;
+    border-bottom: 1.5px solid white;
+    vertical-align: bottom;
+    padding: 0px;
+}
+
+#ai-title {
+    position: relative;
+    font-family: 'Roboto Mono Light';
+    color: white;
 }

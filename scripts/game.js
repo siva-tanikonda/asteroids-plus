@@ -482,7 +482,7 @@ class Ship {
     }
 
     //Draws ship at a certain position with a certain offset and opacity (and also whether to show debug info)
-    drawShip(offset, position, show_bounds, show_positions, show_velocity, show_acceleration, alpha = 1.0) {
+    drawShip(offset, position, show_hitboxes, show_positions, show_velocity, show_acceleration, alpha = 1.0) {
         if (this.invincibility > 0 && this.invincibility_flash < 0.5)
             return;
         ctx.strokeStyle = "white";
@@ -507,7 +507,7 @@ class Ship {
         ctx.stroke();
         ctx.globalAlpha = 1.0;
         ctx.resetTransform();
-        if (show_bounds) {
+        if (show_hitboxes) {
             ctx.translate(offset.x, offset.y);
             Debug.drawBounds(this);
             ctx.translate(-offset.x, -offset.y);
@@ -542,7 +542,7 @@ class Ship {
     //Draws the ship before the teleportation (ship is fading)
     drawWrapBeforeTeleportation(offset) {
         if (this.teleport_buffer == 0)
-            this.drawShip(offset, this.position, settings.show_bounds, settings.show_positions, settings.show_velocity, settings.show_acceleration);
+            this.drawShip(offset, this.position, settings.show_hitboxes, settings.show_positions, settings.show_velocity, settings.show_acceleration);
         else {
             this.drawShip(offset, this.position, false, settings.show_positions, settings.show_velocity, settings.show_acceleration, 1.0 - this.teleport_buffer);
         }
@@ -719,7 +719,7 @@ class Asteroid {
             ctx.lineTo(this.bounds.points[i].x, this.bounds.points[i].y);
         ctx.stroke();
         ctx.resetTransform();
-        if (settings.show_bounds) {
+        if (settings.show_hitboxes) {
             ctx.translate(offset.x, offset.y);
             Debug.drawBounds(this);
             ctx.translate(-offset.x, -offset.y);
@@ -867,7 +867,7 @@ class Saucer {
         ctx.moveTo(this.bounds.points[2].x, this.bounds.points[2].y);
         ctx.lineTo(this.bounds.points[this.bounds.points.length - 3].x, this.bounds.points[this.bounds.points.length - 3].y);
         ctx.stroke();
-        if (settings.show_bounds)
+        if (settings.show_hitboxes)
             Debug.drawBounds(this);
         if (settings.show_positions)
             Debug.drawPosition(this);
@@ -1104,8 +1104,8 @@ class Game {
 
     //Draws title screen ("Press Enter to Start") if the page is launched initially
     drawTitle() {
-        ctx.fillStyle = "rgb(30, 30, 30)";
-        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = "rgb(20, 20, 20)";
+        ctx.globalAlpha = 0.75;
         ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
         ctx.globalAlpha = 1;
         ctx.fillStyle = "white";
@@ -1118,8 +1118,8 @@ class Game {
 
     //Draws game over screen
     drawGameOver() {
-        ctx.fillStyle = "rgb(30, 30, 30)";
-        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = "rgb(20, 20, 20)";
+        ctx.globalAlpha = 0.75;
         ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
         ctx.globalAlpha = 1;
         ctx.fillStyle = "white";
@@ -1135,8 +1135,8 @@ class Game {
 
     //Draws pause overlay
     drawPause() {
-        ctx.fillStyle = "rgb(30, 30, 30)";
-        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = "rgb(20, 20, 20)";
+        ctx.globalAlpha = 0.75;
         ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
         ctx.globalAlpha = 1;
         ctx.fillStyle = "white";

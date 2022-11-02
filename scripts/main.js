@@ -1,28 +1,13 @@
-//Settings, including debug settings, ai settings, and game speed settings
-var settings = {
-    game_precision: 10,
-    game_speed: 2,
-    ai_playing: true,
-    show_bounds: true,
-    show_positions: true,
-    show_velocity: true,
-    show_acceleration: true,
-    show_target_radius: true,
-    show_danger_radius: true,
-    show_danger_level: true,
-    show_danger_flee: true,
-    show_target_min_distance: true,
-};
-
 //Some basic canvas rendering variables
 var canvas = document.getElementById("canvas");
+var side_bar = document.getElementById("side-bar");
 var canvas_bounds = canvas.getBoundingClientRect();
 var ctx = canvas.getContext("2d");
 var user_input = new UserInput();
 var old_timestamp = 0;
 
 //Turn-off anti-aliasing
-ctx.imageSmoothingEnabled = false;
+ctx.imageSmoothingLevel = 'high';
 
 //Do initial setup steps for the game
 resizeCanvas();
@@ -35,7 +20,7 @@ var ai = new AI();
 
 //Resizes the HTML5 canvas
 function resizeCanvas() {
-    canvas.width = window.innerWidth;
+    canvas.width = window.innerWidth - side_bar.getBoundingClientRect().width;
     canvas.height = window.innerHeight;
     canvas_bounds = canvas.getBoundingClientRect();
 }
@@ -47,6 +32,8 @@ function update(delay) {
     if (isNaN(delay) || delay == 0) return;
     var left, right, forward, fire, teleport;
     left = right = forward = fire = teleport = start = pause = false;
+
+    updateSettings();
 
     //Based on settings.game_speed, we update to allow for precise collision code and simultaneously whatever speed the player wants the game to run
     var iterations = settings.game_precision * settings.game_speed;

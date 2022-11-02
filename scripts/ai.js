@@ -106,7 +106,7 @@ class AI {
 
     calculateDangerLevel(danger) {
         return this.optimizeInWrap((offset) => {
-            var r = Vector.sub(Vector.add(this.ship.position, offset), danger.position);
+            var r = Vector.sub(this.ship.position, Vector.add(danger.position, offset));
             var value = r.mag();
             if (danger.hasOwnProperty("size"))
                 value = Math.max(1, value - ai_constants.danger_radius[danger.size]);
@@ -224,7 +224,7 @@ class AI {
         var collision_time = this.findBulletCollisionTime(target);
         for (var i = 0; i < this.targets.length; i++) {
             if (Object.is(this.targets[i], target)) continue;
-            if (this.findBulletCollisionTime(this.targets[i], true) < collision_time)
+            if (this.findBulletCollisionTime(this.targets[i], true) < collision_time && this.checkForbiddenGroup(this.targets[i]))
                 return true;
         }
         return false;
@@ -493,16 +493,13 @@ class AI {
 
     //Draws the debug info for a specific entity
     drawDebugForItem(item) {
-        if (settings.show_target_radius)
+        if (settings.show_ai_debug) {
             Debug.drawTargetRadius(item);
-        if (settings.show_danger_radius)
             Debug.drawDangerRadius(item);
-        if (settings.show_target_min_distance)
             Debug.drawTargetMinDistance(item);
-        if (settings.show_danger_level)
             Debug.drawDangerLevel(item);
-        if (settings.show_danger_flee)
             Debug.drawDangerFlee(item);
+        }
     }
 
     //Draws all debug info for the ai

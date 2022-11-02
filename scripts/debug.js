@@ -15,9 +15,9 @@ class Debug {
     //Draws the position of an entity
     static drawPosition(item) {
         ctx.fillStyle = "rgb(125, 250, 125)";
-        ctx.globalAlpha = 0.5;
+        ctx.globalAlpha = 0.75;
         ctx.beginPath();
-        ctx.arc(item.position.x, item.position.y, 2, 0, 2 * Math.PI);
+        ctx.arc(item.position.x, item.position.y, 2.5, 0, 2 * Math.PI);
         ctx.fill();
         ctx.globalAlpha = 1.0;
     }
@@ -31,7 +31,7 @@ class Debug {
         var scale_velocity = item.velocity.mag() * 10;
         ctx.strokeStyle = "rgb(250, 250, 100)";
         ctx.lineWidth = 1.5;
-        ctx.globalAlpha = 0.5;
+        ctx.globalAlpha = 0.75;
         ctx.beginPath();
         ctx.moveTo(item.position.x, item.position.y);
         ctx.lineTo(item.position.x + scale_velocity, item.position.y);
