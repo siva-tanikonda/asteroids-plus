@@ -46,7 +46,6 @@ function update(delay) {
         //Updates user inputs based on whether the ai or player is playing
         pause = user_input.pause;
         start = user_input.start;
-
         if (!settings.ai_playing) {
             left = user_input.left;
             right = user_input.right;

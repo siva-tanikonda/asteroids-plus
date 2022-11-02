@@ -1166,6 +1166,7 @@ class Game {
             this.explosions[i].draw();
     }
 
+    //Draws the overlay of the game (lives, score, pause, game-over, and start screens)
     drawOverlay() {
         if (!this.title_screen && !this.ship.dead) {
             this.drawScore();

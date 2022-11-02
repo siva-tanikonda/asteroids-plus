@@ -86,6 +86,7 @@ class Debug {
         ctx.globalAlpha = 1.0;
     }
 
+    //Draws the flee values (the importance of how much we have to move in a certain direction for the AI)
     static drawDangerFlee(item) {
         if (!item.hasOwnProperty("lives") || game.title_screen || game.paused || game.ship.lives <= 0) return;
         ctx.strokeStyle = "rgb(210, 140, 240)";

@@ -10,6 +10,7 @@ var settings = {
     show_ai_debug: false
 };
 
+//Updates the settings based on what boxes are checked and what values the user enters
 function updateSettings() {
     
     var game_speed = document.getElementById("game-speed-input").value;

@@ -1,3 +1,4 @@
+//Constants that are used in the ai's heuristic algorithm
 var ai_constants = {
     danger_radius: [ 20, 35, 70 ],
     danger_distance_weight: 2.5e4,
@@ -81,7 +82,7 @@ class AI {
         this.groups = [ 0, 0, 0, 0 ];
     }
     
-    //Allows us to just run a function in the wrap
+    //Allows us to just run a function in the wrapping system
     runInWrap(func) {
         var horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
         var vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
@@ -104,6 +105,8 @@ class AI {
         return best;
     }
 
+    //Calculates the danger level of a particular danger (asteroid, saucer, or saucer bullet)
+    //This is primary method of classifying what targets to care about vs. which ones to not care about
     calculateDangerLevel(danger) {
         return this.optimizeInWrap((offset) => {
             var r = Vector.sub(this.ship.position, Vector.add(danger.position, offset));
@@ -145,7 +148,7 @@ class AI {
         });
     }
 
-    //Find future position of a book assuming no more thrust applied
+    //Find future position of a ship assuming no more thrust applied
     findFutureShipPosition(time) {
         var initial_velocity = this.ship.velocity.copy();
         var velocity = Vector.mul(this.ship.velocity, 1 / (Math.E ** (this.ship.drag_coefficient * time)));
@@ -153,7 +156,7 @@ class AI {
         return position
     }
 
-    //Calculate distance between two dangers while applying danger bounds
+    //Calculate distance between two objects while applying the bounds and wrapping system
     getShortestDistance(a, b) {
         return this.optimizeInWrap((offset) => {
             a.add(offset);
@@ -165,7 +168,7 @@ class AI {
         });
     }
 
-    //Checks if there are already targets of smaller sizes available
+    //Checks if there are already targets of smaller sizes available to shoot
     checkForbiddenGroup(target) {
         if (target.group == 3) return false;
         var earlier_empty = false;
@@ -219,7 +222,7 @@ class AI {
         }
     }
 
-    //Checks if there's a chance of collateral damage with certain target being fired at (this is part of clutter optimization)
+    //Checks if there's a chance of collateral damage with certain target being fired at
     checkCollateralDamage(target) {
         var collision_time = this.findBulletCollisionTime(target);
         for (var i = 0; i < this.targets.length; i++) {
@@ -259,7 +262,7 @@ class AI {
 
     }
 
-    //Calculates the need to go in both directions (forward, left, rear, right)
+    //Calculates the need to go in each of the four directions [forward, left, reverse, right]
     getFleeValues() {
         var values = [ 0, 0, 0, 0 ];
         for (var i = 0; i < this.dangers.length; i++) {
@@ -284,7 +287,7 @@ class AI {
         return values
     }
 
-    //Simulates the ship doing certain movements
+    //Simulates the ship's future position and angle given what controls the ai has pressed
     simulateMove(delay) {
         if (this.controls.left) {
             this.ship.angle += this.ship.rotation_speed * delay;
@@ -518,68 +521,3 @@ class AI {
     }
 
 }
-
-/*
-CONSTANTS:
-- danger_radius: A radius based on the max polygon radius of each asteroid/saucer
-- target_safety_distance: The minimum distance between splittable asteroid and player to shoot
-
-PROGRAM:
-- Create virtual versions of every entity in the game
-- Decide if we should flee or aim (because we can't do both at the same time)
-    - If we decided to aim, then take the steps to aim
-    - If we decided to flee, take the steps to flee
-- If it is viable/safe to shoot, then shoot
-**Notes**
-- Make sure to edit the virtual entities, not the original ones (abstraction barrier)
-- Make sure time complexity isn't too high (or else the program will be slow)
-- Dangers vs. targets difference is just that dangers include saucer bullets
-
-FIRING:
-- For each target, calculate the minimum amount of time necessary for a bullet to reach the target O(n)
-    - Can use quadratic formula to get this time
-    - Sometimes might have no solution
-    - If distance involves a collision, then return null
-- Check if the position of the ship will be too close to the target by this time O(1)
-    - Can calculate position of ship using differential equation
-    - Can use danger_radius[asteroid.size] + target_safety_distance to decide if we are too close or not
-    - If so, don't shoot
-    - Constants Used: danger_radius, target_safety radius
-- Check if the time to reach the target is within the limit of the bullet life O(1)
-    - If so, then shoot
-- Time Complexity: O(n) -> n is the number of targets
-
-AIMING:
-- Pick the most dangerous target on the screen
-- See minimum rotation to shoot that target
-    - Got to use calculus to predict future position of ship
-    - Find minimum total time to execute a target while predicting target's future motion
-    - Check total time added together to aim
-
-FLEEING:
-- For each danger, calculate the danger value between 0 (no danger) to 1 (you're prolly dead already)
-    - Formula: **Insert Formula Here**
-    - In order for an object to be classified as dangerous, it has to have a danger level >=0.5
-- left, right, forward, stop scalars
-- For every object that's been classified as dangerous:
-    - Get unit vector opposing vector from ship to danger
-    - Multiply this by the danger
-    - Add to each of 4 scalars based on components/projection onto axis created by angle of the ship
-- Squish each of these values into ranges of 0 to 1
-- Different Scenarios:
-    - A dangerous direction is a direction where the squished value is >=0.5
-    - Dangers: None -> Do nothing
-    - Dangers: Left -> Forward
-    - Dangers: Right -> Forward
-    - Dangers: Left, Right -> Forward
-    - Dangers: Forward -> Right or Left based on which direction is safer
-    - Dangers: Forward, Left -> Right
-    - Dangers: Forward, Right -> Left
-    - Dangers: Back -> Forward
-    - Dangers: Back, Left -> Right, forward
-    - Dangers: Back, Right -> Left, forward
-    - Dangers: Back, Right, Left -> Forward
-    - Dangers: Forward, Left, Right -> Teleport
-    - Dangers: Forward, Left, Right, Back -> Teleport
-- Time Complexity: O(n)
-*/
