@@ -12,9 +12,6 @@ var settings = {
     show_danger_level: true,
     show_danger_flee: true,
     show_target_min_distance: true,
-    tester_iterations: 100,
-    tester_console_updates: true,
-    optimization_mode: false
 };
 
 //Some basic canvas rendering variables
@@ -35,7 +32,6 @@ Saucer.analyzeSaucerConfigurations();
 //Objects for the game and the ai
 var game = new Game(true);
 var ai = new AI();
-var tester = new Tester(settings.tester_iterations, settings.tester_console_updates);
 
 //Resizes the HTML5 canvas
 function resizeCanvas() {
@@ -60,16 +56,9 @@ function update(delay) {
         if (settings.ai_playing)
             ai.update(delay / settings.game_precision);
 
-        if (tester.running)
-            tester.update();
-
         //Updates user inputs based on whether the ai or player is playing
         pause = user_input.pause;
-
-        if (!tester.running)
-            start = user_input.start;
-        else 
-            start = tester.controls.start;
+        start = user_input.start;
 
         if (!settings.ai_playing) {
             left = user_input.left;
@@ -111,5 +100,3 @@ function loop(timestamp) {
     draw();
     window.requestAnimationFrame(loop);
 }
-if (!settings.optimization_mode)
-    loop();
