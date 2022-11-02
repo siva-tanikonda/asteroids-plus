@@ -83,7 +83,7 @@ We can calculate this by simply adding the amount of time it takes for the ship 
 
 Firing Choice System
 --------
-We can calculate whether or not to shoot with the following pseudocode:\
+We can calculate whether or not to shoot with the following pseudocode:
 ```
 calculate which target we would hit if we fired with the ship at the current position and angle (can use the same formula in the aiming code)
 see if this target is too close to shoot safely
