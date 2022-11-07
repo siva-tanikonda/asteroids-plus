@@ -2,28 +2,28 @@
 
 @font-face {
     font-family: 'Roboto Mono Thin';
-    src: url('fonts/Roboto Mono.ttf') format('truetype');
+    src: url('Fonts/Roboto Mono.ttf') format('truetype');
     font-style: normal;
     font-weight: 100;
 }
 
 @font-face {
     font-family: 'Roboto Mono Light';
-    src: url('fonts/Roboto Mono.ttf') format('truetype');
+    src: url('Fonts/Roboto Mono.ttf') format('truetype');
     font-style: normal;
     font-weight: 300;
 }
 
 @font-face {
     font-family: 'Roboto Mono Regular';
-    src: url('fonts/Roboto Mono.ttf') format('truetype');
+    src: url('Fonts/Roboto Mono.ttf') format('truetype');
     font-style: normal;
     font-weight: 400;
 }
 
 @font-face {
     font-family: 'Roboto Mono Bold';
-    src: url('fonts/Roboto Mono.ttf') format('truetype');
+    src: url('Fonts/Roboto Mono.ttf') format('truetype');
     font-style: normal;
     font-weight: 700;
 }
