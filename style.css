@@ -48,7 +48,6 @@ body {
 .form-control {
     font-family: system-ui, sans-serif;
     font-size: 2rem;
-    font-weight: bold;
     line-height: 1.1;
     display: grid;
     grid-template-columns: 1em auto;
@@ -100,7 +99,7 @@ input[type="checkbox"]:disabled {
 }
 
 .setting {
-    font-family: 'Roboto Mono Light';
+    font-family: 'Roboto Mono Thin';
     color: white;
     display: inline-block;
     vertical-align: center;
@@ -131,7 +130,7 @@ input[type="checkbox"]:disabled {
 #title {
     position: relative;
     top: -5px;
-    font-family: 'Roboto Mono Light';
+    font-family: 'Roboto Mono Thin';
     color: white;
 }
 
@@ -157,7 +156,7 @@ input[type="checkbox"]:disabled {
 
 #debug-title {
     position: relative;
-    font-family: 'Roboto Mono Light';
+    font-family: 'Roboto Mono Thin';
     color: white;
 }
 
@@ -200,6 +199,6 @@ input[type="checkbox"]:disabled {
 
 #ai-title {
     position: relative;
-    font-family: 'Roboto Mono Light';
+    font-family: 'Roboto Mono Thin';
     color: white;
 }
