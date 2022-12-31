@@ -6,7 +6,7 @@ var ctx = canvas.getContext("2d");
 var user_input = new UserInput();
 var old_timestamp = 0;
 
-//Turn-off anti-aliasing
+//Set anti-aliasing to high
 ctx.imageSmoothingLevel = 'high';
 
 //Do initial setup steps for the game

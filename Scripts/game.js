@@ -46,11 +46,11 @@ var asteroid_configurations = {
     //Maximum bounding rect size of an asteroid
     max_rect: new Rect(0, 0, 150, 150),
     //The up-scaling of the asteroids based on the size (smaller number means smaller asteroid)
-    sizes: [ 12.5, 25, 50 ],
+    sizes: [ 10, 20, 35 ],
     //The range of the speeds the asteroids could rotate
     rotation_speed: [ 0, 0.02 ],
     //The speed multiplier based on the asteroid's size
-    size_speed: [ 2, 1.5, 1 ],
+    size_speed: [ 3, 2, 1 ],
     //The function for the speed scaling of the asteroids
     speed_scaling: (wave) => {
         var last_wave = Math.max(1, wave - 1);
@@ -58,7 +58,7 @@ var asteroid_configurations = {
     },
     //The function for the number of asteroids that spawn in the game after all have been destroyed
     spawn_count: (wave) => {
-        return Math.min(5, wave + 2);
+        return Math.floor(Math.min(5, wave + 2) * (canvas_bounds.width * canvas_bounds.height) / 1e6);
     }
 };
 
@@ -90,7 +90,7 @@ var saucer_configurations = {
         [-0.2, 0]
     ]),
     //The size multipliers of the saucer
-    sizes: [ 40, 60 ],
+    sizes: [ 20, 40 ],
     //The function to find the scaling of the speed based on the player's current wave
     speed_scaling: (wave) => {
         var last_wave = Math.max(1, wave - 1);
@@ -346,7 +346,7 @@ class Ship {
         this.drag_coefficient = 0.01;
         this.bullet_cooldown = 1;
         this.fire_rate = 0.05;
-        this.bullet_speed = 8;
+        this.bullet_speed = 10;
         this.bullet_life = 60;
         this.trail_length = 8;
         this.thruster_status = 0;
