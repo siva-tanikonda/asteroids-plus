@@ -90,7 +90,7 @@ var saucer_configurations = {
         [-0.2, 0]
     ]),
     //The size multipliers of the saucer
-    sizes: [ 20, 40 ],
+    sizes: [ 30, 40 ],
     //The function to find the scaling of the speed based on the player's current wave
     speed_scaling: (wave) => {
         var last_wave = Math.max(1, wave - 1);
@@ -342,7 +342,7 @@ class Ship {
         this.angle = Math.PI / 2;
         this.bounds.rotate(this.angle, new Vector());
         this.rotation_speed = 5 * Math.PI / 180;
-        this.acceleration = 0.1;
+        this.acceleration = 0.125;
         this.drag_coefficient = 0.01;
         this.bullet_cooldown = 1;
         this.fire_rate = 0.05;
