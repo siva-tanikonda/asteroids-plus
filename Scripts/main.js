@@ -25,6 +25,9 @@ function resizeCanvas() {
     canvas_bounds = canvas.getBoundingClientRect();
 }
 
+//Added EventListener for window resize
+window.addEventListener("resize", resizeCanvas);
+
 //Updates the game
 function update(delay) {
 
