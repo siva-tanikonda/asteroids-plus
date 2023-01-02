@@ -46,7 +46,7 @@ var asteroid_configurations = {
     //Maximum bounding rect size of an asteroid
     max_rect: new Rect(0, 0, 150, 150),
     //The up-scaling of the asteroids based on the size (smaller number means smaller asteroid)
-    sizes: [ 10, 20, 35 ],
+    sizes: [ 10, 25, 40 ],
     //The range of the speeds the asteroids could rotate
     rotation_speed: [ 0, 0.02 ],
     //The speed multiplier based on the asteroid's size
@@ -90,7 +90,7 @@ var saucer_configurations = {
         [-0.2, 0]
     ]),
     //The size multipliers of the saucer
-    sizes: [ 30, 40 ],
+    sizes: [ 40, 50 ],
     //The function to find the scaling of the speed based on the player's current wave
     speed_scaling: (wave) => {
         var last_wave = Math.max(1, wave - 1);
@@ -167,7 +167,7 @@ class Particle {
     //Updates the position of the particle
     updatePosition(delay) {
         var initial_velocity = this.velocity.copy();
-        this.velocity.mul(1/(Math.E ** (this.drag_coefficient * delay)));
+        this.velocity.mul(1 / (Math.E ** (this.drag_coefficient * delay)));
         this.position = Vector.div(Vector.add(Vector.mul(this.position, this.drag_coefficient), Vector.sub(initial_velocity, this.velocity)), this.drag_coefficient);
         wrap(this.position);
     }
@@ -343,7 +343,7 @@ class Ship {
         this.bounds.rotate(this.angle, new Vector());
         this.rotation_speed = 5 * Math.PI / 180;
         this.acceleration = 0.125;
-        this.drag_coefficient = 0.01;
+        this.drag_coefficient = 0.0075;
         this.bullet_cooldown = 1;
         this.fire_rate = 0.05;
         this.bullet_speed = 10;

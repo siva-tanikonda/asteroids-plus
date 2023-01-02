@@ -1,6 +1,7 @@
 //Settings, including debug settings, ai settings, and game speed settings
 var settings = {
     game_precision: 10,
+    max_delay: 0.1,
     game_speed: 1,
     ai_playing: false,
     show_hitboxes: false,

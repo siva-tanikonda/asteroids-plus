@@ -5,6 +5,7 @@ var canvas_bounds = canvas.getBoundingClientRect();
 var ctx = canvas.getContext("2d");
 var user_input = new UserInput();
 var old_timestamp = 0;
+var tab_active = true;
 
 //Set anti-aliasing to high
 ctx.imageSmoothingLevel = 'high';
@@ -28,18 +29,22 @@ function resizeCanvas() {
 //Added EventListener for window resize
 window.addEventListener("resize", resizeCanvas);
 
+//Added EventListener to see if tab is active or not
+window.onfocus = () => { tab_active = true; };
+window.onblur = () => { tab_active = false; };
+
 //Updates the game
 function update(delay) {
 
     //Basic rules for the update function
-    if (isNaN(delay) || delay == 0) return;
+    if (isNaN(delay) || delay == 0 || !tab_active) return;
     var left, right, forward, fire, teleport;
     left = right = forward = fire = teleport = start = pause = false;
 
     updateSettings();
 
     //Based on settings.game_speed, we update to allow for precise collision code and simultaneously whatever speed the player wants the game to run
-    var iterations = settings.game_precision * settings.game_speed;
+    var iterations = delay / Math.min(settings.max_delay, delay / settings.game_precision) * settings.game_speed;
     for (var i = 0; i < iterations; i++) {
 
         //If the ai is playing, update the ai
