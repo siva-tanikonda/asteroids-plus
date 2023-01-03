@@ -32,6 +32,12 @@ window.addEventListener("resize", resizeCanvas);
 //Added EventListener to see if tab is active or not
 window.onfocus = () => { tab_active = true; };
 window.onblur = () => { tab_active = false; };
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState == "visible")
+        tab_active = true;
+    else
+        tab_active = false;
+});
 
 //Updates the game
 function update(delay) {
