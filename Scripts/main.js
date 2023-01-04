@@ -50,12 +50,13 @@ function update(delay) {
     updateSettings();
 
     //Based on settings.game_speed, we update to allow for precise collision code and simultaneously whatever speed the player wants the game to run
-    var iterations = delay / Math.min(settings.max_delay, delay / settings.game_precision) * settings.game_speed;
+    var segment = Math.min(settings.max_delay, delay / settings.game_precision);
+    var iterations = Math.floor(delay / segment) * settings.game_speed;
     for (var i = 0; i < iterations; i++) {
 
         //If the ai is playing, update the ai
         if (settings.ai_playing)
-            ai.update(delay / settings.game_precision);
+            ai.update(segment);
 
         //Updates user inputs based on whether the ai or player is playing
         pause = user_input.pause;
@@ -75,7 +76,7 @@ function update(delay) {
         }
 
         //Updates the game and creates a new game if the player chose to restart the game
-        var done = game.update(left, right, forward, fire, teleport, start, pause, delay / settings.game_precision);
+        var done = game.update(left, right, forward, fire, teleport, start, pause, segment);
         if (done)
             this.game = new Game();
         
