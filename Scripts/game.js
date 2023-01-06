@@ -584,7 +584,6 @@ class Ship {
                 if (hit) {
                     this.dead = bullet.dead = true;
                     explosions.push(new Explosion(this.position));
-                    explosions.push(new Explosion(bullet.position));
                     return true;
                 }
             }    
