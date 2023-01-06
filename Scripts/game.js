@@ -1,3 +1,22 @@
+//Ship config information
+var ship_configuration = {
+    width: 30,
+    height: 16,
+    rear_offset: 6,
+    rotation_speed: 5 * Math.PI / 180,
+    acceleration: 0.125,
+    drag_coefficient: 0.0075,
+    fire_rate: 0.05,
+    bullet_speed: 10,
+    bullet_life: 60,
+    trail_length: 8,
+    thruster_flash_rate: 0.05,
+    teleport_speed: 0.025,
+    teleport_recharge_rate: 0.005,
+    lives: 3,
+    invincibility_flash_rate: 0.1
+};
+
 //Asteroid config information
 var asteroid_configurations = {
     //Different polygon shapes that the asteroids could take
@@ -331,9 +350,9 @@ class Ship {
     constructor() {
         this.position = new Vector(canvas_bounds.width / 2, canvas_bounds.height / 2);
         this.velocity = new Vector();
-        this.width = 30
-        this.height = 16;
-        this.rear_offset = 6;
+        this.width = ship_configuration.width;
+        this.height = ship_configuration.height;
+        this.rear_offset = ship_configuration.rear_offset;
         this.bounds = new Polygon([
             [-this.width / 2, -this.height / 2],
             [-this.width / 2, this.height / 2],
@@ -341,28 +360,28 @@ class Ship {
         ]);
         this.angle = Math.PI / 2;
         this.bounds.rotate(this.angle, new Vector());
-        this.rotation_speed = 5 * Math.PI / 180;
-        this.acceleration = 0.125;
-        this.drag_coefficient = 0.0075;
+        this.rotation_speed = ship_configuration.rotation_speed;
+        this.acceleration = ship_configuration.acceleration;
+        this.drag_coefficient = ship_configuration.drag_coefficient;
         this.bullet_cooldown = 1;
-        this.fire_rate = 0.05;
-        this.bullet_speed = 10;
-        this.bullet_life = 60;
-        this.trail_length = 8;
+        this.fire_rate = ship_configuration.fire_rate;
+        this.bullet_speed = ship_configuration.bullet_speed;
+        this.bullet_life = ship_configuration.bullet_life;
+        this.trail_length = ship_configuration.trail_length;
         this.thruster_status = 0;
-        this.thruster_flash_rate = 0.05;
+        this.thruster_flash_rate = ship_configuration.thruster_flash_rate;
         this.teleport_buffer = 0.0;
-        this.teleport_speed = 0.025;
+        this.teleport_speed = ship_configuration.teleport_speed;
         this.teleport_cooldown = 1;
-        this.teleport_recharge_rate = 0.005;
+        this.teleport_recharge_rate = ship_configuration.teleport_recharge_rate;
         this.teleport_location = new Vector();
         this.bounds.translate(this.position);
-        this.lives = 3;
+        this.lives = ship_configuration.lives;
         this.dead = false;
         this.invincibility = 0;
         this.invincibility_time = 100;
         this.invincibility_flash = 0;
-        this.invincibility_flash_rate = 0.1;
+        this.invincibility_flash_rate = ship_configuration.invincibility_flash_rate;
         this.accelerating = false;
     }
 
