@@ -19,17 +19,15 @@ Saucer.analyzeSaucerConfigurations();
 var game = new Game(true);
 var ai = new AI();
 
-//Resizes the HTML5 canvas
+//Resizes the HTML5 canvas when needed
 function resizeCanvas() {
     canvas.width = window.innerWidth - side_bar.getBoundingClientRect().width;
     canvas.height = window.innerHeight;
     canvas_bounds = canvas.getBoundingClientRect();
 }
-
-//Added EventListener for window resize
 window.addEventListener("resize", resizeCanvas);
 
-//Added EventListener to see if tab is active or not
+//Check if the tab is active or not
 window.onfocus = () => { tab_active = true; };
 window.onblur = () => { tab_active = false; };
 document.addEventListener("visibilitychange", () => {
@@ -50,13 +48,12 @@ function update(delay) {
     updateSettings();
 
     //Based on settings.game_speed, we update to allow for precise collision code and simultaneously whatever speed the player wants the game to run
-    var segment = Math.min(settings.max_delay, delay / settings.game_precision);
-    var iterations = Math.floor(delay / segment) * settings.game_speed;
+    var iterations = settings.game_precision * settings.game_speed;
     for (var i = 0; i < iterations; i++) {
 
         //If the ai is playing, update the ai
         if (settings.ai_playing)
-            ai.update(segment);
+            ai.update(delay / settings.game_precision);
 
         //Updates user inputs based on whether the ai or player is playing
         pause = user_input.pause;
@@ -76,7 +73,7 @@ function update(delay) {
         }
 
         //Updates the game and creates a new game if the player chose to restart the game
-        var done = game.update(left, right, forward, fire, teleport, start, pause, segment);
+        var done = game.update(left, right, forward, fire, teleport, start, pause, delay / settings.game_precision);
         if (done)
             this.game = new Game();
         
@@ -86,6 +83,7 @@ function update(delay) {
 
 //Draws the game
 function draw() {
+    ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
     game.drawGame();
     if (settings.ai_playing)
         ai.drawDebug();
@@ -97,7 +95,6 @@ function loop(timestamp) {
     seconds_passed = (timestamp - old_timestamp) / 1000;
     old_timestamp = timestamp;
     update(seconds_passed * 60);
-    ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
     draw();
     window.requestAnimationFrame(loop);
 }
