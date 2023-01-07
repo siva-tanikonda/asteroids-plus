@@ -1195,6 +1195,8 @@ class Game {
             this.drawGameOver();
         if (this.paused)
             this.drawPause();
+        if (settings.show_game_data)
+            Debug.drawGameData(this);
     }
 
 }

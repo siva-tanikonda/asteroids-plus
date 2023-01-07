@@ -67,9 +67,9 @@ class Debug {
     //Draws the danger of an entity
     static drawDangerLevel(item) {
         if (item.hasOwnProperty("lives")) return;
-        ctx.font = "12px Roboto Mono Bold"
+        ctx.font = "12px Roboto Mono Bold";
         ctx.fillStyle = "rgb(210, 140, 240)";
-        var danger = +ai.calculateDangerLevel(item).toFixed(2);
+        var danger = ai.calculateDangerLevel(item).toFixed(2);
         var size = ctx.measureText(danger);
         ctx.fillText(danger, item.position.x - size.width / 2, item.position.y - 10);
     }
@@ -137,6 +137,33 @@ class Debug {
         ctx.arc(item.position.x, item.position.y, ai_constants.target_min_distance, 0, 2 * Math.PI);
         ctx.fill();
         ctx.globalAlpha = 1.0;
+    }
+
+    //Draws the game data on the overlay
+    static drawGameData(game) {
+        ctx.font = "14px Roboto Mono Bold";
+        ctx.fillStyle = "rgb(242, 86, 75)";
+        var wave_text = "Wave: " + Math.floor(game.wave);
+        var wave_size = ctx.measureText(wave_text);
+        ctx.fillText(wave_text, canvas_bounds.width - wave_size.width - 5, 20);
+        var saucer_text = "Saucer Count: " + game.saucers.length;
+        var saucer_size = ctx.measureText(saucer_text);
+        ctx.fillText(saucer_text, canvas_bounds.width - saucer_size.width - 5, 40);
+        var asteroid_counts = [ 0, 0, 0 ];
+        for (var i = 0; i < game.asteroids.length; i++)
+            asteroid_counts[game.asteroids[i].size]++;
+        var asteroid_text = "Large Asteroid Count: " + asteroid_counts[2];
+        var asteroid_size = ctx.measureText(asteroid_text);
+        ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 5, 60);
+        asteroid_text = "Medium Asteroid Count: " + asteroid_counts[1];
+        asteroid_size = ctx.measureText(asteroid_text);
+        ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 5, 80);
+        asteroid_text = "Small Asteroid Count: " + asteroid_counts[0];
+        asteroid_size = ctx.measureText(asteroid_text);
+        ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 5, 100);
+        var fps_text = "FPS: " + fps.toFixed(2);
+        var fps_size = ctx.measureText(fps_text);
+        ctx.fillText(fps_text, canvas_bounds.width - fps_size.width - 5, 120);
     }
 
 }

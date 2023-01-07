@@ -7,6 +7,11 @@ var user_input = new UserInput();
 var old_timestamp = 0;
 var tab_active = true;
 
+//Some debugging information
+var fps = 0;
+var fps_cooldown = 0;
+var fps_reset_rate = 2e-2;
+
 //Set anti-aliasing to high
 ctx.imageSmoothingLevel = 'high';
 
@@ -94,6 +99,11 @@ function draw() {
 function loop(timestamp) {
     seconds_passed = (timestamp - old_timestamp) / 1000;
     old_timestamp = timestamp;
+    if (settings.show_game_data) {
+        if (fps_cooldown <= 0)
+            fps = 1 / seconds_passed, fps_cooldown = 1;
+        fps_cooldown = Math.max(0, fps_cooldown - fps_reset_rate);
+    }
     update(seconds_passed * 60);
     draw();
     window.requestAnimationFrame(loop);
