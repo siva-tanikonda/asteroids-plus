@@ -143,27 +143,27 @@ class Debug {
     static drawGameData(game) {
         ctx.font = "14px Roboto Mono Bold";
         ctx.fillStyle = "rgb(242, 86, 75)";
-        var wave_text = "Wave: " + Math.floor(game.wave);
+        var wave_text = "Wave: " + game.wave.toFixed(2);
         var wave_size = ctx.measureText(wave_text);
-        ctx.fillText(wave_text, canvas_bounds.width - wave_size.width - 5, 20);
+        ctx.fillText(wave_text, canvas_bounds.width - wave_size.width - 10, 20);
         var saucer_text = "Saucer Count: " + game.saucers.length;
         var saucer_size = ctx.measureText(saucer_text);
-        ctx.fillText(saucer_text, canvas_bounds.width - saucer_size.width - 5, 40);
+        ctx.fillText(saucer_text, canvas_bounds.width - saucer_size.width - 10, 40);
         var asteroid_counts = [ 0, 0, 0 ];
         for (var i = 0; i < game.asteroids.length; i++)
             asteroid_counts[game.asteroids[i].size]++;
         var asteroid_text = "Large Asteroid Count: " + asteroid_counts[2];
         var asteroid_size = ctx.measureText(asteroid_text);
-        ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 5, 60);
+        ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 10, 60);
         asteroid_text = "Medium Asteroid Count: " + asteroid_counts[1];
         asteroid_size = ctx.measureText(asteroid_text);
-        ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 5, 80);
+        ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 10, 80);
         asteroid_text = "Small Asteroid Count: " + asteroid_counts[0];
         asteroid_size = ctx.measureText(asteroid_text);
-        ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 5, 100);
+        ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 10, 100);
         var fps_text = "FPS: " + fps.toFixed(2);
         var fps_size = ctx.measureText(fps_text);
-        ctx.fillText(fps_text, canvas_bounds.width - fps_size.width - 5, 120);
+        ctx.fillText(fps_text, canvas_bounds.width - fps_size.width - 10, 120);
     }
 
 }
