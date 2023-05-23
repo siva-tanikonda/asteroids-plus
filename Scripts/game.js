@@ -405,19 +405,19 @@ class Ship {
     }
 
     //Rotates the ship based on user input
-    rotate(left, right, delay) {
+    rotate(delay) {
         var old_angle = this.angle;
-        if (left) this.angle += delay * this.rotation_speed;
-        if (right) this.angle -= delay * this.rotation_speed;
+        if (controls.left) this.angle += delay * this.rotation_speed;
+        if (controls.right) this.angle -= delay * this.rotation_speed;
         this.bounds.rotate(this.angle - old_angle, this.position);
         while (this.angle >= Math.PI * 2) this.angle -= Math.PI * 2;
         while (this.angle < 0) this.angle += Math.PI * 2;
     }
 
     //Moves the ship based on the thruster activation
-    move(forward, delay) {
+    move(delay) {
         var direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
-        if (this.teleport_buffer == 0 && forward) {
+        if (this.teleport_buffer == 0 && controls.forward) {
             direction.mul(this.acceleration);
             this.velocity.add(Vector.mul(direction, delay));
             this.thruster_status += this.thruster_flash_rate * delay;
@@ -435,8 +435,8 @@ class Ship {
     }
 
     //Manage firing
-    fire(fire, delay, ship_bullets) {
-        if (fire && this.bullet_cooldown >= 1 && this.teleport_buffer <= 0) {
+    fire(delay, ship_bullets) {
+        if (controls.fire && this.bullet_cooldown >= 1 && this.teleport_buffer <= 0) {
             var direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
             direction.mul(this.width / 2 + 5);
             var bullet_position = Vector.add(direction, this.position);
@@ -450,8 +450,8 @@ class Ship {
     }
 
     //Manages the teleportation of the ship
-    updateTeleportation(teleport, delay) {
-        if (teleport && this.teleport_cooldown >= 1 && this.teleport_buffer <= 0) {
+    updateTeleportation(delay) {
+        if (controls.teleport && this.teleport_cooldown >= 1 && this.teleport_buffer <= 0) {
             this.teleport_location = new Vector(Math.floor(Math.random() * canvas_bounds.width), Math.floor(Math.random() * canvas_bounds.height));
             this.teleport_buffer += this.teleport_speed * delay;
             this.teleport_cooldown = 0;
@@ -477,7 +477,7 @@ class Ship {
     }
 
     //Updates the ship
-    update(left, right, forward, fire, teleport, delay, ship_bullets) {
+    update(delay, ship_bullets) {
 
         //Sequence to manage ship survival
         if (this.dead && this.lives > 0)
@@ -485,15 +485,15 @@ class Ship {
         if (this.dead) return;
 
         //Sequence to update position (including moving and teleporting)
-        this.rotate(left, right, delay);
+        this.rotate(delay);
         var old_position = this.position.copy();
-        this.move(forward, delay);
-        this.updateTeleportation(teleport, delay);
+        this.move(delay);
+        this.updateTeleportation(delay);
         wrap(this.position);
         this.bounds.translate(Vector.sub(this.position, old_position));
 
         //Shoots if player says so and player isn't teleporting
-        this.fire(fire, delay, ship_bullets);
+        this.fire(delay, ship_bullets);
 
         //Update's ship's invincibility frames
         this.updateInvincibility(delay);
@@ -981,12 +981,12 @@ class Game {
     }
 
     //Update loop function (true means that the game has ended and false means that the game is still in progress)
-    update(left, right, forward, fire, teleport, start, pause, delay) {
+    update(delay) {
 
         //Check if the game has been paused or unpaused
-        if (!this.title_screen && !(this.ship.dead && this.ship.lives <= 0) && !this.paused && pause && !this.old_pause)
+        if (!this.title_screen && !(this.ship.dead && this.ship.lives <= 0) && !this.paused && controls.pause && !this.old_pause)
             this.paused = true;
-        else if (this.paused && pause && !this.old_pause)
+        else if (this.paused && controls.pause && !this.old_pause)
             this.paused = false;
 
         //Update the wave of the game
@@ -997,7 +997,7 @@ class Game {
             this.title_flash += this.title_flash_rate * delay;
             while (this.title_flash >= 1)
                 this.title_flash--;
-            if (start && !this.paused) {
+            if (controls.start && !this.paused) {
                 if (!this.ship.dead)
                     this.title_screen = false;
                 return true;
@@ -1005,7 +1005,7 @@ class Game {
         }
 
         //See if the pause button was down in the previous frame
-        this.old_pause = pause;
+        this.old_pause = controls.pause;
 
         //Don't update the game if the game is paused
         if (this.paused) return;
@@ -1026,7 +1026,7 @@ class Game {
 
         //Update each asteroid, saucer, and ship (everything but collision stuff)
         if (!this.title_screen)
-            this.ship.update(left, right, forward, fire, teleport, delay, this.ship_bullets);
+            this.ship.update(delay, this.ship_bullets);
         for (var i = 0; i < this.ship_bullets.length; i++)
             this.ship_bullets[i].update(delay);
         for (var i = 0; i < this.asteroids.length; i++)

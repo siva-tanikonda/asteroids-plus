@@ -47,8 +47,6 @@ function update(delay) {
 
     //Basic rules for the update function
     if (isNaN(delay) || delay == 0 || !tab_active) return;
-    var left, right, forward, fire, teleport;
-    left = right = forward = fire = teleport = start = pause = false;
 
     updateSettings();
 
@@ -63,25 +61,18 @@ function update(delay) {
         //Updates user inputs based on whether the ai or player is playing
         pause = user_input.pause;
         start = user_input.start;
-        if (!settings.ai_playing) {
-            left = user_input.left;
-            right = user_input.right;
-            forward = user_input.forward;
-            fire = user_input.fire;
-            teleport = user_input.teleport;
-        } else {
-            fire = ai.controls.fire;
-            left = ai.controls.left;
-            right = ai.controls.right;
-            forward = ai.controls.forward;
-            teleport = ai.controls.teleport;
-        }
+        if (!settings.ai_playing)
+            user_input.applyControls();
+        else
+            ai.applyControls();
 
         //Updates the game and creates a new game if the player chose to restart the game
-        var done = game.update(left, right, forward, fire, teleport, start, pause, delay / settings.game_precision);
+        var done = game.update(delay / settings.game_precision);
         if (done)
             this.game = new Game();
         
+        resetControls();
+
     }
 
 }

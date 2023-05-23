@@ -1,3 +1,18 @@
+var controls = {
+    left: false,
+    right: false,
+    forward: false,
+    fire: false,
+    teleport: false,
+    start: false,
+    pause: false
+};
+
+function resetControls() {
+    for (var i in controls)
+        controls[i] = false;
+}
+
 class UserInput {
     constructor() {
         this.left = this.right = this.forward = this.fire = this.teleport = this.start = this.pause = false;
@@ -33,5 +48,14 @@ class UserInput {
             if (evt.key == "Escape")
                 this.pause = false;
         };
+    }
+    applyControls() {
+        controls.left = this.left;
+        controls.right = this.right;
+        controls.forward = this.forward;
+        controls.fire = this.fire;
+        controls.teleport = this.teleport;
+        controls.start = this.start;
+        controls.pause = this.pause;
     }
 }
