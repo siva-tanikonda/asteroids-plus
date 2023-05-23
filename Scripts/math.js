@@ -51,13 +51,13 @@ class Vector {
     dist(v) {
         return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2);
     }
-    proj_val(v) {
+    comp(v) {
         if (this.mag() == 0) return 0;
         return this.dot(v) / this.mag();
     }
     proj(v) {
         if (this.mag() == 0) return new Vector();
-        return Vector.mul(Vector.div(this, this.mag()), this.proj_val(v));
+        return Vector.mul(Vector.div(this, this.mag()), this.comp(v));
     }
     static copy(v) {
         return new Vector(v.x, v.y);
@@ -101,13 +101,13 @@ class Vector {
     static dist(u, v) {
         return Math.sqrt((u.x - v.x) ** 2 + (u.y - v.y) ** 2);
     }
-    static proj_val(u, v) {
+    static comp(u, v) {
         if (u.mag() == 0) return 0;
         return u.dot(v) / u.mag();
     }
     static proj(u, v) {
         if (u.mag() == 0) return Vector();
-        return Vector.mul(Vector.div(u, u.mag()), u.proj_val(v));
+        return Vector.mul(Vector.div(u, u.mag()), u.comp(v));
     }
     static side(u, v, w) {
         var uv = Vector.sub(v, u);

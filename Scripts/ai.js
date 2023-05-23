@@ -114,8 +114,8 @@ class AI {
             if (danger.hasOwnProperty("size"))
                 value = Math.max(1, value - ai_constants.danger_radius[danger.size]);
             var value = (1 / (r.mag() ** 2)) * ai_constants.danger_distance_weight;
-            value += ai_constants.danger_danger_velocity_weight * Vector.proj_val(r, danger.velocity);
-            var ship_velocity_factor = Vector.proj_val(Vector.mul(r, -1), this.ship.velocity);
+            value += ai_constants.danger_danger_velocity_weight * Vector.comp(r, danger.velocity);
+            var ship_velocity_factor = Vector.comp(Vector.mul(r, -1), this.ship.velocity);
             if (ship_velocity_factor > 0)
                 ship_velocity_factor *= ai_constants.danger_ship_front_velocity_weight;
             else
