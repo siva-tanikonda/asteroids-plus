@@ -12,7 +12,7 @@ var ship_configuration = {
     trail_length: 8,
     thruster_flash_rate: 0.05,
     teleport_speed: 0.025,
-    teleport_recharge_rate: 0.005,
+    teleport_recharge_rate: 0.01,
     lives: 3,
     invincibility_flash_rate: 0.1
 };

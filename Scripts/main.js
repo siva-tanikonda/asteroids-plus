@@ -59,8 +59,6 @@ function update(delay) {
             ai.update(delay / settings.game_precision);
 
         //Updates user inputs based on whether the ai or player is playing
-        pause = user_input.pause;
-        start = user_input.start;
         if (!settings.ai_playing)
             user_input.applyControls();
         else
