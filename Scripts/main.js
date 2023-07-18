@@ -1,19 +1,18 @@
 //Some basic canvas rendering variables
-var canvas = document.getElementById("canvas");
-var side_bar = document.getElementById("side-bar");
-var canvas_bounds = canvas.getBoundingClientRect();
-var ctx = canvas.getContext("2d");
-var user_input = new UserInput();
-var old_timestamp = 0;
-var tab_active = true;
+const canvas = document.getElementById("canvas");
+const side_bar = document.getElementById("side-bar");
+const ctx = canvas.getContext("2d");
+const user_input = new UserInput();
+let canvas_bounds = canvas.getBoundingClientRect();
+let old_timestamp = 0;
 
 //Some debugging information
-var fps = 0;
-var fps_cooldown = 0;
-var fps_reset_rate = 2e-2;
+let fps = 0;
+let fps_cooldown = 0;
+const fps_reset_rate = 2e-2;
 
 //Set anti-aliasing to high
-ctx.imageSmoothingLevel = 'high';
+ctx.imageSmoothingLevel = "high";
 
 //Do initial setup steps for the game
 resizeCanvas();
@@ -21,8 +20,7 @@ Asteroid.analyzeAsteroidConfigurations();
 Saucer.analyzeSaucerConfigurations();
 
 //Objects for the game and the ai
-var game = new Game(true);
-var ai = new AI();
+let game = new Game(true);
 
 //Resizes the HTML5 canvas when needed
 function resizeCanvas() {
@@ -32,39 +30,23 @@ function resizeCanvas() {
 }
 window.addEventListener("resize", resizeCanvas);
 
-//Check if the tab is active or not
-window.onfocus = () => { tab_active = true; };
-window.onblur = () => { tab_active = false; };
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState == "visible")
-        tab_active = true;
-    else
-        tab_active = false;
-});
-
 //Updates the game
 function update(delay) {
 
     //Basic rules for the update function
-    if (isNaN(delay) || delay == 0 || !tab_active) return;
+    if (isNaN(delay) || delay == 0) return;
 
     updateSettings();
 
+    const iteration_updates = settings.game_precision * settings.game_speed;
     //Based on settings.game_speed, we update to allow for precise collision code and simultaneously whatever speed the player wants the game to run
-    var iterations = settings.game_precision * settings.game_speed;
-    for (var i = 0; i < iterations; i++) {
-
-        //If the ai is playing, update the ai
-        if (settings.ai_playing)
-            ai.update(delay / settings.game_precision);
+    for (let i = 0; i < iteration_updates; i++) {
 
         //Updates user inputs based on whether the ai or player is playing
         user_input.applyControls();
-        if (settings.ai_playing)
-            ai.applyControls();
 
         //Updates the game and creates a new game if the player chose to restart the game
-        var done = game.update(delay / settings.game_precision);
+        const done = game.update(delay / settings.game_precision);
         if (done)
             this.game = new Game();
         
@@ -78,8 +60,6 @@ function update(delay) {
 function draw() {
     ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
     game.drawGame();
-    if (settings.ai_playing)
-        ai.drawDebug();
     game.drawOverlay();
 }
 

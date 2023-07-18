@@ -9,8 +9,8 @@ class Vector {
     mag() {
         return Math.sqrt(this.x ** 2 + this.y ** 2);
     }
-    norm() {
-        var len = this.mag();
+    normalize() {
+        const len = this.mag();
         if (len == 0) return;
         this.x /= len;
         this.y /= len;
@@ -32,10 +32,9 @@ class Vector {
         this.y /= k;
     }
     rotate(a, d) {
-        var nx = ((this.x - d.x) * Math.cos(a) - (d.y - this.y) * Math.sin(a)) + d.x
-        var ny = d.y - ((this.x - d.x) * Math.sin(a) + (d.y - this.y) * Math.cos(a));
+        const nx = ((this.x - d.x) * Math.cos(a) + (this.y - d.y) * Math.sin(a)) + d.x;
+        this.y = ((d.x - this.x) * Math.sin(a) + (this.y - d.y) * Math.cos(a)) + d.y;
         this.x = nx;
-        this.y = ny;
     }
     dot(v) {
         return this.x * v.x + this.y * v.y;
@@ -44,7 +43,7 @@ class Vector {
         return this.x * v.y - this.y * v.x;
     }
     angle() {
-        var angle = Math.atan2(this.y, this.x);
+        let angle = Math.atan2(this.y, this.x);
         while (angle < 0) angle += Math.PI * 2;
         return angle;
     }
@@ -53,7 +52,7 @@ class Vector {
     }
     comp(v) {
         if (this.mag() == 0) return 0;
-        return this.dot(v) / this.mag();
+        return this.dot(v);
     }
     proj(v) {
         if (this.mag() == 0) return new Vector();
@@ -65,8 +64,8 @@ class Vector {
     static mag(v) {
         return Math.sqrt(v.x ** 2 + v.y ** 2);
     }
-    static norm(v) {
-        var len = v.mag();
+    static normalize(v) {
+        const len = v.mag();
         if (len == 0) return v.copy();
         return new Vector(v.x / len, v.y / len);
     }
@@ -83,8 +82,8 @@ class Vector {
         return new Vector(v.x / k, v.y / k);
     }
     static rotate(v, a, d) {
-        var nx = ((v.x - d.x) * Math.cos(a), (v.y - d.y) * Math.sin(a)) + d.x;
-        var ny = ((v.x - d.x) * Math.sin(a), (v.y - d.y) * Math.cos(a)) + d.y;
+        const nx = ((v.x - d.x) * Math.cos(a), (v.y - d.y) * Math.sin(a)) + d.x;
+        const ny = ((v.x - d.x) * Math.sin(a), (v.y - d.y) * Math.cos(a)) + d.y;
         return new Vector(nx, ny);
     }
     static dot(u, v) {
@@ -94,7 +93,7 @@ class Vector {
         return u.x * v.y - u.y * v.x;
     }
     static angle(v) {
-        var angle = Math.atan2(v.y, v.x);
+        let angle = Math.atan2(v.y, v.x);
         while (angle < 0) angle += Math.PI * 2;
         return angle;
     }
@@ -103,15 +102,15 @@ class Vector {
     }
     static comp(u, v) {
         if (u.mag() == 0) return 0;
-        return u.dot(v) / u.mag();
+        return u.dot(v);
     }
     static proj(u, v) {
         if (u.mag() == 0) return Vector();
         return Vector.mul(Vector.div(u, u.mag()), u.comp(v));
     }
     static side(u, v, w) {
-        var uv = Vector.sub(v, u);
-        var vw = Vector.sub(w, v);
+        const uv = Vector.sub(v, u);
+        const vw = Vector.sub(w, v);
         if (uv.cross(vw) > 0)
             return -1;
         else if (uv.cross(vw) < 0)
@@ -141,19 +140,19 @@ class LineSegment {
         this.b = b;
     }
     containsPoint(v) {
-        var side = Vector.side(this.a, this.b, v);
+        const side = Vector.side(this.a, this.b, v);
         if (side != 0) return false;
-        var min_x = Math.min(this.a.x, this.b.x);
-        var max_x = Math.max(this.a.x, this.b.x);
+        const min_x = Math.min(this.a.x, this.b.x);
+        const max_x = Math.max(this.a.x, this.b.x);
         return (v.x >= min_x && v.x <= max_x);
     }
     intersects(l) {
         if (l.containsPoint(this.a) || l.containsPoint(this.b) || this.containsPoint(l.a) || this.containsPoint(l.b))
             return true;
-        var s1 = Vector.side(this.a, this.b, l.a);
-        var s2 = Vector.side(this.a, this.b, l.b);
-        var s3 = Vector.side(l.a, l.b, this.a);
-        var s4 = Vector.side(l.a, l.b, this.b);
+        const s1 = Vector.side(this.a, this.b, l.a);
+        const s2 = Vector.side(this.a, this.b, l.b);
+        const s3 = Vector.side(l.a, l.b, this.a);
+        const s4 = Vector.side(l.a, l.b, this.b);
         if (s1 == 0 || s2 == 0 || s3 == 0 || s4 == 0)
             return false;
         return (s1 != s2 && s3 != s4);
@@ -163,20 +162,20 @@ class LineSegment {
 class Polygon {
     constructor(points) {
         this.points = [];
-        for (var i = 0; i < points.length; i++)
+        for (let i = 0; i < points.length; i++)
             this.points.push(new Vector(points[i][0], points[i][1]));
     }
     copy() {
-        var c_points = [];
-        for (var i = 0; i < this.points.length; i++)
+        const c_points = [];
+        for (let i = 0; i < this.points.length; i++)
             c_points.push([this.points[i].x, this.points[i].y]);
         return new Polygon(c_points);
     }
     getRect() {
-        var min_x, min_y, max_x, max_y;
+        let min_x, min_y, max_x, max_y;
         min_x = min_y = Infinity;
         max_x = max_y = -Infinity;
-        for (var i = 0; i < this.points.length; i++) {
+        for (let i = 0; i < this.points.length; i++) {
             min_x = Math.min(min_x, this.points[i].x);
             min_y = Math.min(min_y, this.points[i].y);
             max_x = Math.max(max_x, this.points[i].x);
@@ -185,28 +184,28 @@ class Polygon {
         return new Rect(min_x, min_y, max_x, max_y);
     }
     scale(k) {
-        for (var i = 0; i < this.points.length; i++)
+        for (let i = 0; i < this.points.length; i++)
             this.points[i].mul(k);
     }
     rotate(a, d) {
-        for (var i = 0; i < this.points.length; i++)
+        for (let i = 0; i < this.points.length; i++)
             this.points[i].rotate(a, d);
     }
     translate(v) {
-        for (var i = 0; i < this.points.length; i++)
+        for (let i = 0; i < this.points.length; i++)
             this.points[i].add(v);
     }
     containsPoint(v) {
-        var rect = this.getRect();
+        const rect = this.getRect();
         if (v.x < rect.left || v.x > rect.right || v.y < rect.top || v.y > rect.bottom)
             return false;
-        var result = false;
-        for (var i = 0; i < this.points.length; i++) {
-            var j = (i + 1) % this.points.length;
-            var side = Vector.side(this.points[i], this.points[j], v);
+        let result = false;
+        for (let i = 0; i < this.points.length; i++) {
+            const j = (i + 1) % this.points.length;
+            const side = Vector.side(this.points[i], this.points[j], v);
             if (side == 0) {
-                var min_x = Math.min(this.points[i].x, this.points[j].x);
-                var max_x = Math.max(this.points[i].x, this.points[j].x);
+                const min_x = Math.min(this.points[i].x, this.points[j].x);
+                const max_x = Math.max(this.points[i].x, this.points[j].x);
                 if (v.x >= min_x && v.x <= max_x)
                     return true;
                 else
@@ -215,12 +214,12 @@ class Polygon {
             if (this.points[i].y == this.points[j].y)
                 continue;
             if (this.points[i].y < this.points[j].y) {
-                var side = Vector.side(this.points[i], this.points[j], v);
+                const side = Vector.side(this.points[i], this.points[j], v);
                 if (side == 1 && v.y >= this.points[i].y && v.y < this.points[j].y)
                     result = !result;
             }
             else {
-                var side = Vector.side(this.points[j], this.points[i], v);
+                const side = Vector.side(this.points[j], this.points[i], v);
                 if (side == 1 && v.y > this.points[j].y && v.y <= this.points[i].y)
                     result = !result;
             }
@@ -228,30 +227,38 @@ class Polygon {
         return result;
     }
     intersectsLineSegment(l) {
-        for (var i = 0; i < this.points.length; i++) {
-            var j = (i + 1) % this.points.length;
-            var segment = new LineSegment(this.points[i], this.points[j]);
+        for (let i = 0; i < this.points.length; i++) {
+            const j = (i + 1) % this.points.length;
+            const segment = new LineSegment(this.points[i], this.points[j]);
             if (segment.intersects(l))
                 return true;
         }
         return false;
     }
     intersectsPolygon(p) {
-        var rect1 = p.getRect();
-        var rect2 = this.getRect();
+        const rect1 = p.getRect();
+        const rect2 = this.getRect();
         if (!rect1.intersects(rect2)) return false;
-        var inside = true;
+        let inside = true;
         for (var i = 0; i < p.points.length; i++)
             inside &= this.containsPoint(p.points[i]);
         if (inside) return true;
         for (var i = 0; i < p.points.length; i++) {
-            var j = (i + 1) % p.points.length;
-            var segment = new LineSegment(p.points[i], p.points[j]);
+            const j = (i + 1) % p.points.length;
+            const segment = new LineSegment(p.points[i], p.points[j]);
             if (this.intersectsLineSegment(segment))
                 return true;
         }
         return false;
     }
+}
+
+function randomInRange(range) {
+    return range[0] + Math.random() * (range[1] - range[0]);
+}
+
+function randomInArray(array) {
+    return array[Math.floor(randomInRange([0, array.length]))];
 }
 
 function wrap(v, wrap_x = true, wrap_y = true) {
@@ -263,29 +270,4 @@ function wrap(v, wrap_x = true, wrap_y = true) {
         v.y -= canvas_bounds.height;
     while (v.y < 0 && wrap_y)
         v.y += canvas_bounds.height;
-}
-
-function randomInRange(range) {
-    return range[0] + Math.random() * (range[1] - range[0]);
-}
-
-function randomInArray(array) {
-    return array[Math.floor(randomInRange([0, array.length]))];
-}
-
-function solveQuadratic(a, b, c) {
-    var dsc = b ** 2 - 4 * a * c;
-    if (dsc < 0) return [];
-    else if (dsc == 0)
-        return [-b / (2 * a)];
-    else {
-        var result = [(-b + Math.sqrt(dsc)) / (2 * a), (-b - Math.sqrt(dsc)) / (2 * a)];
-        if (result[1] < result[0])
-            [result[0], result[1]] = [result[1], result[0]];
-        return result;
-    }
-}
-
-function sigmoid(x) {
-    return 1 / (1 + Math.E ** (-x));
 }

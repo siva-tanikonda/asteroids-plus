@@ -1,4 +1,4 @@
-var controls = {
+const controls = {
     left: false,
     right: false,
     forward: false,
@@ -9,11 +9,12 @@ var controls = {
 };
 
 function resetControls() {
-    for (var i in controls)
+    for (let i in controls)
         controls[i] = false;
 }
 
 class UserInput {
+
     constructor() {
         this.left = this.right = this.forward = this.fire = this.teleport = this.start = this.pause = false;
         document.body.onkeydown = (evt) => {
@@ -49,6 +50,7 @@ class UserInput {
                 this.pause = false;
         };
     }
+
     applyControls() {
         controls.left = this.left;
         controls.right = this.right;
@@ -58,4 +60,5 @@ class UserInput {
         controls.start = this.start;
         controls.pause = this.pause;
     }
+    
 }
