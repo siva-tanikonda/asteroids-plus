@@ -60,25 +60,26 @@ input[type="checkbox"] {
     appearance: none;
     background-color: transparent;
     margin: 0px;
-    top: 2.5px;
+    margin-right: 4px;
+    top: 2px;
     font: inherit;
     border-radius: 0px;
+    outline: none;
     color: white;
     width: 18px;
     height: 18px;
     border: 1.5px solid currentColor;
     display: inline-block;
-    padding-left: 1.5px;
-    padding-top: 1px;
+    align-items: center;
 }
 
 input[type="checkbox"]::before {
     content: "";
-    width: 11px;
-    height: 11px;
-    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    width: 12px;
+    height: 12px;
+    margin: 2px;
     transform: scale(0);
-    transform-origin: bottom left;
+    transform-origin: center;
     background-color: white;
     display: block;
 }
@@ -167,14 +168,16 @@ input[type="checkbox"]:disabled {
 #game-speed-input {
     position: relative;
     display: inline-block;
-    width: 40px;
+    width: 50px;
+    margin-left: 0px;
     vertical-align: center;
     background: transparent;
     color: white;
     border: None;
-    font-size: 18px;
+    font-size: 19px;
     border-bottom: 1.5px solid white;
-    font-family: 'Roboto Mono Light'
+    padding-bottom: 0px;
+    font-family: 'Roboto Mono Light';
 }
 
 #ai-container {
@@ -201,4 +204,9 @@ input[type="checkbox"]:disabled {
     position: relative;
     font-family: 'Roboto Mono Thin';
     color: white;
+}
+
+.setting-indent {
+    position: relative;
+    left: 25px;
 }

@@ -49,8 +49,8 @@ class Debug {
         ctx.translate(item.position.x, item.position.y);
         ctx.rotate(-item.angle);
         ctx.translate(-item.position.x, -item.position.y);
-        const scale_acceleration = item.acceleration * 10;
-        ctx.strokeStyle = "rgb(125, 150, 250)";
+        const scale_acceleration = item.acceleration * 250;
+        ctx.strokeStyle = "rgb(167, 184, 252)";
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.5;
         ctx.beginPath();

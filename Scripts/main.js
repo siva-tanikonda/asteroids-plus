@@ -11,9 +11,6 @@ let fps = 0;
 let fps_cooldown = 0;
 const fps_reset_rate = 2e-2;
 
-//Set anti-aliasing to high
-ctx.imageSmoothingLevel = "high";
-
 //Do initial setup steps for the game
 resizeCanvas();
 Asteroid.analyzeAsteroidConfigurations();
@@ -67,7 +64,7 @@ function draw() {
 function loop(timestamp) {
     seconds_passed = (timestamp - old_timestamp) / 1000;
     old_timestamp = timestamp;
-    if (settings.show_game_data) {
+    if (settings.debug.show_game_data) {
         if (fps_cooldown <= 0)
             fps = 1 / seconds_passed, fps_cooldown = 1;
         fps_cooldown = Math.max(0, fps_cooldown - fps_reset_rate);

@@ -239,13 +239,17 @@ class Explosion {
 
     constructor(position) {
         this.particles = [];
-        for (let i = 0; i < explosion_configuration.particle_count; i++)
-            this.makeParticle(position);
-        this.dead = false;
+        if (!settings.debug.remove_particles) {
+            for (let i = 0; i < explosion_configuration.particle_count; i++)
+                this.makeParticle(position);
+            this.dead = false;
+        } else this.dead = true;
     }
 
     //Makes a particle according to explosion_configuration variable
     makeParticle(position) {
+        if (settings.debug.remove_particles)
+            return;
         const speed = randomInRange(explosion_configuration.particle_speed);
         const angle = Math.random() * Math.PI * 2;
         const life = randomInRange(explosion_configuration.particle_life);
@@ -256,6 +260,10 @@ class Explosion {
 
     //Updates the explosion
     update(delay) {
+        if (settings.debug.remove_particles) {
+            this.dead = true;
+            return;
+        }
         const new_particles = [];
         for (let i = 0; i < this.particles.length; i++) {
             this.particles[i].update(delay);
@@ -269,6 +277,8 @@ class Explosion {
 
     //Draws the explosion
     draw() {
+        if (settings.debug.remove_particles)
+            return;
         for (let i = 0; i < this.particles.length; i++)
             this.particles[i].draw();
     }
@@ -558,9 +568,9 @@ class Ship {
     //Draws the ship before the teleportation (ship is fading)
     drawWrapBeforeTeleportation(offset) {
         if (this.teleport_buffer == 0)
-            this.drawShip(offset, this.position, settings.show_hitboxes, settings.show_positions, settings.show_velocity, settings.show_acceleration);
+            this.drawShip(offset, this.position, settings.debug.show_hitboxes, settings.debug.show_positions, settings.debug.show_velocity, settings.debug.show_acceleration);
         else {
-            this.drawShip(offset, this.position, false, settings.show_positions, settings.show_velocity, settings.show_acceleration, 1.0 - this.teleport_buffer);
+            this.drawShip(offset, this.position, false, settings.debug.show_positions, settings.debug.show_velocity, settings.debug.show_acceleration, 1.0 - this.teleport_buffer);
         }
     }
 
@@ -734,14 +744,14 @@ class Asteroid {
             ctx.lineTo(this.bounds.points[i].x, this.bounds.points[i].y);
         ctx.stroke();
         ctx.resetTransform();
-        if (settings.show_hitboxes) {
+        if (settings.debug.show_hitboxes) {
             ctx.translate(offset.x, offset.y);
             Debug.drawBounds(this);
             ctx.translate(-offset.x, -offset.y);
         }
-        if (settings.show_positions)
+        if (settings.debug.show_positions)
             Debug.drawPosition(this);
-        if (settings.show_velocity)
+        if (settings.debug.show_velocity)
             Debug.drawVelocity(this);
     }
 
@@ -882,11 +892,11 @@ class Saucer {
         ctx.moveTo(this.bounds.points[2].x, this.bounds.points[2].y);
         ctx.lineTo(this.bounds.points[this.bounds.points.length - 3].x, this.bounds.points[this.bounds.points.length - 3].y);
         ctx.stroke();
-        if (settings.show_hitboxes)
+        if (settings.debug.show_hitboxes)
             Debug.drawBounds(this);
-        if (settings.show_positions)
+        if (settings.debug.show_positions)
             Debug.drawPosition(this);
-        if (settings.show_velocity)
+        if (settings.debug.show_velocity)
             Debug.drawVelocity(this);
         ctx.resetTransform();
     }
@@ -1192,7 +1202,7 @@ class Game {
             this.drawGameOver();
         if (this.paused)
             this.drawPause();
-        if (settings.show_game_data)
+        if (settings.debug.show_game_data)
             Debug.drawGameData(this);
     }
 
