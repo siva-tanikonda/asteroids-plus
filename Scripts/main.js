@@ -18,6 +18,7 @@ Saucer.analyzeSaucerConfigurations();
 
 //Objects for the game and the ai
 let game = new Game(true);
+let ai = new AI(Array(24).fill(0));
 
 //Resizes the HTML5 canvas when needed
 function resizeCanvas() {
@@ -42,6 +43,12 @@ function update(delay) {
         //Updates user inputs based on whether the ai or player is playing
         user_input.applyControls();
 
+        if (settings.ai) {
+            ai.update();
+            ai.applyControls();
+            controls.teleport = false;
+        }
+
         //Updates the game and creates a new game if the player chose to restart the game
         const done = game.update(delay / settings.game_precision);
         if (done)
@@ -57,6 +64,7 @@ function update(delay) {
 function draw() {
     ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
     game.drawGame();
+    ai.drawDebug();
     game.drawOverlay();
 }
 

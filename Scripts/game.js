@@ -239,7 +239,7 @@ class Explosion {
 
     constructor(position) {
         this.particles = [];
-        if (!settings.debug.remove_particles) {
+        if (!settings.remove_particles) {
             for (let i = 0; i < explosion_configuration.particle_count; i++)
                 this.makeParticle(position);
             this.dead = false;
@@ -248,7 +248,7 @@ class Explosion {
 
     //Makes a particle according to explosion_configuration variable
     makeParticle(position) {
-        if (settings.debug.remove_particles)
+        if (settings.remove_particles)
             return;
         const speed = randomInRange(explosion_configuration.particle_speed);
         const angle = Math.random() * Math.PI * 2;
@@ -260,7 +260,7 @@ class Explosion {
 
     //Updates the explosion
     update(delay) {
-        if (settings.debug.remove_particles) {
+        if (settings.remove_particles) {
             this.dead = true;
             return;
         }
@@ -277,7 +277,7 @@ class Explosion {
 
     //Draws the explosion
     draw() {
-        if (settings.debug.remove_particles)
+        if (settings.remove_particles)
             return;
         for (let i = 0; i < this.particles.length; i++)
             this.particles[i].draw();

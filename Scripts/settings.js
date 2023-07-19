@@ -2,18 +2,23 @@
 const settings = {
     game_precision: 25,
     game_speed: 1,
+    remove_particles: false,
     debug: {
         show_hitboxes: false,
         show_positions: false,
         show_velocity: false,
         show_acceleration: false,
-        remove_particles: false,
         show_game_data: false
+    },
+    ai: false,
+    ai_settings: {
+        show_strategy: false
     }
 };
 
 //Checks if we enabled all debug settings in the previous iteration
 let previous_enable_all_debug = false;
+let previous_ai_enabled = false;
 
 //Updates the settings based on what boxes are checked and what values the user enters
 function updateSettings() {
@@ -45,16 +50,32 @@ function updateSettings() {
     }
     previous_enable_all_debug = enable_all_debug;
 
+    //Manage debug settings
     if (!enable_all_debug) {
         settings.debug.show_hitboxes = document.getElementById("game-hitbox-input").checked;
         settings.debug.show_positions = document.getElementById("game-position-input").checked;
         settings.debug.show_velocity = document.getElementById("game-velocity-input").checked;
         settings.debug.show_acceleration = document.getElementById("game-acceleration-input").checked;
-        settings.debug.remove_particles = document.getElementById("game-particles-input").checked;
         settings.debug.show_game_data = document.getElementById("game-data-input").checked;
     } else {
         for (let i in settings.debug)
             settings.debug[i] = true;
     }
+
+    //Check if we have particles on or off
+    settings.remove_particles = document.getElementById("game-particles-input").checked;
+
+    //Manage AI toggling
+    settings.ai = document.getElementById("game-ai-input").checked;
+    if (settings.ai && !previous_ai_enabled)
+        document.getElementById("ai-settings-container").hidden = false;
+    else if (!settings.ai && previous_ai_enabled)
+        document.getElementById("ai-settings-container").hidden = true;
+    previous_ai_enabled = settings.ai;
+
+    //Manage AI settings
+    settings.ai_settings.show_strategy = document.getElementById("game-ai-strategy-input").checked;
+    if (!settings.ai)
+        settings.ai_settings.show_strategy = false;
 
 }

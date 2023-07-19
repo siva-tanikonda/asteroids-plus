@@ -135,7 +135,7 @@ input[type="checkbox"]:disabled {
     color: white;
 }
 
-#debug-container {
+#settings-container {
     position: relative;
     left: 22.5px;
     top: 30px;
@@ -146,23 +146,11 @@ input[type="checkbox"]:disabled {
     margin: 0px;
 }
 
-#debug-title-container {
-    position: relative;
-    width: 202px;
-    height: 40px;
-    border-bottom: 1.5px solid white;
-    vertical-align: bottom;
-    padding: 0px;
-}
-
-#debug-title {
+.setting-title {
     position: relative;
     font-family: 'Roboto Mono Thin';
     color: white;
-}
-
-#debug-settings {
-    list-style-type: None;
+    margin-bottom:0px;
 }
 
 #game-speed-input {
@@ -178,32 +166,6 @@ input[type="checkbox"]:disabled {
     border-bottom: 1.5px solid white;
     padding-bottom: 0px;
     font-family: 'Roboto Mono Light';
-}
-
-#ai-container {
-    position: relative;
-    left: 22.5px;
-    top: 250px;
-    width: 300px;
-    height: 75px;
-    text-align: left;
-    padding: 0px;
-    margin: 0px;
-}
-
-#ai-title-container {
-    position: relative;
-    width: 159px;
-    height: 40px;
-    border-bottom: 1.5px solid white;
-    vertical-align: bottom;
-    padding: 0px;
-}
-
-#ai-title {
-    position: relative;
-    font-family: 'Roboto Mono Thin';
-    color: white;
 }
 
 .setting-indent {
