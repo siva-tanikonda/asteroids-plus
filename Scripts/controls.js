@@ -8,11 +8,6 @@ const controls = {
     pause: false
 };
 
-function resetControls() {
-    for (let i in controls)
-        controls[i] = false;
-}
-
 class UserInput {
 
     constructor() {

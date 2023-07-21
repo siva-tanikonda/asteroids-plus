@@ -294,6 +294,7 @@ class Bullet {
         this.life = life;
         this.radius = 0.75;
         this.dead = false;
+        this.entity = 'b';
     }
 
     //Updates the bullet
@@ -390,6 +391,7 @@ class Ship {
         this.invincibility_flash = 0;
         this.invincibility_flash_rate = ship_configuration.invincibility_flash_rate;
         this.accelerating = false;
+        this.entity = 'p';
     }
 
     //Revives the ship after a death (if the ship has extra lives)
@@ -437,7 +439,7 @@ class Ship {
             this.thruster_status = 0;
         }
         const initial_velocity = this.velocity.copy();
-        this.velocity.mul(1/(Math.E ** (this.drag_coefficient * delay)));
+        this.velocity.mul(1 / (Math.E ** (this.drag_coefficient * delay)));
         this.position = Vector.div(Vector.add(Vector.mul(this.position, this.drag_coefficient), Vector.sub(initial_velocity, this.velocity)), this.drag_coefficient);
     }
 
@@ -706,6 +708,7 @@ class Asteroid {
         const speed = randomInRange(asteroid_configurations.speed_scaling(wave));
         this.velocity.mul(asteroid_configurations.size_speed[size] * speed);
         this.dead = false;
+        this.entity = 'a';
     }
 
     //Rotates the asteroid
@@ -811,6 +814,7 @@ class Saucer {
         this.bullet_cooldown = 0;
         this.bullet_speed = randomInRange(saucer_configurations.bullet_speed(wave));
         this.dead = false;
+        this.entity = 's';
     }
 
     //Updates the position of the saucer

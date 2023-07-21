@@ -271,3 +271,16 @@ function wrap(v, wrap_x = true, wrap_y = true) {
     while (v.y < 0 && wrap_y)
         v.y += canvas_bounds.height;
 }
+
+function solveQuadratic(a, b, c) {
+    var dsc = b ** 2 - 4 * a * c;
+    if (dsc < 0) return [];
+    else if (dsc == 0)
+        return [-b / (2 * a)];
+    else {
+        var result = [(-b + Math.sqrt(dsc)) / (2 * a), (-b - Math.sqrt(dsc)) / (2 * a)];
+        if (result[1] < result[0])
+            [result[0], result[1]] = [result[1], result[0]];
+        return result;
+    }
+}

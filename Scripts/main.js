@@ -11,6 +11,9 @@ let fps = 0;
 let fps_cooldown = 0;
 const fps_reset_rate = 2e-2;
 
+//This is the set of constants for the AI
+const C = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 2, 4, 100 ];
+
 //Do initial setup steps for the game
 resizeCanvas();
 Asteroid.analyzeAsteroidConfigurations();
@@ -18,7 +21,7 @@ Saucer.analyzeSaucerConfigurations();
 
 //Objects for the game and the ai
 let game = new Game(true);
-let ai = new AI(Array(24).fill(0));
+let ai = new AI(C);
 
 //Resizes the HTML5 canvas when needed
 function resizeCanvas() {
@@ -36,26 +39,21 @@ function update(delay) {
 
     updateSettings();
 
+    //Updates AI decisions and applies input to the game
+    user_input.applyControls();
+    if (settings.ai) {
+        ai.update(delay);
+        ai.applyControls();
+        controls.teleport = false;
+    }
+
     const iteration_updates = settings.game_precision * settings.game_speed;
     //Based on settings.game_speed, we update to allow for precise collision code and simultaneously whatever speed the player wants the game to run
     for (let i = 0; i < iteration_updates; i++) {
-
-        //Updates user inputs based on whether the ai or player is playing
-        user_input.applyControls();
-
-        if (settings.ai) {
-            ai.update();
-            ai.applyControls();
-            controls.teleport = false;
-        }
-
         //Updates the game and creates a new game if the player chose to restart the game
         const done = game.update(delay / settings.game_precision);
         if (done)
-            this.game = new Game();
-        
-        resetControls();
-
+            game = new Game();
     }
 
 }
@@ -64,8 +62,11 @@ function update(delay) {
 function draw() {
     ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
     game.drawGame();
-    ai.drawDebug();
+    if (settings.ai_settings.show_strategy)
+        ai.drawDebug();
     game.drawOverlay();
+    if (settings.ai_settings.show_strategy)
+        ai.drawDebugOverlay();
 }
 
 //The game loop is created and executed
