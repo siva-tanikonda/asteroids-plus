@@ -12,7 +12,7 @@ let fps_cooldown = 0;
 const fps_reset_rate = 2e-2;
 
 //This is the set of constants for the AI
-const C = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 2, 4, 100 ];
+const C = [ 1000, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 2, 4, 100 ];
 
 //Do initial setup steps for the game
 resizeCanvas();

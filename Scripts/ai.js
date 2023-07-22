@@ -129,10 +129,7 @@ class AI {
             const p = Vector.sub(Vector.add(danger.position, offset), this.ship.position);
             let result = 0;
             //Add distance term
-            let distance_term = p.mag() - this.ship.size - danger.size;
-            if (distance_term > 0)
-                distance_term = 1 / distance_term;
-            else distance_term = Infinity;
+            let distance_term = 1 / Math.max(1, p.mag() - this.ship.size - danger.size);
             result += this.C[0] * (distance_term ** this.C[1]);
             //Add danger velocity term
             const danger_velocity_term = Math.max(0, -p.comp(danger.velocity));
@@ -184,7 +181,6 @@ class AI {
             p.normalize();
             p.mul(this.dangers[i].danger_level);
             p.rotate(-this.ship.angle, new Vector());
-            console.log(p);
             if (p.y < 0)
                 this.flee_values[0] += C[8] * ((-p.y) ** C[9]);
             else
@@ -220,11 +216,11 @@ class AI {
             p1.add(offset);
             if (Vector.sub(p1, p2).mag() <= r1)
                 return 0;
-            var a = (v1.x - v2.x) ** 2 + (v1.y - v2.y) ** 2;
-            var b = 2 * ((p1.x - p2.x) * (v1.x - v2.x) + (p1.y - p2.y) * (v1.y - v2.y));
-            var c = (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 - r1 ** 2;
+            const a = (v1.x - v2.x) ** 2 + (v1.y - v2.y) ** 2;
+            const b = 2 * ((p1.x - p2.x) * (v1.x - v2.x) + (p1.y - p2.y) * (v1.y - v2.y));
+            const c = (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 - r1 ** 2;
             p1.sub(offset);
-            var results = solveQuadratic(a, b, c);
+            const results = solveQuadratic(a, b, c);
             if (results.length > 0 && results[0] > 0)
                 return results[0];
             else if (results.length > 1 && results[1] > 0)
