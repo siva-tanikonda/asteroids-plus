@@ -13,6 +13,7 @@ class UserInput {
     constructor() {
         this.left = this.right = this.forward = this.fire = this.teleport = this.start = this.pause = false;
         document.body.onkeydown = (evt) => {
+            evt.stopPropagation();
             if (evt.key == "a" || evt.key == "ArrowLeft")
                 this.left = true;
             if (evt.key == "d" || evt.key == "ArrowRight")
@@ -29,6 +30,7 @@ class UserInput {
                 this.pause = true;
         };
         document.body.onkeyup = (evt) => {
+            evt.stopPropagation();
             if (evt.key == "a" || evt.key == "ArrowLeft")
                 this.left = false;
             if (evt.key == "d" || evt.key == "ArrowRight")
