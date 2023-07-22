@@ -5,6 +5,7 @@ const ctx = canvas.getContext("2d");
 const user_input = new UserInput();
 let canvas_bounds = canvas.getBoundingClientRect();
 let old_timestamp = 0;
+let tab_active = true;
 
 //Some debugging information
 let fps = 0;
@@ -23,6 +24,16 @@ Saucer.analyzeSaucerConfigurations();
 let game = new Game(true);
 let ai = new AI(C);
 
+//Check if the tab is active or not
+window.onfocus = () => { tab_active = true; };
+window.onblur = () => { tab_active = false; };
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState == "visible")
+        tab_active = true;
+    else
+        tab_active = false;
+});
+
 //Resizes the HTML5 canvas when needed
 function resizeCanvas() {
     canvas.width = window.innerWidth - side_bar.getBoundingClientRect().width;
@@ -35,7 +46,7 @@ window.addEventListener("resize", resizeCanvas);
 function update(delay) {
 
     //Basic rules for the update function
-    if (isNaN(delay) || delay == 0) return;
+    if (isNaN(delay) || delay == 0 || !tab_active) return;
 
     updateSettings();
 
