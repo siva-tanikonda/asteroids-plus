@@ -89,6 +89,9 @@ class Debug {
         const fps_text = "FPS: " + fps.toFixed(2);
         const fps_size = ctx.measureText(fps_text);
         ctx.fillText(fps_text, canvas_bounds.width - fps_size.width - 10, 120);
+        const time_text = "Time Elapsed: " + game.time.toFixed(2);
+        const time_size = ctx.measureText(time_text);
+        ctx.fillText(time_text, canvas_bounds.width - time_size.width - 10, 140);
     }
 
 }

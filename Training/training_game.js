@@ -1,3 +1,24 @@
+const { Vector, Rect, Polygon, wrap } = require("./math.js");
+
+let seed = 1;
+function random() {
+    const x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+}
+
+function randomInRange(range) {
+    return range[0] + random() * (range[1] - range[0]);
+}
+
+const canvas_bounds = {
+    width: 1475,
+    height: 931
+};
+
+const settings = {
+    remove_particles: true
+}
+
 //Ship config information
 const ship_configuration = {
     width: 30,
@@ -13,7 +34,7 @@ const ship_configuration = {
     thruster_flash_rate: 0.05,
     teleport_speed: 0.025,
     teleport_recharge_rate: 0.01,
-    lives: 3,
+    lives: 1,
     invincibility_flash_rate: 0.1
 };
 
@@ -153,24 +174,6 @@ const point_values = {
     extra_life: 10000
 };
 
-//Applies the border wrap effect when drawing something
-function renderWrap(position, radius, action, offset_x = true, offset_y = true) {
-    const horizontal = [ 0 ];
-    const vertical = [ 0 ];
-    if (position.x + radius >= canvas_bounds.width)
-        horizontal.push(-canvas_bounds.width);
-    if (position.x - radius <= 0)
-        horizontal.push(canvas_bounds.width);
-    if (position.y + radius >= canvas_bounds.height)
-        vertical.push(-canvas_bounds.height);
-    if (position.y - radius <= 0)
-        vertical.push(canvas_bounds.height);
-    for (let i = 0; i < horizontal.length; i++)
-        for (let j = 0; j < vertical.length; j++)
-            if ((horizontal[i] == 0 || offset_x) && (vertical[i] == 0 || offset_y))
-                action(new Vector(horizontal[i], vertical[j]));
-}
-
 //Class for the particle
 class Particle {
     
@@ -202,23 +205,6 @@ class Particle {
         this.updatePosition(delay);
         this.updateLife(delay)
     }
-    
-    //Draws the particle given a certain offset for the wrap
-    drawParticle(offset) {
-        ctx.translate(offset.x, offset.y);
-        ctx.fillStyle = "white";
-        ctx.beginPath();
-        ctx.arc(this.position.x, this.position.y, this.radius, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.resetTransform();
-    }
-    
-    //Draws the particle while applying the wrap
-    draw() {
-        renderWrap(this.position, this.radius, (offset) => {
-            this.drawParticle(offset);
-        });
-    }
 
 }
 
@@ -239,7 +225,7 @@ class Explosion {
         if (settings.remove_particles)
             return;
         const speed = randomInRange(explosion_configuration.particle_speed);
-        const angle = Math.random() * Math.PI * 2;
+        const angle = random() * Math.PI * 2;
         const life = randomInRange(explosion_configuration.particle_life);
         const unit_vector = new Vector(Math.cos(angle), -Math.sin(angle));
         const radius = randomInRange(explosion_configuration.particle_radius);
@@ -263,14 +249,6 @@ class Explosion {
             this.dead = true;
     }
 
-    //Draws the explosion
-    draw() {
-        if (settings.remove_particles)
-            return;
-        for (let i = 0; i < this.particles.length; i++)
-            this.particles[i].draw();
-    }
-
 }
 
 //Class for bullet
@@ -291,24 +269,6 @@ class Bullet {
         wrap(this.position);
         this.life -= delay;
         this.dead |= (this.life <= 0);
-    }
-
-    //Draws a bullet with the given offset
-    drawBullet(offset) {
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 1.5;
-        ctx.translate(offset.x, offset.y);
-        ctx.beginPath();
-        ctx.arc(this.position.x, this.position.y, this.radius, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.resetTransform();
-    }
-
-    //Draws a bullet while applying the border wrap effect
-    draw() {
-        renderWrap(this.position, this.radius, (offset) => {
-            this.drawBullet(offset);
-        });
     }
 
     //Checks the collision with a generic object and returns if the object was hit or not
@@ -343,7 +303,7 @@ class Bullet {
 //Class for player ship
 class Ship {
 
-    constructor() {
+    constructor(controls) {
         this.position = new Vector(canvas_bounds.width / 2, canvas_bounds.height / 2);
         this.velocity = new Vector();
         this.width = ship_configuration.width;
@@ -380,6 +340,7 @@ class Ship {
         this.invincibility_flash_rate = ship_configuration.invincibility_flash_rate;
         this.accelerating = false;
         this.entity = 'p';
+        this.controls = controls;
     }
 
     //Revives the ship after a death (if the ship has extra lives)
@@ -404,8 +365,8 @@ class Ship {
     //Rotates the ship based on user input
     rotate(delay) {
         const old_angle = this.angle;
-        if (controls.left) this.angle += delay * this.rotation_speed;
-        if (controls.right) this.angle -= delay * this.rotation_speed;
+        if (this.controls.left) this.angle += delay * this.rotation_speed;
+        if (this.controls.right) this.angle -= delay * this.rotation_speed;
         this.bounds.rotate(this.angle - old_angle, this.position);
         while (this.angle >= Math.PI * 2) this.angle -= Math.PI * 2;
         while (this.angle < 0) this.angle += Math.PI * 2;
@@ -414,7 +375,7 @@ class Ship {
     //Moves the ship based on the thruster activation
     move(delay) {
         const direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
-        if (this.teleport_buffer == 0 && controls.forward) {
+        if (this.teleport_buffer == 0 && this.controls.forward) {
             direction.mul(this.acceleration);
             this.velocity.add(Vector.mul(direction, delay));
             this.thruster_status += this.thruster_flash_rate * delay;
@@ -433,7 +394,7 @@ class Ship {
 
     //Manage firing
     fire(delay, ship_bullets) {
-        if (controls.fire && this.bullet_cooldown >= 1 && this.teleport_buffer <= 0) {
+        if (this.controls.fire && this.bullet_cooldown >= 1 && this.teleport_buffer <= 0) {
             const direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
             direction.mul(this.width / 2 + 5);
             const bullet_position = Vector.add(direction, this.position);
@@ -448,8 +409,8 @@ class Ship {
 
     //Manages the teleportation of the ship
     updateTeleportation(delay) {
-        if (controls.teleport && this.teleport_cooldown >= 1 && this.teleport_buffer <= 0) {
-            this.teleport_location = new Vector(Math.floor(Math.random() * canvas_bounds.width), Math.floor(Math.random() * canvas_bounds.height));
+        if (this.controls.teleport && this.teleport_cooldown >= 1 && this.teleport_buffer <= 0) {
+            this.teleport_location = new Vector(Math.floor(random() * canvas_bounds.width), Math.floor(random() * canvas_bounds.height));
             this.teleport_buffer += this.teleport_speed * delay;
             this.teleport_cooldown = 0;
         }
@@ -495,99 +456,6 @@ class Ship {
         //Update's ship's invincibility frames
         this.updateInvincibility(delay);
 
-    }
-
-    //Draws ship at a certain position with a certain offset and opacity (and also whether to show debug info)
-    drawShip(offset, position, show_hitboxes, show_positions, show_velocity, show_acceleration, alpha = 1.0) {
-        if (this.invincibility > 0 && this.invincibility_flash < 0.5)
-            return;
-        ctx.strokeStyle = "white";
-        ctx.fillStyle = "rgb(20, 20, 20)";
-        ctx.globalAlpha = alpha;
-        ctx.lineWidth = 1.5;
-        ctx.translate(offset.x, offset.y);
-        ctx.translate(position.x, position.y);
-        ctx.rotate(-this.angle);
-        ctx.translate(-position.x, -position.y);
-        ctx.beginPath();
-        ctx.moveTo(position.x - this.width / 2, position.y - this.height / 2);
-        ctx.lineTo(position.x + this.width / 2, position.y);
-        ctx.moveTo(position.x - this.width / 2, position.y + this.height / 2);
-        ctx.lineTo(position.x + this.width / 2, position.y);
-        ctx.moveTo(position.x - this.width / 2 + this.rear_offset, position.y - this.height / 2 + (this.height / this.width) * this.rear_offset - 1);
-        ctx.lineTo(position.x - this.width / 2 + this.rear_offset, position.y + this.height / 2 - (this.height / this.width) * this.rear_offset + 1);
-        if (this.thruster_status >= 0.5) {
-            ctx.moveTo(position.x - this.width / 2 + this.rear_offset, position.y - this.height / 2 + (this.height / this.width) * this.rear_offset - 1);
-            ctx.lineTo(position.x - this.width / 2 + this.rear_offset - this.trail_length, position.y);
-            ctx.lineTo(position.x - this.width / 2 + this.rear_offset, position.y + this.height / 2 - (this.height / this.width) * this.rear_offset + 1);
-        }
-        ctx.stroke();
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
-        ctx.resetTransform();
-        if (show_hitboxes) {
-            ctx.translate(offset.x, offset.y);
-            Debug.drawBounds(this);
-            ctx.translate(-offset.x, -offset.y);
-        }
-        if (show_positions)
-            Debug.drawPosition(this);
-        if (show_velocity)
-            Debug.drawVelocity(this);
-        if (show_acceleration)
-            Debug.drawAcceleration(this);
-    }
-
-    //Draws a life for the ship
-    drawLife(position) {
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 1.5 * 4 / 3;
-        ctx.scale(0.75, 0.75);
-        ctx.translate(position.x, position.y);
-        ctx.rotate(-Math.PI / 2);
-        ctx.translate(-position.x, -position.y);
-        ctx.beginPath();
-        ctx.moveTo(position.x - this.width / 2, position.y - this.height / 2);
-        ctx.lineTo(position.x + this.width / 2, position.y);
-        ctx.moveTo(position.x - this.width / 2, position.y + this.height / 2);
-        ctx.lineTo(position.x + this.width / 2, position.y);
-        ctx.moveTo(position.x - this.width / 2 + this.rear_offset, position.y - this.height / 2 + (this.height / this.width) * this.rear_offset - 1);
-        ctx.lineTo(position.x - this.width / 2 + this.rear_offset, position.y + this.height / 2 - (this.height / this.width) * this.rear_offset + 1);
-        ctx.stroke();
-        ctx.resetTransform();
-    }
-
-    //Draws the ship before the teleportation (ship is fading)
-    drawWrapBeforeTeleportation(offset) {
-        if (this.teleport_buffer == 0)
-            this.drawShip(offset, this.position, settings.debug.show_hitboxes, settings.debug.show_positions, settings.debug.show_velocity, settings.debug.show_acceleration);
-        else {
-            this.drawShip(offset, this.position, false, settings.debug.show_positions, settings.debug.show_velocity, settings.debug.show_acceleration, 1.0 - this.teleport_buffer);
-        }
-    }
-
-    //Draws the ship after the teleportation (ship is coming into view)
-    drawWrapAfterTeleportation(offset) {
-        this.drawShip(offset, this.teleport_location, false, false, false, false, this.teleport_buffer);
-    }
-
-    //Draws the ship while applying the wrap effect and teleportation effect
-    draw() {
-        if (this.dead) return;
-        renderWrap(this.position, this.width / 2, (offset) => {
-            this.drawWrapBeforeTeleportation(offset);
-        });
-        if (this.teleport_buffer != 0)
-            renderWrap(this.position, this.width / 2, (offset) => {
-                this.drawWrapAfterTeleportation(offset);
-            });
-    }
-
-    //Draws the lives of the ship
-    drawLives() {
-        const base_position = new Vector(29, 70);
-        for (let i = 0; i < this.lives; i++)
-            this.drawLife(Vector.add(base_position, new Vector(this.height * 2 * i, 0)));
     }
 
     //Checks if the ship has collided with a bullet
@@ -691,9 +559,9 @@ class Asteroid {
         this.angle = randomInRange([0, Math.PI * 2]);
         this.bounds.rotate(this.angle, this.position);
         this.rotation_speed = randomInRange(asteroid_configurations.rotation_speed);
-        if (Math.floor(Math.random() * 2) == 1)
+        if (Math.floor(random() * 2) == 1)
             this.rotation_speed *= -1;
-        const velocity_angle = Math.random() * Math.PI * 2;
+        const velocity_angle = random() * Math.PI * 2;
         this.velocity = new Vector(Math.cos(velocity_angle), Math.sin(velocity_angle));
         const speed = randomInRange(asteroid_configurations.speed_scaling(wave));
         this.velocity.mul(asteroid_configurations.size_speed[size] * speed);
@@ -724,35 +592,6 @@ class Asteroid {
         this.updatePosition(delay);
         //Updates the bounding rect of the asteroid based on the rotation and translation
         this.rect = this.bounds.getRect();
-    }
-
-    //Draws the asteroid with a certain offset
-    drawAsteroid(offset) {
-        ctx.translate(offset.x, offset.y);
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(this.bounds.points[this.bounds.points.length - 1].x, this.bounds.points[this.bounds.points.length - 1].y);
-        for (let i = 0; i < this.bounds.points.length; i++)
-            ctx.lineTo(this.bounds.points[i].x, this.bounds.points[i].y);
-        ctx.stroke();
-        ctx.resetTransform();
-        if (settings.debug.show_hitboxes) {
-            ctx.translate(offset.x, offset.y);
-            Debug.drawBounds(this);
-            ctx.translate(-offset.x, -offset.y);
-        }
-        if (settings.debug.show_positions)
-            Debug.drawPosition(this);
-        if (settings.debug.show_velocity)
-            Debug.drawVelocity(this);
-    }
-
-    //Draws the asteroid with the application of the wrap effect
-    draw() {
-        renderWrap(this.position, Math.max(this.rect.width / 2, this.rect.height / 2), (offset) => {
-            this.drawAsteroid(offset);
-        });
     }
 
     //Splits the asteroid in two
@@ -872,38 +711,6 @@ class Saucer {
         this.fire(ship, saucer_bullets, delay);
     }
 
-    //Draw the saucer with a certain offset
-    drawSaucer(offset) {
-        ctx.translate(offset.x, offset.y);
-        ctx.strokeStyle = "white";
-        ctx.fillStyle = "rgb(20, 20, 20)";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(this.bounds.points[this.bounds.points.length - 1].x, this.bounds.points[this.bounds.points.length - 1].y);
-        for (let i = 0; i < this.bounds.points.length; i++)
-            ctx.lineTo(this.bounds.points[i].x, this.bounds.points[i].y);
-        ctx.moveTo(this.bounds.points[1].x, this.bounds.points[1].y);
-        ctx.lineTo(this.bounds.points[this.bounds.points.length - 2].x, this.bounds.points[this.bounds.points.length - 2].y);
-        ctx.moveTo(this.bounds.points[2].x, this.bounds.points[2].y);
-        ctx.lineTo(this.bounds.points[this.bounds.points.length - 3].x, this.bounds.points[this.bounds.points.length - 3].y);
-        ctx.fill();
-        ctx.stroke();
-        if (settings.debug.show_hitboxes)
-            Debug.drawBounds(this);
-        if (settings.debug.show_positions)
-            Debug.drawPosition(this);
-        if (settings.debug.show_velocity)
-            Debug.drawVelocity(this);
-        ctx.resetTransform();
-    }
-
-    //Draws the saucer with the border wrap effect
-    draw() {
-        renderWrap(this.position, Math.max(this.rect.width / 2, this.rect.height / 2), (offset) => {
-            this.drawSaucer(offset);
-        }, this.entered_x, this.entered_y);
-    }
-
     //Checks collision of a saucer with a generic object
     checkCollision(item, explosions) {
         if (item.dead || this.dead)
@@ -935,10 +742,11 @@ class Saucer {
 //Game class
 class Game {
     
-    constructor (title_screen = false) {
-        this.ship = new Ship();
+    constructor (controls, title_screen = false) {
+        seed = 1;
+        this.ship = new Ship(controls);
         this.ship_bullets = [];
-        this.wave = 1;
+        this.wave = 8;
         this.asteroids = [];
         this.explosions = [];
         this.saucers = [];
@@ -951,6 +759,7 @@ class Game {
         this.title_flash_rate = 0.025;
         this.paused = false;
         this.old_pause = false;
+        this.controls = controls;
         this.time = 0;
     }
 
@@ -981,28 +790,24 @@ class Game {
     update(delay) {
 
         //Check if the game has been paused or unpaused
-        if (!this.title_screen && !(this.ship.dead && this.ship.lives <= 0) && !this.paused && controls.pause && !this.old_pause)
+        if (!this.title_screen && !(this.ship.dead && this.ship.lives <= 0) && !this.paused && this.controls.pause && !this.old_pause)
             this.paused = true;
-        else if (this.paused && controls.pause && !this.old_pause)
+        else if (this.paused && this.controls.pause && !this.old_pause)
             this.paused = false;
-
+        
         //Update the wave of the game
-        this.wave = this.score / 1000 + 1;
+        this.wave = this.score / 1000 + 8;
 
         //Check if the game is paused, over, or beginning and update the flash animation (also check if player is dead)
         if (this.title_screen || (this.ship.dead && this.ship.lives <= 0) || this.paused) {
             this.title_flash += this.title_flash_rate * delay;
             while (this.title_flash >= 1)
                 this.title_flash--;
-            if (controls.start && !this.paused) {
-                if (!this.ship.dead)
-                    this.title_screen = false;
-                return true;
-            }
+            return true;
         }
 
         //See if the pause button was down in the previous frame
-        this.old_pause = controls.pause;
+        this.old_pause = this.controls.pause;
 
         //Don't update the game if the game is paused
         if (this.paused) return;
@@ -1072,7 +877,7 @@ class Game {
         }
         this.saucers = new_saucers;
 
-        //Check if a saucer bullet hit an asteroid
+        //Check if a saucer bullet is dead
         const new_saucer_bullets = [];
         for (let i = 0; i < this.saucer_bullets.length; i++) {
             if (!this.saucer_bullets[i].dead)
@@ -1107,91 +912,6 @@ class Game {
 
     }
 
-    //Draws the current player's score on the corner of the screen during the game
-    drawScore() {
-        ctx.font = "20px Roboto Mono Light";
-        ctx.fillStyle = "white";
-        const text_size = ctx.measureText(this.score);
-        ctx.fillText(this.score, 15, 15 + text_size.actualBoundingBoxAscent);
-    }
-
-    //Draws title screen ("Press Enter to Start") if the page is launched initially
-    drawTitle() {
-        ctx.fillStyle = "rgb(20, 20, 20)";
-        ctx.globalAlpha = 0.75;
-        ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = "white";
-        ctx.font = "25px Roboto Mono Light";
-        if (this.title_flash <= 0.5) {
-            const textSize = ctx.measureText("Press Enter to Start");
-            ctx.fillText("Press Enter to Start", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2);
-        }
-    }
-
-    //Draws game over screen
-    drawGameOver() {
-        ctx.fillStyle = "rgb(20, 20, 20)";
-        ctx.globalAlpha = 0.75;
-        ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = "white";
-        ctx.font = "35px Roboto Mono Light";
-        let textSize = ctx.measureText("Score: " + this.score);
-        ctx.fillText("Score: " + this.score, canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 - 30);
-        ctx.font = "25px Roboto Mono Light";
-        if (this.title_flash <= 0.5) {
-            textSize = ctx.measureText("Press Enter to Try Again");
-            ctx.fillText("Press Enter to Try Again", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 + 30);
-        }
-    }
-
-    //Draws pause overlay
-    drawPause() {
-        ctx.fillStyle = "rgb(20, 20, 20)";
-        ctx.globalAlpha = 0.75;
-        ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = "white";
-        ctx.font = "35px Roboto Mono Light";
-        let textSize = ctx.measureText("Paused");
-        ctx.fillText("Paused", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 - 30);
-        ctx.font = "25px Roboto Mono Light";
-        if (this.title_flash <= 0.5) {
-            textSize = ctx.measureText("Press Escape to Resume");
-            ctx.fillText("Press Escape to Resume", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 + 30);
-        }
-    }
-
-    //Draw loop function for the game
-    drawGame() {
-        if (!this.title_screen)
-            this.ship.draw();
-        for (let i = 0; i < this.asteroids.length; i++)
-            this.asteroids[i].draw();
-        for (let i = 0; i < this.ship_bullets.length; i++)
-            this.ship_bullets[i].draw();
-        for (let i = 0; i < this.saucers.length; i++)
-            this.saucers[i].draw();
-        for (let i = 0; i < this.saucer_bullets.length; i++)
-            this.saucer_bullets[i].draw();
-        for (let i = 0; i < this.explosions.length; i++)
-            this.explosions[i].draw();
-    }
-
-    //Draws the overlay of the game (lives, score, pause, game-over, and start screens)
-    drawOverlay() {
-        if (!this.title_screen && !this.ship.dead) {
-            this.drawScore();
-            this.ship.drawLives();
-        } else if (this.title_screen)
-            this.drawTitle();
-        if (this.ship.dead && this.ship.lives <= 0)
-            this.drawGameOver();
-        if (this.paused)
-            this.drawPause();
-        if (settings.debug.show_game_data)
-            Debug.drawGameData(this);
-    }
-
 }
+
+module.exports = { Game };
