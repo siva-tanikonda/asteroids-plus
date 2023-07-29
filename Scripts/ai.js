@@ -99,7 +99,7 @@ function optimizeInWrap(func, cmp) {
 
 class AI {
 
-    static danger_radius = [ 0, 18, 14, 34, 53, 52, 66 ];
+    static danger_radius = [ 0, 18, 14, 34, 53, 60, 70 ];
     static pessimistic_radius = [ 14, 34, 53, 27, 32 ];
     static target_radius = [ 5, 17.5, 25, 11, 15 ];
     static rotation_precision = 1;
@@ -130,9 +130,6 @@ class AI {
         return optimizeInWrap((offset) => {
             const p = Vector.sub(Vector.add(danger.position, offset), this.ship.position);
             let result = 0;
-            //Add distance term
-            let distance_term = 1 / Math.max(1, p.mag() - this.ship.size - danger.size);
-            result += this.C[0] * (distance_term ** this.C[1]);
             //Add danger velocity term
             const danger_velocity_term = Math.max(0, -p.comp(danger.velocity));
             result += this.C[2] * (danger_velocity_term ** this.C[3]);
@@ -140,9 +137,13 @@ class AI {
             const ship_velocity_term = Math.max(0, p.comp(this.ship.velocity));
             result += this.C[4] * (ship_velocity_term ** this.C[5]);
             //Add ship direction term
-            let ship_direction_term = new Vector(Math.cos(this.ship.angle), Math.sin(this.ship.angle));
+            let ship_direction_term = new Vector(Math.cos(this.ship.angle), Math.sin(-this.ship.angle));
             ship_direction_term = Math.max(0, p.comp(ship_direction_term));
             result += this.C[6] * (ship_direction_term ** this.C[7]);
+            //Add distance term
+            let distance_term = 1 / Math.max(1, p.mag() - this.ship.size - danger.size);
+            result += this.C[1];
+            result *= (distance_term ** this.C[0]);
             return result;
         }, (best, next) => {
             return (best == null || next > best);
