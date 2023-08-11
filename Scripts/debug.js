@@ -190,6 +190,76 @@ class AIDebug {
         ctx.globalAlpha = 1.0;
     }
 
+    //Draws the nudge values (the nudges added by different directions onto certain directions)
+    static drawNudgeValues(item) {
+        if (item.entity != "s" || game.title_screen || game.ship.dead) return;
+        ctx.strokeStyle = "#74f3f7";
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.5;
+        ctx.translate(item.position.x, item.position.y);
+        //Draw arrows
+        let scale_flee = ai.nudge_values[2] * 75;
+        ctx.rotate(-item.angle);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(scale_flee, 0);
+        ctx.lineTo(scale_flee - 5, 0 - 5);
+        ctx.moveTo(scale_flee, 0);
+        ctx.lineTo(scale_flee - 5, 0 + 5);
+        ctx.stroke();
+        scale_flee = ai.nudge_values[0] * 75;
+        ctx.rotate(-Math.PI / 2);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(scale_flee, 0);
+        ctx.lineTo(scale_flee - 5, 0 - 5);
+        ctx.moveTo(scale_flee, 0);
+        ctx.lineTo(scale_flee - 5, 0 + 5);
+        ctx.stroke();
+        scale_flee = ai.nudge_values[3] * 75;
+        ctx.rotate(-Math.PI / 2);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(scale_flee, 0);
+        ctx.lineTo(scale_flee - 5, 0 - 5);
+        ctx.moveTo(scale_flee, 0);
+        ctx.lineTo(scale_flee - 5, 0 + 5);
+        ctx.stroke();
+        scale_flee = ai.nudge_values[1] * 75;
+        ctx.rotate(-Math.PI / 2);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(scale_flee, 0);
+        ctx.lineTo(scale_flee - 5, 0 - 5);
+        ctx.moveTo(scale_flee, 0);
+        ctx.lineTo(scale_flee - 5, 0 + 5);
+        ctx.stroke();
+        ctx.rotate(item.angle + 3 * Math.PI / 2);
+        //Draw numbers
+        ctx.fillStyle = "#74f3f7";
+        ctx.font = "10px Roboto Mono Bold";
+        const text_position = new Vector(Math.cos(ai.ship.angle), -Math.sin(ai.ship.angle));
+        text_position.mul(27);
+        text_position.rotate(Math.PI / 180 * 25, new Vector());
+        let text = ai.nudge_values[2].toFixed(1);
+        let text_size = ctx.measureText(text);
+        ctx.fillText(text, text_position.x - text_size.width / 2, text_position.y);
+        text_position.rotate(Math.PI / 2, new Vector());
+        text = ai.nudge_values[0].toFixed(1);
+        text_size = ctx.measureText(text);
+        ctx.fillText(text, text_position.x - text_size.width / 2, text_position.y);
+        text_position.rotate(Math.PI / 2, new Vector());
+        text = ai.nudge_values[3].toFixed(1);
+        text_size = ctx.measureText(text);
+        ctx.fillText(text, text_position.x - text_size.width / 2, text_position.y);
+        text_position.rotate(Math.PI / 2, new Vector());
+        text = ai.nudge_values[1].toFixed(1);
+        text_size = ctx.measureText(text);
+        ctx.fillText(text, text_position.x - text_size.width / 2, text_position.y);
+        ctx.translate(-item.position.x, -item.position.y);
+        ctx.globalAlpha = 1.0;
+    }
+
     //Draws the target radius of an entity
     static drawTargetRadius(item) {
         if (item.entity != "t") return;

@@ -47,11 +47,13 @@ class UserInput {
     }
 
     applyControls() {
-        controls.left = this.left;
-        controls.right = this.right;
-        controls.forward = this.forward;
-        controls.fire = this.fire;
-        controls.teleport = this.teleport;
+        if (!settings.ai) {
+            controls.left = this.left;
+            controls.right = this.right;
+            controls.forward = this.forward;
+            controls.fire = this.fire;
+            controls.teleport = this.teleport;
+        }
         controls.start = this.start;
         controls.pause = this.pause;
     }

@@ -1,10 +1,20 @@
+const { parentPort } = require("worker_threads");
+let thread_id = null;
+
+const seedrandom = require("seedrandom");
+let random = null;
+function randomInRange(range) {
+    return range[0] + random() * (range[1] - range[0]);
+}
+
 const canvas_bounds = {
-    width: 1475,
-    height: 931
+    width: 1920,
+    height: 1080
 };
 const game_precision = 25;
 const game_speed = 1;
 const delay = 1;
+let start_wave = 1;
 
 //Math stuff
 class Vector {
@@ -286,24 +296,14 @@ function solveQuadratic(a, b, c) {
     }
 }
 
-//Game stuff
-let seed = 1;
-function random() {
-    const x = Math.sin(seed++) * 10000;
-    return x - Math.floor(x);
-}
-function randomInRange(range) {
-    return range[0] + random() * (range[1] - range[0]);
-}
-
 //Ship config information
 const ship_configuration = {
     width: 30,
     height: 16,
     rear_offset: 6,
-    rotation_speed: 6 * Math.PI / 180,
-    acceleration: 0.125,
-    drag_coefficient: 0.0075,
+    rotation_speed: 3 * Math.PI / 180,
+    acceleration: 0.2,
+    drag_coefficient: 0.0025,
     fire_rate: 0.05,
     bullet_speed: 10,
     bullet_life: 60,
@@ -361,7 +361,7 @@ const asteroid_configurations = {
         ])
     ],
     //Maximum bounding rect size of an asteroid
-    max_rect: new Rect(0, 0, 150, 150),
+    max_rect: new Rect(0, 0, 75, 75),
     //The up-scaling of the asteroids based on the size (smaller number means smaller asteroid)
     sizes: [ 10, 25, 40 ],
     //The range of the speeds the asteroids could rotate
@@ -423,7 +423,7 @@ const saucer_configurations = {
     bullet_life: 200,
     //The spawn rate of the saucer (given that no saucer is already in the game)
     spawn_rate: (wave) => {
-        return Math.min(1, wave / 1000);
+        return 1;
     }
 };
 
@@ -920,11 +920,11 @@ class Saucer {
 //Game class
 class Game {
     
-    constructor (controls, generator, title_screen = false) {
-        seed = generator;
+    constructor (controls, seed, title_screen = false) {
+        random = seedrandom(seed);
         this.ship = new Ship(controls);
         this.ship_bullets = [];
-        this.wave = 8;
+        this.wave = start_wave;
         this.asteroids = [];
         this.saucers = [];
         this.saucer_bullets = [];
@@ -973,7 +973,7 @@ class Game {
             this.paused = false;
         
         //Update the wave of the game
-        this.wave = this.score / 1000 + 8;
+        this.wave = this.score / 1000 + start_wave;
 
         //Check if the game is paused, over, or beginning and update the flash animation (also check if player is dead)
         if (this.title_screen || (this.ship.dead && this.ship.lives <= 0) || this.paused) {
@@ -1175,9 +1175,9 @@ function optimizeInWrap(func, cmp) {
 
 class AI {
 
-    static danger_radius = [ 0, 18, 14, 34, 53, 52, 66 ];
+    static danger_radius = [ 0, 18, 14, 34, 53, 60, 70 ];
     static pessimistic_radius = [ 14, 34, 53, 27, 32 ];
-    static target_radius = [ 5, 17.5, 25, 11, 15 ];
+    static target_radius = [ 5, 17.5, 25, 10, 12 ];
     static rotation_precision = 1;
 
     constructor(C, game) {
@@ -1199,6 +1199,7 @@ class AI {
         this.crosshair = null;
         this.ship = null;
         this.flee_values = [ 0, 0, 0, 0 ];
+        this.nudge_values = [ 0, 0, 0, 0 ];
         this.size_groups = [ 0, 0 ];
         this.random_aiming_movement_cooldown = this.C[23];
     }
@@ -1246,12 +1247,13 @@ class AI {
         }
         for (let i = 0; i < this.game.saucer_bullets.length; i++)
             this.dangers.push(new Danger(this.game.saucer_bullets[i], this));
-        this.getFleeValues();
+        this.getFleeAndNudgeValues();
     }
 
     //Creates flee values
-    getFleeValues() {
+    getFleeAndNudgeValues() {
         this.flee_values = [ 0, 0, 0, 0 ];
+        this.nudge_values = [ 0, 0, 0, 0 ];
         for (let i = 0; i < this.dangers.length; i++) {
             if (this.dangers[i].danger_level < 1) continue;
             const p = optimizeInWrap((offset) => {
@@ -1266,34 +1268,40 @@ class AI {
                 this.flee_values[0] += this.C[8] * ((-p.y) ** this.C[9]);
             else
                 this.flee_values[1] += this.C[8] * (p.y ** this.C[9]);
-            this.flee_values[2] += this.C[16] * (Math.abs(p.y) ** this.C[17]);
+            this.nudge_values[2] += this.C[16] * (Math.abs(p.y) ** this.C[17]);
             if (p.x > 0) {
                 this.flee_values[2] += this.C[10] * (p.x ** this.C[11]);
-                this.flee_values[0] += this.C[18] * (p.x ** this.C[19]);
-                this.flee_values[1] += this.C[18] * (p.x ** this.C[19]);
+                this.nudge_values[0] += this.C[18] * (p.x ** this.C[19]);
+                this.nudge_values[1] += this.C[18] * (p.x ** this.C[19]);
             }
             else {
                 this.flee_values[3] += this.C[12] * ((-p.x) ** this.C[13]);
-                this.flee_values[0] += this.C[14] * ((-p.x) ** this.C[15]);
-                this.flee_values[1] += this.C[14] * ((-p.x) ** this.C[15]);
+                this.nudge_values[0] += this.C[14] * ((-p.x) ** this.C[15]);
+                this.nudge_values[1] += this.C[14] * ((-p.x) ** this.C[15]);
             }
+        }
+        for (let i = 0; i < 4; i++) {
+            this.flee_values[i] = Math.min(this.flee_values[i], 1);
+            this.nudge_values[i] = Math.min(this.nudge_values[i], 1);
         }
     }
 
     //Fleeing strategy
     manageFleeing() {
-        if (this.flee_values[0] >= 1 && this.flee_values[0] < 1)
+        this.crosshair = null;
+        this.random_aiming_movement_cooldown = this.C[23];
+        if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1)
             this.controls.left = true;
-        else if (this.flee_values[1] >= 1 && this.flee_values[0] < 1)
+        if (this.flee_values[1] + this.nudge_values[1] >= 1 && this.flee_values[0] < 1)
             this.controls.right = true;
-        if (this.flee_values[2] >= 1 && this.flee_values[3] < 1)
+        if (this.controls.left && this.controls.right) {
+            this.controls.left = this.controls.right = false;
+            if (this.flee_values[0] >= this.flee_values[1])
+                this.controls.left = true;
+            else this.controls.right = true;
+        }
+        if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1)
             this.controls.forward = true;
-        /*if (this.flee_values[0] >= 1 && this.flee_values[1] < this.flee_values[0])
-            this.controls.left = true;
-        else if (this.flee_values[1] >= 1 && this.flee_values[0] < this.flee_values[1])
-            this.controls.right = true;
-        if (this.flee_values[2] >= 1 && this.flee_values[3] < this.flee_values[2])
-            this.controls.forward = true;*/
     }
 
     //Formula for calculating the time it takes for a circle and point to collide (each with a unique constant velocity)
@@ -1396,10 +1404,17 @@ class AI {
     //Checks if destroying the target will violate the clutter optimization rules
     checkClutterViolation(target) {
         if (target.size_index >= 3 || target.size_index == 0) return false;
+        let extra_size_groups = [ 0, 0 ];
+        for (let i = 0; i < this.markers.length; i++) {
+            if (this.markers[i].reference.entity == 'a' && this.markers[i].reference.size == 2) extra_size_groups[1] += 2;
+            else if (this.markers[i].reference.entity == 'a' && this.markers[i].reference.size == 1) extra_size_groups[0] += 2;
+        }
         if (target.size_index == 1) {
-            if (this.size_groups[0] + 2 > this.C[21]) return true;
+            if (this.size_groups[0] + extra_size_groups[0] == 0) return false;
+            if (this.size_groups[0] + extra_size_groups[0] + 2 > this.C[21]) return true;
+            if (this.size_groups[0] + extra_size_groups[0] + this.size_groups[1] + extra_size_groups[1] + 1 > this.C[22]) return true;
         } else if (target.size_index == 2) {
-            if (this.size_groups[0] + this.size_groups[1] + 2 > this.C[22]) return true;
+            if (this.size_groups[0] + extra_size_groups[0] + this.size_groups[1] + extra_size_groups[1] + 2 > this.C[22]) return true;
         }
         return false;
     }
@@ -1541,8 +1556,8 @@ class AI {
 
 }
 
-//Actual training
-function test(C, generation, id, trial, max_display_text_length, trial_seed) {
+//Run a test on a specific seed and C-value
+function test(C, trial) {
     const controls = {
         left: false,
         right: false,
@@ -1552,7 +1567,7 @@ function test(C, generation, id, trial, max_display_text_length, trial_seed) {
         start: false,
         pause: false
     };
-    const game = new Game(controls, trial_seed);
+    const game = new Game(controls, trial);
     const ai = new AI(C, game);
     let dead = false;
     while (!dead) {
@@ -1567,18 +1582,21 @@ function test(C, generation, id, trial, max_display_text_length, trial_seed) {
             }
         }
     }
-    let text = "Generation " + generation + ": Species " + (id + 1) + ", Trial " + trial + ", Score " + game.score + ", Time Elapsed " + Math.floor(game.time);
-    while (text.length < max_display_text_length)
-        text += " ";
-    process.stdout.write(text + "\r");
     return [ game.score, game.time ];
 }
 
-function sampleNormalDistribution(mean, std) {
-    const a = 1 - Math.random();
-    const b = Math.random();
-    const c = Math.sqrt(-2.0 * Math.log(a)) * Math.cos(2.0 * Math.PI * b);
-    return c * std + mean;
-}
-
-module.exports = { test, sampleNormalDistribution };
+//Listen for when we want to 
+parentPort.on("message", (msg) => {
+    if (msg == "exit") {
+        parentPort.close();
+        return;
+    }
+    const input = JSON.parse(msg);
+    if (input.length > 1) {
+        const result = test(input[0], input[2]);
+        parentPort.postMessage(JSON.stringify([input[1], result]));
+    } else {
+        thread_id = input[0];
+        parentPort.postMessage(JSON.stringify([]));
+    }
+});

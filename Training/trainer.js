@@ -1,10 +1,9 @@
-const { test, sampleNormalDistribution } = require("./test.js");
+const { Worker } = require("worker_threads");
 const fs = require("fs");
-
 
 //Ranges that each constant can be when training the AI ([ left_bound, right_bound, onlyInteger ])
 const C_range = [
-    [ 2, 2, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 1e6, 0 ],
     [ 0, 1e3, 0 ],
     [ 1, 2, 1 ],
@@ -25,8 +24,8 @@ const C_range = [
     [ 0, 2, 0 ],
     [ 1, 2, 1 ],
     [ 0, 300, 1 ],
-    [ 4, 4, 1 ],
-    [ 4, 4, 1 ],
+    [ 4, 20, 1 ],
+    [ 4, 20, 1 ],
     [ 0, 1000, 1 ]
 ];
 //Describes what ranges of indices in C each represent a gene
@@ -46,241 +45,259 @@ const C_genes = [
     [ 21, 22 ],
     [ 23, 23 ]
 ]
-//Other training constants
-const generation_size = 1000;
-const species_carry_size = 10;
-const species_random_size = 190;
-const species_creation_size = 600;
-const species_adjustment_size = 200;
-const trial_count = 10;
-const trial_seed_multiplier = 73/31;
-const max_generations = Infinity;
-const species_creation_mutation_rate = 0.2;
-const species_adjustment_mutation_rate = 0.1;
-const species_adjustment_mutation_std = 0.1;
-const partition_exponentiator = 2;
-const start_from_saved_generation = false;
-const max_display_text_length = 100;
+const C_default = [
+    null,
+    0,
+    0,
+    null,
+    0,
+    null,
+    0,
+    null,
+    0,
+    null,
+    0,
+    null,
+    0,
+    null,
+    0,
+    null,
+    0,
+    null,
+    0,
+    null,
+    0,
+    20,
+    20,
+    1000
+];
 
-//Runs the AI for a given C
-function runGame(C, generation, id) {
-    let mean_score = 0;
-    let mean_time = 0;
-    for (let i = 0; i < trial_count; i++) {
-        const results = test(C, generation, id, i + 1, max_display_text_length, 1 + i * trial_seed_multiplier);
-        mean_score += results[0];
-        mean_time += results[1];
-    }
-    mean_score /= trial_count;
-    mean_time /= trial_count;
-    return [ mean_score, mean_time ];
+//Other training constants
+const thread_count = 8;
+const generation_size = 1000;
+const species_carry_size = 500;
+const trial_increase_generation_requirement = 100000;
+const start_trial = 1;
+const start_increase_generation_convergence_threshold = 0;
+const max_generations = Infinity;
+const score_goal = Infinity;
+const time_weight = 0;
+const score_weight = 1;
+const mutation_rate = 0.1;
+const mutation_std = 0.1;
+const partition_exponentiator = 1;
+const max_display_text_length = 100;
+const progress_bar_length = 50;
+const interval_wait = 1000 / 60;
+const save_index = 4;
+const start_from_save = true;
+
+//Multithreading/testing info
+let Cs = [];
+let generation = 1;
+let trial_count = start_trial;
+let entity = 1;
+let trial = 1;
+let used_threads_count = null;
+let testing_progress = 0;
+let used_threads = [];
+let test_sums = [];
+let previous_max = 0;
+let convergence_progress = 0;
+let convergence_threshold = start_increase_generation_convergence_threshold;
+let carry_over_count = 0;
+let trial_increase = false;
+let old_trial_count = 0;
+const threads = [];
+
+//Calculates the fitness score of a trial
+function calculateFitness(score, time) {
+    return score * score_weight + time * time_weight;
+}
+
+//Samples from normal distribution
+function sampleNormalDistribution(mean, std) {
+    const a = 1 - Math.random();
+    const b = Math.random();
+    const c = Math.sqrt(-2.0 * Math.log(a)) * Math.cos(2.0 * Math.PI * b);
+    return c * std + mean;
 }
 
 //Generates a random C
-function generateRandomC() {
+function createFirstGenerationC() {
     let C = new Array(C_range.length);
     for (let i = 0; i < C_range.length; i++) {
-        if (C_range[i][2] == 1)
-            C[i] = C_range[i][0] + Math.floor(Math.random() * (C_range[i][1] - C_range[i][0] + 1))
-        else
-            C[i] = C_range[i][0] + Math.random() * (C_range[i][1] - C_range[i][0]);
+        if (C_default[i] == null) {
+            if (C_range[i][2] == 1)
+                C[i] = C_range[i][0] + Math.floor(Math.random() * (C_range[i][1] - C_range[i][0] + 1))
+            else
+                C[i] = C_range[i][0] + Math.random() * (C_range[i][1] - C_range[i][0]);
+        } else C[i] = C_default[i];
     }
     return C;
 }
 
 //Creates a generation of random Cs
 function createFirstGeneration() {
-    if (start_from_saved_generation) {
-        const Cs = [];
-        const results = eval(fs.readFileSync("./Save/generation.txt", "utf-8"));
-        for (let i = 0; i < results.length; i++)
-            Cs.push(results[i][2]);
-        return Cs;
+    if (start_from_save) {
+        const generation_prefix = "generation";
+        let max_previous_generation = 0;
+        fs.readdirSync("Saves/Save" + save_index + "/Generations").forEach(file => {
+            const number = parseInt(file.substring(generation_prefix.length));
+            max_previous_generation = Math.max(max_previous_generation, number);
+        });
+        if (max_previous_generation > 0) {
+            test_sums = new Array(generation_size).fill(0);
+            old_trial_count = trial_count;
+            testing_progress = 0;
+            entity = 1;
+            generation = max_previous_generation + 1;
+            carry_over_count = 0;
+            const previous_generation_results = eval(fs.readFileSync("./Saves/Save" + save_index + "/Generations/generation" + max_previous_generation + ".json", "utf-8"));
+            const analysis = analyzeGenerationResults(previous_generation_results);
+            return createGeneration(previous_generation_results, analysis);
+        }
     }
+    test_sums = new Array(generation_size).fill(0);
+    testing_progress = 0;
+    entity = 1;
+    generation = 1;
     const Cs = [];
     for (let i = 0; i < generation_size; i++)
-        Cs.push(generateRandomC());
+        Cs.push(createFirstGenerationC());
     return Cs;
-}
-
-//Runs the AI for each C-value in the generation
-function testGeneration(Cs, generation) {
-    let scores = [];
-    for (let i = 0; i < Cs.length; i++) {
-        const results = runGame(Cs[i], generation, i, trial_count, trial_seed_multiplier, max_display_text_length);
-        scores.push([ results[0], results[1], Cs[i] ]);
-    }
-    return scores;
 }
 
 //Analyzes the median, mean, STD, min, and max scores of a generation
 function analyzeGenerationResults(results) {
-    const analysis = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ];
-    //Calculate Median score
+    const analysis = [ 0, 0, 0, 0, 0 ];
+    //Calculate Median fitness
     results.sort((a, b) => { return a[0] - b[0] });
     if (results.length % 2) analysis[0] = results[Math.floor(results.length / 2)][0];
     else analysis[0] = (results[results.length / 2][0] + results[results.length / 2 - 1][0]) / 2;
-    //Calculate Mean score
+    //Calculate Mean fitness
     for (let i = 0; i < results.length; i++)
         analysis[1] += results[i][0];
     analysis[1] /= results.length;
-    //Calculate STD score
+    //Calculate STD fitness
     for (let i = 0; i < results.length; i++)
         analysis[2] += (results[i][0] - analysis[1]) ** 2;
     analysis[2] = Math.sqrt(analysis[2] / results.length);
-    //Calculate Min/Max score
+    //Calculate Min/Max fitness
     analysis[3] = results[0][0];
     analysis[4] = results[results.length - 1][0];
-    //Calculate Median time
-    results.sort((a, b) => { return a[1] - b[1] });
-    if (results.length % 2) analysis[5] = results[Math.floor(results.length / 2)][1];
-    else analysis[5] = (results[results.length / 2][1] + results[results.length / 2 - 1][1]) / 2;
-    //Calculate Mean time
-    for (let i = 0; i < results.length; i++)
-        analysis[6] += results[i][1];
-    analysis[6] /= results.length;
-    //Calculate STD time
-    for (let i = 0; i < results.length; i++)
-        analysis[7] += (results[i][1] - analysis[6]) ** 2;
-    analysis[7] = Math.sqrt(analysis[7] / results.length);
-    //Calculate Min/Max score
-    analysis[8] = results[0][1];
-    analysis[9] = results[results.length - 1][1];
     return analysis;
 }
 
 //Print-out the results in the console
 function printGenerationAnalysis(generation, analysis) {
-    let text = "Generation " + generation + ": Median Score - " + analysis[0];
+    let text = "Generation " + generation + ": Median Fitness - " + analysis[0];
     while (text.length < max_display_text_length)
         text += " ";
     const blank = new Array(("Generation " + generation + ":  ").length).join(" ");
     console.log(text);
-    console.log(blank + "Mean Score - " + analysis[1]);
-    console.log(blank + "STD Score - " + analysis[2]);
-    console.log(blank + "Min Score - " + analysis[3]);
-    console.log(blank + "Max Score - " + analysis[4]);
-    console.log(blank + "Median Time - " + analysis[5]);
-    console.log(blank + "Mean Time - " + analysis[6]);
-    console.log(blank + "STD Time - " + analysis[7]);
-    console.log(blank + "Min Time - " + analysis[8]);
-    console.log(blank + "Max Time - " + analysis[9]);
+    console.log(blank + "Mean Fitness - " + analysis[1]);
+    console.log(blank + "STD Fitness - " + analysis[2]);
+    console.log(blank + "Min Fitness - " + analysis[3]);
+    console.log(blank + "Max Fitness - " + analysis[4]);
 }
 
 //Open Save Files
 function openSaveFiles() {
-    if (!fs.existsSync("./Save"))
-        fs.mkdirSync("./Save");
-    fs.openSync("./Save/best.txt", "a+");
-    fs.openSync("./Save/generation.txt", "a+");
+    if (!fs.existsSync("./Saves"))
+        fs.mkdirSync("./Saves");
+    if (!fs.existsSync("./Saves/Save" + save_index))
+        fs.mkdirSync("./Saves/Save" + save_index);
+    if (!fs.existsSync("./Saves/Save" + save_index + "/Generations"))
+        fs.mkdirSync("./Saves/Save" + save_index + "/Generations");
+    if (!start_from_save) {
+        fs.rmSync("./Saves/Save" + save_index + "/Generations", { recursive: true });
+        fs.mkdirSync("./Saves/Save" + save_index + "/Generations");
+    }
+    fs.openSync("./Saves/Save" + save_index + "/best_fitness.json", "a+");
 }
 
 //Saves the generation to a file
-function saveGeneration(results) {
-    fs.writeFileSync("./Save/generation.txt", JSON.stringify(results), (err) => {
+function saveGeneration(results, generation) {
+    fs.openSync("./Saves/Save" + save_index + "/Generations/generation" + generation + ".json", "a+");
+    fs.writeFileSync("./Saves/Save" + save_index + "/Generations/generation" + generation + ".json", JSON.stringify(results), (err) => {
         if (err) throw err;
     });
     results.sort((a, b) => { return b[0] - a[0] });
-    const previous_best = eval(fs.readFileSync("./Save/best.txt", "utf-8"));
-    if (previous_best == null || results[0][0] > previous_best[0])
-        fs.writeFileSync("./Save/best.txt", JSON.stringify(results[0]), (err) => {
+    let previous_best = eval(fs.readFileSync("./Saves/Save" + save_index + "/best_fitness.json", "utf-8"));
+    if (previous_best == null || results[0][0] > previous_best[0]) {
+        const rounded_result = [ results[0][0], roundC(results[0][1]) ];
+        fs.writeFileSync("./Saves/Save" + save_index + "/best_fitness.json", JSON.stringify(rounded_result), (err) => {
             if (err) throw err;
         });
-
+    }
 }
 
 //Creates a new generation from the results of a previous generation
 function createGeneration(results, analysis) {
     //Use STDs to find out the distribution of each C based on scores
-    const time_partition = [];
-    const score_partition = [];
+    const partition = [];
     for (let i = 0; i < results.length; i++) {
-        //Calculate the standard deviation of our result
-        const std_score = (results[i][0] - analysis[1]) / analysis[2];
-        const std_time = (results[i][1] - analysis[6]) / analysis[7];
-        if (std_time >= 0)
-            time_partition.push([ std_time, results[i][2] ]);
-        if (std_score >= 0)
-            score_partition.push([ std_score, results[i][2] ]);
+        const std = (analysis[2] == 0) ? 0 : (results[i][0] - analysis[1]) / analysis[2];
+        partition.push([ std, results[i][0], results[i][1] ]);
     }
     //Sort the partitions
-    time_partition.sort((a, b) => { return b[0] - a[0] });
-    score_partition.sort((a, b) => { return b[0] - a[0] });
+    partition.sort((a, b) => { return b[0] - a[0] });
     //Carry-over some of the C-values
     const Cs = [];
-    for (let i = 0; i < Math.min(time_partition.length, species_carry_size / 2); i++)
-        Cs.push(time_partition[i][1]);
-    for (let i = 0; i < Math.min(score_partition.length, species_carry_size / 2); i++)
-        Cs.push(score_partition[i][1]);
-    const actaul_carry_over = Cs.length;
-    //Generate random species
-    for (let i = 0; i < species_random_size + species_carry_size - actaul_carry_over; i++)
-        Cs.push(generateRandomC());
+    for (let i = 0; i < species_carry_size; i++) {
+        if (partition[i][0] >= 0) continue;
+        Cs.push(partition[i][2]);
+    }
+    while (Cs.length < species_carry_size) 
+        Cs.push(createFirstGenerationC());
     //Normalize the inputs
     let partition_sum = 0;
-    const partition = [];
-    for (let i = 0; i < time_partition.length; i++)
-        partition_sum += time_partition[i][0] ** partition_exponentiator;
-    for (let i = 0; i < score_partition.length; i++)
-        partition_sum += score_partition[i][0] ** partition_exponentiator;  
-    for (let i = 0; i < time_partition.length; i++)
-        partition.push([ (time_partition[i][0] ** partition_exponentiator) / partition_sum, time_partition[i][1] ]);
-    for (let i = 0; i < score_partition.length; i++)
-        partition.push([ (score_partition[i][0] ** partition_exponentiator) / partition_sum, score_partition[i][1] ]);
-    //Generate new species from current species
-    for (let i = 0; i < species_creation_size; i++) {
-        const C = new Array(C_range.length);
-        let seed = Math.random();
-        let id = 0;
-        while (id < partition.length - 1) {
-            seed -= partition[id][0];
-            if (seed < 0 && partition[id][0] > 0) break;
-            id++;
-        }
-        for (let j = 0; j < C_genes.length; j++) {
-            //Find out which gene to take based on the partition
-            const l = C_genes[j][0];
-            const r = C_genes[j][1];
-            //Copy the gene to the new generation
-            for (let k = l; k <= r; k++)
-                C[k] = partition[id][1][k];
-            //Check if we want to create a new species or not
-            if (Math.random() < species_creation_mutation_rate) {
-                for (let k = l; k <= r; k++) {
-                    if (C_range[k][2] == 1)
-                        C[k] = C_range[k][0] + Math.floor(Math.random() * (C_range[k][1] - C_range[k][0] + 1))
-                    else
-                        C[k] = C_range[k][0] + Math.random() * (C_range[k][1] - C_range[k][0]);
-                }
-            } 
-        }
-        Cs.push(C);
+    for (let i = 0; i < partition.length; i++) {
+        partition[i][0] = Math.max(partition[i][0], 0);
+        partition_sum += partition[i][0] ** partition_exponentiator;
     }
-    //Mutate current species
-    for (let i = 0; i < species_adjustment_size; i++) {
+    if (partition_sum == 0) {
+        for (let i = 0; i < partition.length; i++)
+            partition[i][0] = 1 / partition.length;
+    } else {
+        for (let i = 0; i < partition.length; i++)
+            partition[i][0] = (partition[i][0] ** partition_exponentiator) / partition_sum;
+    }
+    //Run crossover from current species
+    for (let i = 0; Cs.length < generation_size; i++) {
         const C = new Array(C_range.length);
+        //Pick the individual
         let seed = Math.random();
-        let id = 0;
-        while (id < partition.length - 1) {
-            seed -= partition[id][0];
-            if (seed < 0 && partition[id][0] > 0) break;
-            id++;
+        let id1 = 0;
+        while (id1 < partition.length - 1) {
+            seed -= partition[id1][0];
+            if (seed < 0 && partition[id1][0] > 0) break;
+            id1++;
         }
+        seed = Math.random();
+        let id2 = 0;
+        while (id2 < partition.length - 1) {
+            seed -= partition[id2][0];
+            if (seed < 0 && partition[id2][0] > 0) break;
+            id2++;
+        }
+        const ratio1 = partition[id1][0] / (partition[id1][0] + partition[id2][0]);
         for (let j = 0; j < C_genes.length; j++) {
             //Find out which gene to take based on the partition
             const l = C_genes[j][0];
             const r = C_genes[j][1];
-            //Copy the gene to the new generation
+            //Choose which parent to pick the gene from and copy it
             for (let k = l; k <= r; k++)
-                C[k] = partition[id][1][k];
-            //Check if we want to mutate the gene and if so, then mutate
-            if (Math.random() < species_adjustment_mutation_rate) {
-                const difference = sampleNormalDistribution(0, species_adjustment_mutation_std);
-                C[l] += (C_range[l][1] - C_range[l][0]) * difference;
-                C[l] = Math.max(C_range[l][0], C[l]);
-                C[l] = Math.min(C_range[l][1], C[l]);
-                if (C_range[l][2] == 1)
-                    C[l] = Math.round(C[l]);
+                C[k] = ratio1 * partition[id1][2][k] + (1 - ratio1) * partition[id2][2][k];
+            //Mutate the individual
+            if (Math.random() < mutation_rate) {
+                for (let k = l; k <= r; k++) {
+                    const difference = sampleNormalDistribution(0, mutation_std);
+                    C[k] += (C_range[k][1] - C_range[k][0]) * difference;
+                    C[k] = Math.max(C_range[k][0], C[k]);
+                    C[k] = Math.min(C_range[k][1], C[k]);
+                }
             } 
         }
         Cs.push(C);
@@ -288,28 +305,114 @@ function createGeneration(results, analysis) {
     return Cs;
 }
 
+//Sends a message to a thread
+function sendMessage(id, msg) {
+    if (used_threads[id]) return;
+    used_threads_count++;
+    used_threads[id] = true;
+    threads[id].postMessage(msg);
+}
+
+//Creates tester threads
+function createThreads() {
+    used_threads = new Array(thread_count).fill(false);
+    used_threads_count = 0;
+    for (let i = 0; i < thread_count; i++) {
+        threads.push(new Worker("./tester.js"));
+        sendMessage(i, JSON.stringify([ i + 1 ]));
+        threads[i].on("message", (msg) => {
+            const input = JSON.parse(msg);
+            used_threads[i] = false;
+            used_threads_count--;
+            if (input.length == 2) {
+                test_sums[input[0] - 1] += calculateFitness(input[1][0], input[1][1]);
+                testing_progress++;    
+            }
+        });
+    }
+}
+
+//Closes all the tester threads
+function closeThreads() {
+    console.log("Closing Threads...");
+    for (let i = 0; i < thread_count; i++)
+        threads[i].postMessage("exit");
+}
+
+//Rounds a C-value
+function roundC(C) {
+    const C_rounded = [];
+    for (let i = 0; i < C_range.length; i++) {
+        C_rounded.push(C[i]);
+        if (C_range[i][2] == 1)
+            C_rounded[i] = Math.round(C_rounded[i]);
+    }
+    return C_rounded;
+}
+
+//This is the main training loop
 function train() {
     openSaveFiles();
-    let Cs = createFirstGeneration();
-    let analysis = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ];
-    let generation = 1;
+    createThreads();
+    Cs = createFirstGeneration();
+    let analysis = [ 0, 0, 0, 0, 0 ];
     let results = null;
-    while (generation <= max_generations) {
-        results = testGeneration(Cs, generation);
-        analysis = analyzeGenerationResults(results);
-        printGenerationAnalysis(generation, analysis);
-        Cs = createGeneration(results, analysis);
-        saveGeneration(results);
-        generation++;
-    }
-    //Print-out the best C out of the final generation to print
-    let max_score = -1;
-    let C = null;
-    for (let i = 0; i < results.length; i++)
-        if (max_score < results[i][0])
-            max_score = results[i][0], C = results[i][2];
-    console.log("Max Score: " + max_score);
-    console.log("Best C: [" + C + "]");
+    const interval = setInterval(() => {
+        if (generation <= max_generations && entity <= generation_size) {
+            //If currently testing something, then attempt to test next trial
+            if (used_threads_count == thread_count) return;
+            for (let j = 0; j < thread_count; j++)
+                if (!used_threads[j]) {
+                    carry_over_count--;
+                    sendMessage(j, JSON.stringify([ roundC(Cs[entity - 1]), entity, generation ]));
+                    if (trial < trial_count) trial++;
+                    else {
+                        if (carry_over_count > 0 && trial_increase) trial = trial_count;
+                        else trial = 1;
+                        entity++;
+                    }
+                    break;
+                }
+            const progress = testing_progress / (generation_size * trial_count);
+            const bars = "#".repeat(Math.floor(progress * progress_bar_length));
+            const blanks = "-".repeat(progress_bar_length - bars.length);
+            let text = "Generation " + generation + ": [" + bars + blanks + "] -> " + (progress * 100).toFixed(1) + "%";
+            while (text.length < max_display_text_length)
+                text += " ";
+            process.stdout.write(text + "\r");
+        } else if (testing_progress == generation_size * trial_count) {
+            //If testing is done, compile and analyze the results and then finally create the new generation
+            results = [];
+            for (let i = 0; i < Cs.length; i++)
+                results.push([ test_sums[i] / trial_count, Cs[i] ]);
+            analysis = analyzeGenerationResults(results);
+            printGenerationAnalysis(generation, analysis);
+            old_trial_count = trial_count;
+            if (analysis[4] > convergence_threshold && analysis[4] == previous_max) convergence_progress++;
+            else convergence_progress = 1;
+            if (convergence_progress >= trial_increase_generation_requirement) {
+                trial_count++;
+                console.log("Progressed Trial Count: " + trial_count + " Trials");
+                convergence_progress = 1;
+                previous_max = 0;
+                convergence_threshold = analysis[4];
+                trial_increase = true;
+            } else trial_increase = false;
+            test_sums = new Array(generation_size).fill(0);
+            testing_progress = 0;
+            entity = 1;
+            trial = 1;
+            carry_over_count = 0;
+            previous_max = analysis[4];
+            Cs = createGeneration(results, analysis);
+            saveGeneration(results, generation);
+            generation++;
+        }
+        if (generation > max_generations || analysis[4] >= score_goal) {
+            clearInterval(interval);
+            closeThreads();
+        }
+    }, interval_wait);
 }
 
 train();

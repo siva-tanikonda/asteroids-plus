@@ -67,7 +67,7 @@ input[type="checkbox"]::before {
     content: "";
     width: 12px;
     height: 12px;
-    margin: 1.5px;
+    margin: 2px;
     padding: 0px;
     transform: scale(0);
     transform-origin: center;

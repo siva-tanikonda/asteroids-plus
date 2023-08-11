@@ -5,7 +5,6 @@ const ctx = canvas.getContext("2d");
 const user_input = new UserInput();
 let canvas_bounds = canvas.getBoundingClientRect();
 let old_timestamp = 0;
-let tab_active = true;
 
 //Some debugging information
 let fps = 0;
@@ -13,7 +12,7 @@ let fps_cooldown = 0;
 const fps_reset_rate = 2e-2;
 
 //This is the set of constants for the AI
-const C = [2,0,20.347315227046543,1,0,1,0,1,0.1792592281077181,2,1.0138420224227627,2,0.4886581378310931,1,0.6519775450959715,1,2,1,0.2493080966138037,2,121,74,38,1000];
+const C = [2,326.02625678038584,0,1,8.384910263988845,1,0,1,0.010828328446618187,1,0,2,0.01865038179652228,1,0,1,0.05579312333960671,2,0.03983945042598704,1,0,20,18,1000];
 //Do initial setup steps for the game
 resizeCanvas();
 Asteroid.analyzeAsteroidConfigurations();
@@ -22,16 +21,6 @@ Saucer.analyzeSaucerConfigurations();
 //Objects for the game and the ai
 let game = new Game(true);
 let ai = new AI(C);
-
-//Check if the tab is active or not
-window.onfocus = () => { tab_active = true; };
-window.onblur = () => { tab_active = false; };
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState == "visible")
-        tab_active = true;
-    else
-        tab_active = false;
-});
 
 //Resizes the HTML5 canvas when needed
 function resizeCanvas() {
@@ -45,7 +34,7 @@ window.addEventListener("resize", resizeCanvas);
 function update(delay) {
 
     //Basic rules for the update function
-    if (isNaN(delay) || delay == 0 || !tab_active) return;
+    if (isNaN(delay) || delay == 0) return;
 
     updateSettings();
 

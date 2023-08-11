@@ -3,9 +3,9 @@ const ship_configuration = {
     width: 30,
     height: 16,
     rear_offset: 6,
-    rotation_speed: 6 * Math.PI / 180,
-    acceleration: 0.125,
-    drag_coefficient: 0.0075,
+    rotation_speed: 3 * Math.PI / 180,
+    acceleration: 0.2,
+    drag_coefficient: 0.0025,
     fire_rate: 0.05,
     bullet_speed: 10,
     bullet_life: 60,
@@ -63,7 +63,7 @@ const asteroid_configurations = {
         ])
     ],
     //Maximum bounding rect size of an asteroid
-    max_rect: new Rect(0, 0, 150, 150),
+    max_rect: new Rect(0, 0, 75, 75),
     //The up-scaling of the asteroids based on the size (smaller number means smaller asteroid)
     sizes: [ 10, 25, 40 ],
     //The range of the speeds the asteroids could rotate

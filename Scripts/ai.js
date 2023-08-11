@@ -101,7 +101,7 @@ class AI {
 
     static danger_radius = [ 0, 18, 14, 34, 53, 60, 70 ];
     static pessimistic_radius = [ 14, 34, 53, 27, 32 ];
-    static target_radius = [ 5, 17.5, 25, 11, 15 ];
+    static target_radius = [ 5, 17.5, 25, 10, 12 ];
     static rotation_precision = 1;
 
     constructor(C) {
@@ -122,6 +122,7 @@ class AI {
         this.crosshair = null;
         this.ship = null;
         this.flee_values = [ 0, 0, 0, 0 ];
+        this.nudge_values = [ 0, 0, 0, 0 ];
         this.size_groups = [ 0, 0 ];
         this.random_aiming_movement_cooldown = this.C[23];
     }
@@ -169,12 +170,13 @@ class AI {
         }
         for (let i = 0; i < game.saucer_bullets.length; i++)
             this.dangers.push(new Danger(game.saucer_bullets[i]));
-        this.getFleeValues();
+        this.getFleeAndNudgeValues();
     }
 
     //Creates flee values
-    getFleeValues() {
+    getFleeAndNudgeValues() {
         this.flee_values = [ 0, 0, 0, 0 ];
+        this.nudge_values = [ 0, 0, 0, 0 ];
         for (let i = 0; i < this.dangers.length; i++) {
             if (this.dangers[i].danger_level < 1) continue;
             const p = optimizeInWrap((offset) => {
@@ -189,17 +191,21 @@ class AI {
                 this.flee_values[0] += C[8] * ((-p.y) ** C[9]);
             else
                 this.flee_values[1] += C[8] * (p.y ** C[9]);
-            this.flee_values[2] += C[16] * (Math.abs(p.y) ** C[17]);
+            this.nudge_values[2] += C[16] * (Math.abs(p.y) ** C[17]);
             if (p.x > 0) {
                 this.flee_values[2] += C[10] * (p.x ** C[11]);
-                this.flee_values[0] += C[18] * (p.x ** C[19]);
-                this.flee_values[1] += C[18] * (p.x ** C[19]);
+                this.nudge_values[0] += C[18] * (p.x ** C[19]);
+                this.nudge_values[1] += C[18] * (p.x ** C[19]);
             }
             else {
                 this.flee_values[3] += C[12] * ((-p.x) ** C[13]);
-                this.flee_values[0] += C[14] * ((-p.x) ** C[15]);
-                this.flee_values[1] += C[14] * ((-p.x) ** C[15]);
+                this.nudge_values[0] += C[14] * ((-p.x) ** C[15]);
+                this.nudge_values[1] += C[14] * ((-p.x) ** C[15]);
             }
+        }
+        for (let i = 0; i < 4; i++) {
+            this.flee_values[i] = Math.min(this.flee_values[i], 1);
+            this.nudge_values[i] = Math.min(this.nudge_values[i], 1);
         }
     }
 
@@ -207,11 +213,17 @@ class AI {
     manageFleeing() {
         this.crosshair = null;
         this.random_aiming_movement_cooldown = this.C[23];
-        if (this.flee_values[0] >= 1 && this.flee_values[0] < 1)
+        if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1)
             this.controls.left = true;
-        else if (this.flee_values[1] >= 1 && this.flee_values[0] < 1)
+        if (this.flee_values[1] + this.nudge_values[1] >= 1 && this.flee_values[0] < 1)
             this.controls.right = true;
-        if (this.flee_values[2] >= 1 && this.flee_values[3] < 1)
+        if (this.controls.left && this.controls.right) {
+            this.controls.left = this.controls.right = false;
+            if (this.flee_values[0] >= this.flee_values[1])
+                this.controls.left = true;
+            else this.controls.right = true;
+        }
+        if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1)
             this.controls.forward = true;
     }
 
@@ -315,10 +327,17 @@ class AI {
     //Checks if destroying the target will violate the clutter optimization rules
     checkClutterViolation(target) {
         if (target.size_index >= 3 || target.size_index == 0) return false;
+        let extra_size_groups = [ 0, 0 ];
+        for (let i = 0; i < this.markers.length; i++) {
+            if (this.markers[i].reference.entity == 'a' && this.markers[i].reference.size == 2) extra_size_groups[1] += 2;
+            else if (this.markers[i].reference.entity == 'a' && this.markers[i].reference.size == 1) extra_size_groups[0] += 2;
+        }
         if (target.size_index == 1) {
-            if (this.size_groups[0] + 2 > this.C[21]) return true;
+            if (this.size_groups[0] + extra_size_groups[0] == 0) return false;
+            if (this.size_groups[0] + extra_size_groups[0] + 2 > this.C[21]) return true;
+            if (this.size_groups[0] + extra_size_groups[0] + this.size_groups[1] + extra_size_groups[1] + 1 > this.C[22]) return true;
         } else if (target.size_index == 2) {
-            if (this.size_groups[0] + this.size_groups[1] + 2 > this.C[22]) return true;
+            if (this.size_groups[0] + extra_size_groups[0] + this.size_groups[1] + extra_size_groups[1] + 2 > this.C[22]) return true;
         }
         return false;
     }
@@ -449,8 +468,10 @@ class AI {
     drawDebugForItem(item) {
         AIDebug.drawDangerRadius(item);
         AIDebug.drawDangerLevel(item);
-        if (ai.in_danger)
+        if (ai.in_danger) {
             AIDebug.drawFleeValues(item);
+            AIDebug.drawNudgeValues(item);
+        }
         AIDebug.drawTargetRadius(item);
         AIDebug.drawTargetMinDistance(item);
         AIDebug.drawMarkers(item);
