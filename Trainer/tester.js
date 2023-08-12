@@ -1,300 +1,18 @@
 const { parentPort } = require("worker_threads");
+const { Vector, Rect, Polygon, randomInRange, wrap, solveQuadratic } = require("./math.js");
 let thread_id = null;
 
 const seedrandom = require("seedrandom");
 let random = null;
-function randomInRange(range) {
-    return range[0] + random() * (range[1] - range[0]);
-}
 
 const canvas_bounds = {
-    width: 1920,
-    height: 1080
+    width: 900,
+    height: 900
 };
 const game_precision = 25;
 const game_speed = 1;
 const delay = 1;
 let start_wave = 1;
-
-//Math stuff
-class Vector {
-    constructor(x = 0, y = 0) {
-        this.x = x;
-        this.y = y;
-    }
-    copy() {
-        return new Vector(this.x, this.y);
-    }
-    mag() {
-        return Math.sqrt(this.x ** 2 + this.y ** 2);
-    }
-    normalize() {
-        const len = this.mag();
-        if (len == 0) return;
-        this.x /= len;
-        this.y /= len;
-    }
-    add(v) {
-        this.x += v.x;
-        this.y += v.y;
-    }
-    sub(v) {
-        this.x -= v.x;
-        this.y -= v.y;
-    }
-    mul(k) {
-        this.x *= k;
-        this.y *= k;
-    }
-    div(k) {
-        this.x /= k;
-        this.y /= k;
-    }
-    rotate(a, d) {
-        const nx = ((this.x - d.x) * Math.cos(a) + (this.y - d.y) * Math.sin(a)) + d.x;
-        this.y = ((d.x - this.x) * Math.sin(a) + (this.y - d.y) * Math.cos(a)) + d.y;
-        this.x = nx;
-    }
-    dot(v) {
-        return this.x * v.x + this.y * v.y;
-    }
-    cross(v) {
-        return this.x * v.y - this.y * v.x;
-    }
-    angle() {
-        let angle = Math.atan2(this.y, this.x);
-        while (angle < 0) angle += Math.PI * 2;
-        return angle;
-    }
-    dist(v) {
-        return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2);
-    }
-    comp(v) {
-        if (this.mag() == 0) return 0;
-        return this.dot(v);
-    }
-    proj(v) {
-        if (this.mag() == 0) return new Vector();
-        return Vector.mul(Vector.div(this, this.mag()), this.comp(v));
-    }
-    static copy(v) {
-        return new Vector(v.x, v.y);
-    }
-    static mag(v) {
-        return Math.sqrt(v.x ** 2 + v.y ** 2);
-    }
-    static normalize(v) {
-        const len = v.mag();
-        if (len == 0) return v.copy();
-        return new Vector(v.x / len, v.y / len);
-    }
-    static add(u, v) {
-        return new Vector(u.x + v.x, u.y + v.y);
-    }
-    static sub(u, v) {
-        return new Vector(u.x - v.x, u.y - v.y);
-    }
-    static mul(v, k) {
-        return new Vector(v.x * k, v.y * k);
-    }
-    static div(v, k) {
-        return new Vector(v.x / k, v.y / k);
-    }
-    static rotate(v, a, d) {
-        const nx = ((v.x - d.x) * Math.cos(a), (v.y - d.y) * Math.sin(a)) + d.x;
-        const ny = ((v.x - d.x) * Math.sin(a), (v.y - d.y) * Math.cos(a)) + d.y;
-        return new Vector(nx, ny);
-    }
-    static dot(u, v) {
-        return u.x * v.x + u.y * v.y;
-    }
-    static cross(u, v) {
-        return u.x * v.y - u.y * v.x;
-    }
-    static angle(v) {
-        let angle = Math.atan2(v.y, v.x);
-        while (angle < 0) angle += Math.PI * 2;
-        return angle;
-    }
-    static dist(u, v) {
-        return Math.sqrt((u.x - v.x) ** 2 + (u.y - v.y) ** 2);
-    }
-    static comp(u, v) {
-        if (u.mag() == 0) return 0;
-        return u.dot(v);
-    }
-    static proj(u, v) {
-        if (u.mag() == 0) return Vector();
-        return Vector.mul(Vector.div(u, u.mag()), u.comp(v));
-    }
-    static side(u, v, w) {
-        const uv = Vector.sub(v, u);
-        const vw = Vector.sub(w, v);
-        if (uv.cross(vw) > 0)
-            return -1;
-        else if (uv.cross(vw) < 0)
-            return 1;
-        else
-            return 0;
-    }
-}
-
-class Rect {
-    constructor(left, top, right, bottom) {
-        this.left = this.x = left;
-        this.right = right;
-        this.top = this.y = top;
-        this.bottom = bottom;
-        this.width = right - left;
-        this.height = bottom - top;
-    }
-    intersects(r) {
-        return !(this.right < r.left || this.left > r.right || this.top > r.bottom || this.bottom < r.top);
-    }
-}
-
-class LineSegment {
-    constructor(a, b) {
-        this.a = a;
-        this.b = b;
-    }
-    containsPoint(v) {
-        const side = Vector.side(this.a, this.b, v);
-        if (side != 0) return false;
-        const min_x = Math.min(this.a.x, this.b.x);
-        const max_x = Math.max(this.a.x, this.b.x);
-        return (v.x >= min_x && v.x <= max_x);
-    }
-    intersects(l) {
-        if (l.containsPoint(this.a) || l.containsPoint(this.b) || this.containsPoint(l.a) || this.containsPoint(l.b))
-            return true;
-        const s1 = Vector.side(this.a, this.b, l.a);
-        const s2 = Vector.side(this.a, this.b, l.b);
-        const s3 = Vector.side(l.a, l.b, this.a);
-        const s4 = Vector.side(l.a, l.b, this.b);
-        if (s1 == 0 || s2 == 0 || s3 == 0 || s4 == 0)
-            return false;
-        return (s1 != s2 && s3 != s4);
-    }
-}
-
-class Polygon {
-    constructor(points) {
-        this.points = [];
-        for (let i = 0; i < points.length; i++)
-            this.points.push(new Vector(points[i][0], points[i][1]));
-    }
-    copy() {
-        const c_points = [];
-        for (let i = 0; i < this.points.length; i++)
-            c_points.push([this.points[i].x, this.points[i].y]);
-        return new Polygon(c_points);
-    }
-    getRect() {
-        let min_x, min_y, max_x, max_y;
-        min_x = min_y = Infinity;
-        max_x = max_y = -Infinity;
-        for (let i = 0; i < this.points.length; i++) {
-            min_x = Math.min(min_x, this.points[i].x);
-            min_y = Math.min(min_y, this.points[i].y);
-            max_x = Math.max(max_x, this.points[i].x);
-            max_y = Math.max(max_y, this.points[i].y);
-        }
-        return new Rect(min_x, min_y, max_x, max_y);
-    }
-    scale(k) {
-        for (let i = 0; i < this.points.length; i++)
-            this.points[i].mul(k);
-    }
-    rotate(a, d) {
-        for (let i = 0; i < this.points.length; i++)
-            this.points[i].rotate(a, d);
-    }
-    translate(v) {
-        for (let i = 0; i < this.points.length; i++)
-            this.points[i].add(v);
-    }
-    containsPoint(v) {
-        const rect = this.getRect();
-        if (v.x < rect.left || v.x > rect.right || v.y < rect.top || v.y > rect.bottom)
-            return false;
-        let result = false;
-        for (let i = 0; i < this.points.length; i++) {
-            const j = (i + 1) % this.points.length;
-            const side = Vector.side(this.points[i], this.points[j], v);
-            if (side == 0) {
-                const min_x = Math.min(this.points[i].x, this.points[j].x);
-                const max_x = Math.max(this.points[i].x, this.points[j].x);
-                if (v.x >= min_x && v.x <= max_x)
-                    return true;
-                else
-                    continue;    
-            }
-            if (this.points[i].y == this.points[j].y)
-                continue;
-            if (this.points[i].y < this.points[j].y) {
-                const side = Vector.side(this.points[i], this.points[j], v);
-                if (side == 1 && v.y >= this.points[i].y && v.y < this.points[j].y)
-                    result = !result;
-            }
-            else {
-                const side = Vector.side(this.points[j], this.points[i], v);
-                if (side == 1 && v.y > this.points[j].y && v.y <= this.points[i].y)
-                    result = !result;
-            }
-        }
-        return result;
-    }
-    intersectsLineSegment(l) {
-        for (let i = 0; i < this.points.length; i++) {
-            const j = (i + 1) % this.points.length;
-            const segment = new LineSegment(this.points[i], this.points[j]);
-            if (segment.intersects(l))
-                return true;
-        }
-        return false;
-    }
-    intersectsPolygon(p) {
-        const rect1 = p.getRect();
-        const rect2 = this.getRect();
-        if (!rect1.intersects(rect2)) return false;
-        let inside = true;
-        for (var i = 0; i < p.points.length; i++)
-            inside &= this.containsPoint(p.points[i]);
-        if (inside) return true;
-        for (var i = 0; i < p.points.length; i++) {
-            const j = (i + 1) % p.points.length;
-            const segment = new LineSegment(p.points[i], p.points[j]);
-            if (this.intersectsLineSegment(segment))
-                return true;
-        }
-        return false;
-    }
-}
-
-function wrap(v, wrap_x = true, wrap_y = true) {
-    while (v.x >= canvas_bounds.width && wrap_x)
-        v.x -= canvas_bounds.width;
-    while (v.x < 0 && wrap_x)
-        v.x += canvas_bounds.width;
-    while (v.y >= canvas_bounds.height && wrap_y)
-        v.y -= canvas_bounds.height;
-    while (v.y < 0 && wrap_y)
-        v.y += canvas_bounds.height;
-}
-
-function solveQuadratic(a, b, c) {
-    var dsc = b ** 2 - 4 * a * c;
-    if (dsc < 0) return [];
-    else if (dsc == 0)
-        return [-b / (2 * a)];
-    else {
-        var result = [(-b + Math.sqrt(dsc)) / (2 * a), (-b - Math.sqrt(dsc)) / (2 * a)];
-        if (result[1] < result[0])
-            [result[0], result[1]] = [result[1], result[0]];
-        return result;
-    }
-}
 
 //Ship config information
 const ship_configuration = {
@@ -728,7 +446,7 @@ class Asteroid {
     }
 
     constructor(position, size, wave) {
-        const type = Math.floor(randomInRange([0, 3]));
+        const type = Math.floor(randomInRange(random, [0, 3]));
         this.size = size;
         this.bounds = asteroid_configurations.shapes[type].copy();
         this.bounds.scale(asteroid_configurations.sizes[size]);
@@ -736,14 +454,14 @@ class Asteroid {
         this.bounds.translate(new Vector(-this.rect.width / 2, -this.rect.height / 2));
         this.position = position;
         this.bounds.translate(this.position);
-        this.angle = randomInRange([0, Math.PI * 2]);
+        this.angle = randomInRange(random, [0, Math.PI * 2]);
         this.bounds.rotate(this.angle, this.position);
-        this.rotation_speed = randomInRange(asteroid_configurations.rotation_speed);
+        this.rotation_speed = randomInRange(random, asteroid_configurations.rotation_speed);
         if (Math.floor(random() * 2) == 1)
             this.rotation_speed *= -1;
         const velocity_angle = random() * Math.PI * 2;
         this.velocity = new Vector(Math.cos(velocity_angle), Math.sin(velocity_angle));
-        const speed = randomInRange(asteroid_configurations.speed_scaling(wave));
+        const speed = randomInRange(random, asteroid_configurations.speed_scaling(wave));
         this.velocity.mul(asteroid_configurations.size_speed[size] * speed);
         this.dead = false;
         this.entity = 'a';
@@ -803,25 +521,25 @@ class Saucer {
         this.rect = this.bounds.getRect();
         this.bounds.translate(new Vector(-this.rect.width / 2, -this.rect.height / 2));
         this.position = new Vector();
-        this.position.y = randomInRange([this.rect.height / 2, canvas_bounds.height - this.rect.height / 2]);
-        if (Math.floor(randomInRange([0, 2])) == 0)
+        this.position.y = randomInRange(random, [this.rect.height / 2, canvas_bounds.height - this.rect.height / 2]);
+        if (Math.floor(randomInRange(random, [0, 2])) == 0)
             this.position.x = -this.rect.width / 2;
         else
             this.position.x = canvas_bounds.width + this.rect.width / 2;
         this.bounds.translate(this.position);
-        this.velocity = new Vector(randomInRange(saucer_configurations.speed_scaling(wave)), 0);
+        this.velocity = new Vector(randomInRange(random, saucer_configurations.speed_scaling(wave)), 0);
         if (this.position.x > canvas_bounds.width)
             this.velocity.x *= -1;
         this.direction_change_rate = saucer_configurations.direction_change_rate(wave);
         this.direction_change_cooldown = 1;
         this.vertical_movement = 1;
-        if (Math.floor(randomInRange([0, 2])) == 0)
+        if (Math.floor(randomInRange(random, [0, 2])) == 0)
             this.vertical_movement = -1;
         this.entered_x = this.entered_y = false;
         this.bullet_life = saucer_configurations.bullet_life;
-        this.fire_rate = randomInRange(saucer_configurations.fire_rate(wave));
+        this.fire_rate = randomInRange(random, saucer_configurations.fire_rate(wave));
         this.bullet_cooldown = 0;
-        this.bullet_speed = randomInRange(saucer_configurations.bullet_speed(wave));
+        this.bullet_speed = randomInRange(random, saucer_configurations.bullet_speed(wave));
         this.dead = false;
         this.entity = 's';
     }
@@ -830,7 +548,7 @@ class Saucer {
     updatePosition(delay) {
         //Changes the firection of the saucer if probability says so (movement goes from diagonal to horizontal or horizontal to diagonal)
         if (this.direction_change_cooldown <= 0) {
-            if (Math.floor(randomInRange([0, 2])) == 0) {
+            if (Math.floor(randomInRange(random, [0, 2])) == 0) {
                 let direction = this.velocity.x / Math.abs(this.velocity.x);
                 if (this.velocity.y == 0) {
                     const new_velocity = new Vector(direction, this.vertical_movement);
@@ -944,10 +662,10 @@ class Game {
     makeAsteroids() {
         const count = asteroid_configurations.spawn_count(this.wave);
         for (let i = 0; i < count; i++) {
-            let position = new Vector(randomInRange([0, canvas_bounds.width]), randomInRange([0, canvas_bounds.height]));
+            let position = new Vector(randomInRange(random, [0, canvas_bounds.width]), randomInRange(random, [0, canvas_bounds.height]));
             let distance = position.dist(this.ship.position);
             while (distance < asteroid_configurations.max_rect.width * 2) {
-                position = new Vector(randomInRange([0, canvas_bounds.width]), randomInRange([0, canvas_bounds.height]));
+                position = new Vector(randomInRange(random, [0, canvas_bounds.width]), randomInRange(random, [0, canvas_bounds.height]));
                 distance = position.dist(this.ship.position);
             }
             this.asteroids.push(new Asteroid(position, 2, this.wave));
@@ -957,7 +675,7 @@ class Game {
     //Make a saucer
     makeSaucer(delay) {
         if (this.saucer_cooldown >= 1) {
-            this.saucers.push(new Saucer(Math.floor(randomInRange([ 0, saucer_configurations.sizes.length ])), this.wave));
+            this.saucers.push(new Saucer(Math.floor(randomInRange(random, [ 0, saucer_configurations.sizes.length ])), this.wave));
             this.saucer_cooldown = 0;
         }
         this.saucer_cooldown = Math.min(1, this.saucer_cooldown + saucer_configurations.spawn_rate(this.wave) * delay);

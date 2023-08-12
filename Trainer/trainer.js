@@ -90,7 +90,7 @@ const max_display_text_length = 100;
 const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
 const save_index = 4;
-const start_from_save = true;
+const start_from_save = false;
 
 //Multithreading/testing info
 let Cs = [];

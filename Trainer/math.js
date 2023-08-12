@@ -1,3 +1,8 @@
+const canvas_bounds = {
+    width: 900,
+    height: 900
+};
+
 class Vector {
     constructor(x = 0, y = 0) {
         this.x = x;
@@ -253,8 +258,8 @@ class Polygon {
     }
 }
 
-function randomInRange(range) {
-    return range[0] + Math.random() * (range[1] - range[0]);
+function randomInRange(random, range) {
+    return range[0] + random() * (range[1] - range[0]);
 }
 
 function wrap(v, wrap_x = true, wrap_y = true) {
@@ -280,3 +285,5 @@ function solveQuadratic(a, b, c) {
         return result;
     }
 }
+
+module.exports = { Vector, Rect, Polygon, randomInRange, wrap, solveQuadratic };
