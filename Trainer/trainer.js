@@ -74,8 +74,8 @@ const C_default = [
 
 //Other training constants
 const thread_count = 8;
-const generation_size = 1000;
-const species_carry_size = 500;
+const generation_size = 100;
+const species_carry_size = 50;
 const trial_increase_generation_requirement = 100000;
 const start_trial = 1;
 const start_increase_generation_convergence_threshold = 0;
@@ -89,7 +89,7 @@ const partition_exponentiator = 1;
 const max_display_text_length = 100;
 const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
-const save_index = 4;
+const save_index = 1;
 const start_from_save = false;
 
 //Multithreading/testing info

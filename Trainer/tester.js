@@ -4,17 +4,30 @@ let thread_id = null;
 
 const seedrandom = require("seedrandom");
 let random = null;
-
 const canvas_bounds = {
     width: 900,
     height: 900
 };
-const game_precision = 25;
 const game_speed = 1;
 const delay = 1;
-let start_wave = 1;
+const start_wave = 1;
+let controls = {
+    left: false,
+    right: false,
+    forward: false,
+    fire: false,
+    teleport: false,
+    start: false,
+    pause: false
+};
+const settings = {
+    remove_particles: true,
+    game_precision: 25
+};
+let game = null;
 
-//Ship config information
+let ai = null;
+
 const ship_configuration = {
     width: 30,
     height: 16,
@@ -32,8 +45,6 @@ const ship_configuration = {
     lives: 1,
     invincibility_flash_rate: 0.1
 };
-
-//Asteroid config information
 const asteroid_configurations = {
     //Different polygon shapes that the asteroids could take
     shapes: [
@@ -96,6 +107,18 @@ const asteroid_configurations = {
         return Math.floor((wave + 2) * (canvas_bounds.width * canvas_bounds.height) / 1e6);
     }
 };
+const explosion_configuration = {
+    //Number of particles in an explosion
+    particle_count: 15,
+    //The range of the initial velocity of each particle
+    particle_speed: [ 0, 8 ],
+    //The range of how long a particle stays in the game
+    particle_life: [ 30, 60 ],
+    //The drag coefficient of a particle's velocity (decelerating force is directly proportional to the particles' velocity)
+    particle_drag_coefficient: 0.05,
+    //The range of the radius of a particle
+    particle_radius: [ 1, 2 ]
+};
 
 //Saucer config information
 const saucer_configurations = {
@@ -141,7 +164,7 @@ const saucer_configurations = {
     bullet_life: 200,
     //The spawn rate of the saucer (given that no saucer is already in the game)
     spawn_rate: (wave) => {
-        return 1;
+        return Math.min(1, wave / 1000);
     }
 };
 
@@ -154,6 +177,83 @@ const point_values = {
     //The number of points needed to get an extra life
     extra_life: 10000
 };
+
+//Class for the particle
+class Particle {
+    
+    constructor(position, velocity, drag_coefficient, radius, life) {
+        this.position = position;
+        this.velocity = velocity;
+        this.drag_coefficient = drag_coefficient;
+        this.radius = radius;
+        this.life = life;
+        this.dead = false;
+    }
+
+    //Updates the position of the particle
+    updatePosition(delay) {
+        const initial_velocity = this.velocity.copy();
+        this.velocity.mul(1 / (Math.E ** (this.drag_coefficient * delay)));
+        this.position = Vector.div(Vector.add(Vector.mul(this.position, this.drag_coefficient), Vector.sub(initial_velocity, this.velocity)), this.drag_coefficient);
+        wrap(this.position);
+    }
+
+    //Reduce the particle's life and set it to being dead if the life is 0 or lower
+    updateLife(delay) {
+        this.life -= delay;
+        this.dead |= (this.life <= 0);
+    }
+
+    //Update the particle
+    update(delay) {
+        this.updatePosition(delay);
+        this.updateLife(delay)
+    }
+
+}
+
+//Class for explosion
+class Explosion {
+
+    constructor(position) {
+        this.particles = [];
+        if (!settings.remove_particles) {
+            for (let i = 0; i < explosion_configuration.particle_count; i++)
+                this.makeParticle(position);
+            this.dead = false;
+        } else this.dead = true;
+    }
+
+    //Makes a particle according to explosion_configuration variable
+    makeParticle(position) {
+        if (settings.remove_particles)
+            return;
+        const speed = randomInRange(random, explosion_configuration.particle_speed);
+        const angle = random() * Math.PI * 2;
+        const life = randomInRange(random, explosion_configuration.particle_life);
+        const unit_vector = new Vector(Math.cos(angle), -Math.sin(angle));
+        const radius = randomInRange(random, explosion_configuration.particle_radius);
+        this.particles.push(new Particle(position, Vector.mul(unit_vector, speed), explosion_configuration.particle_drag_coefficient, radius, life));
+    }
+
+    //Updates the explosion
+    update(delay) {
+        if (settings.remove_particles) {
+            this.dead = true;
+            return;
+        }
+        const new_particles = [];
+        for (let i = 0; i < this.particles.length; i++) {
+            this.particles[i].update(delay);
+            if (!this.particles[i].dead)
+                new_particles.push(this.particles[i]);
+        }
+        this.particles = new_particles;
+        if (this.particles.length == 0)
+            this.dead = true;
+    }
+
+}
 
 //Class for bullet
 class Bullet {
@@ -176,7 +276,7 @@ class Bullet {
     }
 
     //Checks the collision with a generic object and returns if the object was hit or not
-    checkCollision(item) {
+    checkCollision(item, explosions) {
         if (item.dead || this.dead)
             return false;
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
@@ -186,6 +286,7 @@ class Bullet {
                 const hit = item.bounds.containsPoint(Vector.add(this.position, new Vector(horizontal[i], vertical[j])));
                 if (hit) {
                     this.dead = item.dead = true;
+                    explosions.push(new Explosion(item.position));
                     return true;
                 }
             }    
@@ -194,8 +295,8 @@ class Bullet {
     }
 
     //Checks collision with asteroid, but also splits asteroid if there's a collision
-    checkAsteroidCollision(split_asteroids, wave, asteroid) {
-        const hit = this.checkCollision(asteroid)
+    checkAsteroidCollision(split_asteroids, wave, asteroid, explosions) {
+        const hit = this.checkCollision(asteroid, explosions)
         if (hit)
             asteroid.destroy(split_asteroids, wave);
         return hit;
@@ -206,7 +307,7 @@ class Bullet {
 //Class for player ship
 class Ship {
 
-    constructor(controls) {
+    constructor() {
         this.position = new Vector(canvas_bounds.width / 2, canvas_bounds.height / 2);
         this.velocity = new Vector();
         this.width = ship_configuration.width;
@@ -243,7 +344,6 @@ class Ship {
         this.invincibility_flash_rate = ship_configuration.invincibility_flash_rate;
         this.accelerating = false;
         this.entity = 'p';
-        this.controls = controls;
     }
 
     //Revives the ship after a death (if the ship has extra lives)
@@ -268,8 +368,8 @@ class Ship {
     //Rotates the ship based on user input
     rotate(delay) {
         const old_angle = this.angle;
-        if (this.controls.left) this.angle += delay * this.rotation_speed;
-        if (this.controls.right) this.angle -= delay * this.rotation_speed;
+        if (controls.left) this.angle += delay * this.rotation_speed;
+        if (controls.right) this.angle -= delay * this.rotation_speed;
         this.bounds.rotate(this.angle - old_angle, this.position);
         while (this.angle >= Math.PI * 2) this.angle -= Math.PI * 2;
         while (this.angle < 0) this.angle += Math.PI * 2;
@@ -278,7 +378,7 @@ class Ship {
     //Moves the ship based on the thruster activation
     move(delay) {
         const direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
-        if (this.teleport_buffer == 0 && this.controls.forward) {
+        if (this.teleport_buffer == 0 && controls.forward) {
             direction.mul(this.acceleration);
             this.velocity.add(Vector.mul(direction, delay));
             this.thruster_status += this.thruster_flash_rate * delay;
@@ -297,7 +397,7 @@ class Ship {
 
     //Manage firing
     fire(delay, ship_bullets) {
-        if (this.controls.fire && this.bullet_cooldown >= 1 && this.teleport_buffer <= 0) {
+        if (controls.fire && this.bullet_cooldown >= 1 && this.teleport_buffer <= 0) {
             const direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
             direction.mul(this.width / 2 + 5);
             const bullet_position = Vector.add(direction, this.position);
@@ -312,7 +412,7 @@ class Ship {
 
     //Manages the teleportation of the ship
     updateTeleportation(delay) {
-        if (this.controls.teleport && this.teleport_cooldown >= 1 && this.teleport_buffer <= 0) {
+        if (controls.teleport && this.teleport_cooldown >= 1 && this.teleport_buffer <= 0) {
             this.teleport_location = new Vector(Math.floor(random() * canvas_bounds.width), Math.floor(random() * canvas_bounds.height));
             this.teleport_buffer += this.teleport_speed * delay;
             this.teleport_cooldown = 0;
@@ -362,7 +462,7 @@ class Ship {
     }
 
     //Checks if the ship has collided with a bullet
-    checkBulletCollision(bullet) {
+    checkBulletCollision(bullet, explosions) {
         if (bullet.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
             return false;
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
@@ -372,6 +472,7 @@ class Ship {
                 const hit = this.bounds.containsPoint(Vector.add(bullet.position, new Vector(horizontal[i], vertical[j])));
                 if (hit) {
                     this.dead = bullet.dead = true;
+                    explosions.push(new Explosion(this.position));
                     return true;
                 }
             }    
@@ -380,7 +481,7 @@ class Ship {
     }
 
     //Checks if the ship has collided with a polygon
-    checkPolygonCollision(item) {
+    checkPolygonCollision(item, explosions) {
         if (item.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
             return false;
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
@@ -394,6 +495,8 @@ class Ship {
                 const hit = item.bounds.intersectsPolygon(shifted_bounds);
                 if (hit) {
                     this.dead = item.dead = true;
+                    explosions.push(new Explosion(item.position));
+                    explosions.push(new Explosion(this.position));
                     return true;
                 }
             }    
@@ -402,13 +505,13 @@ class Ship {
     }
 
     //Checks if the ship has collided with an asteroid (applies split to asteroid)
-    checkAsteroidCollision(split_asteroids, wave, asteroid) {
-        if (this.checkPolygonCollision(asteroid))
+    checkAsteroidCollision(split_asteroids, wave, asteroid, explosions) {
+        if (this.checkPolygonCollision(asteroid, explosions))
             asteroid.destroy(split_asteroids, wave);
     }
 
     //Checks if the ship has collided with a saucer
-    checkSaucerCollision(saucer) {
+    checkSaucerCollision(saucer, explosions) {
         if (saucer.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
             return false;
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
@@ -424,6 +527,8 @@ class Ship {
                 const hit = saucer.bounds.intersectsPolygon(shifted_bounds);
                 if (hit) {
                     this.dead = saucer.dead = true;
+                    explosions.push(new Explosion(saucer.position));
+                    explosions.push(new Explosion(this.position));
                     return true;
                 }
             }    
@@ -610,7 +715,7 @@ class Saucer {
     }
 
     //Checks collision of a saucer with a generic object
-    checkCollision(item) {
+    checkCollision(item, explosions) {
         if (item.dead || this.dead)
             return false;
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
@@ -626,6 +731,8 @@ class Saucer {
                 const hit = item.bounds.intersectsPolygon(shifted_bounds);
                 if (hit) {
                     this.dead = item.dead = true;
+                    explosions.push(new Explosion(item.position));
+                    explosions.push(new Explosion(this.position));
                     return true;
                 }
             }    
@@ -638,12 +745,12 @@ class Saucer {
 //Game class
 class Game {
     
-    constructor (controls, seed, title_screen = false) {
-        random = seedrandom(seed);
-        this.ship = new Ship(controls);
+    constructor (title_screen = false) {
+        this.ship = new Ship();
         this.ship_bullets = [];
         this.wave = start_wave;
         this.asteroids = [];
+        this.explosions = [];
         this.saucers = [];
         this.saucer_bullets = [];
         this.score = 0;
@@ -654,7 +761,6 @@ class Game {
         this.title_flash_rate = 0.025;
         this.paused = false;
         this.old_pause = false;
-        this.controls = controls;
         this.time = 0;
     }
 
@@ -685,11 +791,11 @@ class Game {
     update(delay) {
 
         //Check if the game has been paused or unpaused
-        if (!this.title_screen && !(this.ship.dead && this.ship.lives <= 0) && !this.paused && this.controls.pause && !this.old_pause)
+        if (!this.title_screen && !(this.ship.dead && this.ship.lives <= 0) && !this.paused && controls.pause && !this.old_pause)
             this.paused = true;
-        else if (this.paused && this.controls.pause && !this.old_pause)
+        else if (this.paused && controls.pause && !this.old_pause)
             this.paused = false;
-        
+
         //Update the wave of the game
         this.wave = this.score / 1000 + start_wave;
 
@@ -698,11 +804,15 @@ class Game {
             this.title_flash += this.title_flash_rate * delay;
             while (this.title_flash >= 1)
                 this.title_flash--;
-            return true;
+            if (!this.paused) {
+                if (!this.ship.dead)
+                    this.title_screen = false;
+                return true;
+            }
         }
 
         //See if the pause button was down in the previous frame
-        this.old_pause = this.controls.pause;
+        this.old_pause = controls.pause;
 
         //Don't update the game if the game is paused
         if (this.paused) return;
@@ -739,23 +849,23 @@ class Game {
         //Check if an asteroid, saucer bullet, or saucer hit the ship
         if (!this.title_screen) {
             for (let i = 0; i < this.saucer_bullets.length; i++)
-                this.ship.checkBulletCollision(this.saucer_bullets[i]);
+                this.ship.checkBulletCollision(this.saucer_bullets[i], this.explosions);
             for (let i = 0; i < this.saucers.length; i++)
-                this.ship.checkSaucerCollision(this.saucers[i]);
+                this.ship.checkSaucerCollision(this.saucers[i], this.explosions);
             for (let i = 0; i < this.asteroids.length; i++)
-                this.ship.checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[i]);
+                this.ship.checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[i], this.explosions);
         }
 
         //Check if a player bullet hit an asteroid or saucer
         const new_ship_bullets = [];
         for (let i = 0; i < this.ship_bullets.length; i++) {
             for (let j = 0; j < this.asteroids.length; j++) {
-                const hit = this.ship_bullets[i].checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[j]);
+                const hit = this.ship_bullets[i].checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[j], this.explosions);
                 if (hit && this.ship.lives != 0)
                     this.score += point_values.asteroids;
             }
             for (let j = 0; j < this.saucers.length; j++) {
-                const hit = this.ship_bullets[i].checkCollision(this.saucers[j]);
+                const hit = this.ship_bullets[i].checkCollision(this.saucers[j], this.explosions);
                 if (hit && this.ship.lives != 0)
                     this.score += point_values.saucers;
             }
@@ -772,7 +882,7 @@ class Game {
         }
         this.saucers = new_saucers;
 
-        //Check if a saucer bullet is dead
+        //Check if a saucer bullet hit an asteroid
         const new_saucer_bullets = [];
         for (let i = 0; i < this.saucer_bullets.length; i++) {
             if (!this.saucer_bullets[i].dead)
@@ -792,6 +902,15 @@ class Game {
         }
         this.asteroids = new_asteroids;
 
+        //Update the explosions from collisions/death
+        const new_explosions = [];
+        for (let i = 0; i < this.explosions.length; i++) {
+            this.explosions[i].update(delay);
+            if (!this.explosions[i].dead)
+                new_explosions.push(this.explosions[i]);
+        }
+        this.explosions = new_explosions;
+
         this.time += delay / 60;
 
         return false;
@@ -800,7 +919,6 @@ class Game {
 
 }
 
-//AI stuff
 class VirtualShip {
 
     constructor(ship) {
@@ -819,12 +937,12 @@ class VirtualShip {
         this.size = AI.danger_radius[1];
         this.entity = "s";
     }
-
+    
 }
 
 class Danger {
 
-    constructor(item, ai) {
+    constructor(item) {
         if (item.entity == "b") this.size = 0;
         else if (item.entity == "p") this.size = 1;
         else if (item.entity == "a") this.size = 2 + item.size;
@@ -842,7 +960,7 @@ class Danger {
 
 class Target {
 
-    constructor(item, ai) {
+    constructor(item) {
         this.position = item.position.copy();
         if (item.entity == "a") this.size_index = item.size;
         else this.size_index = item.size + 3;
@@ -869,7 +987,7 @@ class Marker {
 
 class Crosshair {
 
-    constructor(item, angle, ai) {
+    constructor(item, angle) {
         this.reference = item;
         this.angle = angle;
         this.life = Math.PI / ai.ship.rotation_speed;
@@ -898,7 +1016,7 @@ class AI {
     static target_radius = [ 5, 17.5, 25, 10, 12 ];
     static rotation_precision = 1;
 
-    constructor(C, game) {
+    constructor(C) {
         //Control choices of the AI
         this.controls = {
             left: false,
@@ -909,7 +1027,6 @@ class AI {
         //These are constants (that are meant to be optimized through machine learning)
         this.C = C;
         //Variables for the AI
-        this.game = game;
         this.in_danger = false;
         this.dangers = [];
         this.targets = [];
@@ -948,23 +1065,23 @@ class AI {
 
     //Generates all virtual entities to use for the game
     generateVirtualEntities() {
-        if (!this.game.ship.dead)
-            this.ship = new VirtualShip(this.game.ship);
+        if (!game.title_screen && !game.ship.dead)
+            this.ship = new VirtualShip(game.ship);
         this.dangers = [];
         this.targets = [];
         this.in_danger = false;
         this.flee_values = [ 0, 0, 0, 0 ];
         this.size_groups = [ 0, 0 ];
-        for (let i = 0; i < this.game.asteroids.length; i++) {
-            this.dangers.push(new Danger(this.game.asteroids[i], this));
-            this.targets.push(new Target(this.game.asteroids[i], this));
+        for (let i = 0; i < game.asteroids.length; i++) {
+            this.dangers.push(new Danger(game.asteroids[i]));
+            this.targets.push(new Target(game.asteroids[i]));
         }
-        for (let i = 0; i < this.game.saucers.length; i++) {
-            this.dangers.push(new Danger(this.game.saucers[i], this));
-            this.targets.push(new Target(this.game.saucers[i], this));
+        for (let i = 0; i < game.saucers.length; i++) {
+            this.dangers.push(new Danger(game.saucers[i]));
+            this.targets.push(new Target(game.saucers[i]));
         }
-        for (let i = 0; i < this.game.saucer_bullets.length; i++)
-            this.dangers.push(new Danger(this.game.saucer_bullets[i], this));
+        for (let i = 0; i < game.saucer_bullets.length; i++)
+            this.dangers.push(new Danger(game.saucer_bullets[i]));
         this.getFleeAndNudgeValues();
     }
 
@@ -1157,7 +1274,7 @@ class AI {
     //Shooting strategy
     manageShooting(delay) {
         if (this.ship.bullet_cooldown < 1) return;
-        this.predictStates(delay / game_precision);
+        this.predictStates(delay / settings.game_precision);
         const opportunity = this.checkShootingOpportunity();
         if (opportunity[0] != null) {
             this.controls.fire = true;
@@ -1167,13 +1284,13 @@ class AI {
 
     //Updates target markers
     updateMarkers(delay) {
-        if (this.game.ship.dead && this.game.ship.lives <= 0) {
+        if (game.ship.dead && game.ship.lives <= 0) {
             this.markers = [];
             return;
         }
         const new_markers = [];
         for (let i = 0; i < this.markers.length; i++) {
-            if (!this.game.paused)
+            if (!game.paused)
                 this.markers[i].life -= delay;
             if (this.markers[i].life > 0)
                 new_markers.push(this.markers[i]);
@@ -1220,15 +1337,16 @@ class AI {
                 iterations++;
             }
             this.predictStates(-(AI.rotation_precision + delay) * iterations);
-            if (target != null)
-                this.crosshair = new Crosshair(target.reference, aim_angle, this);
+            if (target != null) {
+                this.crosshair = new Crosshair(target.reference, aim_angle);
+                this.random_aiming_movement_cooldown = this.C[23];
+            }
             else this.random_aiming_movement_cooldown -= delay;
             if (this.random_aiming_movement_cooldown <= 0)
                 this.controls.forward = true;
         }
         //Actually rotate towards the target
         if (this.crosshair == null) return;
-        this.random_aiming_movement_cooldown = this.C[23];
         const goal_angle = this.crosshair.angle;
         let time_left;
         if (goal_angle >= this.ship.angle) time_left = goal_angle - this.ship.angle;
@@ -1239,7 +1357,7 @@ class AI {
         if (time_left <= time_right) this.controls.left = true;
         else this.controls.right = true;
         //Update the crosshair
-        if (this.crosshair != null && !this.game.paused) {
+        if (this.crosshair != null && !game.paused) {
             this.crosshair.life -= delay;
             if (this.crosshair.life <= 0) this.crosshair = null;
         }
@@ -1248,11 +1366,11 @@ class AI {
     //AI makes decision and applies controls
     update(delay) {
         this.resetControls();
+        if (game.title_screen)
+            return;
         this.generateVirtualEntities();
-        if (this.in_danger) {
-            this.crosshair = null;
-            this.manageFleeing();
-        } else this.manageAim(delay);
+        if (this.in_danger) this.manageFleeing();
+        else this.manageAim(delay);
         this.generateVirtualEntities();
         this.manageShooting(delay);
         this.updateMarkers(delay);
@@ -1265,7 +1383,7 @@ class AI {
     }
 
     //Applies the AI controls to the actual player
-    applyControls(controls) {
+    applyControls() {
         controls.left = this.controls.left;
         controls.right = this.controls.right;
         controls.forward = this.controls.forward;
@@ -1276,7 +1394,7 @@ class AI {
 
 //Run a test on a specific seed and C-value
 function test(C, trial) {
-    const controls = {
+    controls = {
         left: false,
         right: false,
         forward: false,
@@ -1285,15 +1403,16 @@ function test(C, trial) {
         start: false,
         pause: false
     };
-    const game = new Game(controls, trial);
-    const ai = new AI(C, game);
+    random = seedrandom(trial);
+    game = new Game();
+    ai = new AI(C);
     let dead = false;
     while (!dead) {
         ai.update(delay);
-        ai.applyControls(controls);
-        const iteration_updates = game_precision * game_speed;
+        ai.applyControls();
+        const iteration_updates = settings.game_precision * game_speed;
         for (let j = 0; j < iteration_updates; j++) {
-            const done = game.update(delay / game_precision);
+            const done = game.update(delay / settings.game_precision);
             if (done) {
                 dead = true;
                 break;

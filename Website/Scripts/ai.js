@@ -188,19 +188,19 @@ class AI {
             p.mul(this.dangers[i].danger_level);
             p.rotate(-this.ship.angle, new Vector());
             if (p.y < 0)
-                this.flee_values[0] += C[8] * ((-p.y) ** C[9]);
+                this.flee_values[0] += this.C[8] * ((-p.y) ** this.C[9]);
             else
-                this.flee_values[1] += C[8] * (p.y ** C[9]);
-            this.nudge_values[2] += C[16] * (Math.abs(p.y) ** C[17]);
+                this.flee_values[1] += this.C[8] * (p.y ** this.C[9]);
+            this.nudge_values[2] += this.C[16] * (Math.abs(p.y) ** this.C[17]);
             if (p.x > 0) {
-                this.flee_values[2] += C[10] * (p.x ** C[11]);
-                this.nudge_values[0] += C[18] * (p.x ** C[19]);
-                this.nudge_values[1] += C[18] * (p.x ** C[19]);
+                this.flee_values[2] += this.C[10] * (p.x ** this.C[11]);
+                this.nudge_values[0] += this.C[18] * (p.x ** this.C[19]);
+                this.nudge_values[1] += this.C[18] * (p.x ** this.C[19]);
             }
             else {
-                this.flee_values[3] += C[12] * ((-p.x) ** C[13]);
-                this.nudge_values[0] += C[14] * ((-p.x) ** C[15]);
-                this.nudge_values[1] += C[14] * ((-p.x) ** C[15]);
+                this.flee_values[3] += this.C[12] * ((-p.x) ** this.C[13]);
+                this.nudge_values[0] += this.C[14] * ((-p.x) ** this.C[15]);
+                this.nudge_values[1] += this.C[14] * ((-p.x) ** this.C[15]);
             }
         }
         for (let i = 0; i < 4; i++) {
