@@ -79,9 +79,6 @@ const C_default = [
 const thread_count = 8;
 const generation_size = 1000;
 const species_carry_size = 500;
-const trial_increase_generation_requirement = 100000;
-const start_trial = 1;
-const start_increase_generation_convergence_threshold = 0;
 const max_generations = Infinity;
 const score_goal = Infinity;
 const time_weight = 0;
@@ -93,24 +90,16 @@ const max_display_text_length = 100;
 const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
 const save_index = 2;
-const start_from_save = true;
+const start_from_save = false;
 
 //Multithreading/testing info
 let Cs = [];
 let generation = 1;
-let trial_count = start_trial;
-let entity = 1;
-let trial = 1;
+let individual = 1;
 let used_threads_count = null;
 let testing_progress = 0;
 let used_threads = [];
-let test_sums = [];
-let previous_max = 0;
-let convergence_progress = 0;
-let convergence_threshold = start_increase_generation_convergence_threshold;
-let carry_over_count = 0;
-let trial_increase = false;
-let old_trial_count = 0;
+let fitness = [];
 const threads = [];
 
 //Calculates the fitness score of a trial
@@ -150,20 +139,18 @@ function createFirstGeneration() {
             max_previous_generation = Math.max(max_previous_generation, number);
         });
         if (max_previous_generation > 0) {
-            test_sums = new Array(generation_size).fill(0);
-            old_trial_count = trial_count;
+            fitness = new Array(generation_size).fill(0);
             testing_progress = 0;
-            entity = 1;
+            individual = 1;
             generation = max_previous_generation + 1;
-            carry_over_count = 0;
             const previous_generation_results = eval(fs.readFileSync("./Saves/Save" + save_index + "/Generations/generation" + max_previous_generation + ".json", "utf-8"));
             const analysis = analyzeGenerationResults(previous_generation_results);
             return createGeneration(previous_generation_results, analysis);
         }
     }
-    test_sums = new Array(generation_size).fill(0);
+    fitness = new Array(generation_size).fill(0);
     testing_progress = 0;
-    entity = 1;
+    individual = 1;
     generation = 1;
     const Cs = [];
     for (let i = 0; i < generation_size; i++)
@@ -325,7 +312,7 @@ function createThreads() {
             used_threads[i] = false;
             used_threads_count--;
             if (input.length == 2) {
-                test_sums[input[0] - 1] += calculateFitness(input[1][0], input[1][1]);
+                fitness[input[0] - 1] = calculateFitness(input[1][0], input[1][1]);
                 testing_progress++;    
             }
         });
@@ -358,52 +345,32 @@ function train() {
     let analysis = [ 0, 0, 0, 0, 0 ];
     let results = null;
     const interval = setInterval(() => {
-        if (generation <= max_generations && entity <= generation_size) {
+        if (generation <= max_generations && individual <= generation_size) {
             //If currently testing something, then attempt to test next trial
             if (used_threads_count == thread_count) return;
             for (let j = 0; j < thread_count; j++)
                 if (!used_threads[j]) {
-                    carry_over_count--;
-                    sendMessage(j, JSON.stringify([ roundC(Cs[entity - 1]), entity, generation ]));
-                    if (trial < trial_count) trial++;
-                    else {
-                        if (carry_over_count > 0 && trial_increase) trial = trial_count;
-                        else trial = 1;
-                        entity++;
-                    }
+                    sendMessage(j, JSON.stringify([ roundC(Cs[individual - 1]), individual, generation ]));
+                    individual++;
                     break;
                 }
-            const progress = testing_progress / (generation_size * trial_count);
+            const progress = testing_progress / generation_size;
             const bars = "#".repeat(Math.floor(progress * progress_bar_length));
             const blanks = "-".repeat(progress_bar_length - bars.length);
             let text = "Generation " + generation + ": [" + bars + blanks + "] -> " + (progress * 100).toFixed(1) + "%";
             while (text.length < max_display_text_length)
                 text += " ";
             process.stdout.write(text + "\r");
-        } else if (testing_progress == generation_size * trial_count) {
+        } else if (testing_progress == generation_size) {
             //If testing is done, compile and analyze the results and then finally create the new generation
             results = [];
             for (let i = 0; i < Cs.length; i++)
-                results.push([ test_sums[i] / trial_count, Cs[i] ]);
+                results.push([ fitness[i], Cs[i] ]);
             analysis = analyzeGenerationResults(results);
             printGenerationAnalysis(generation, analysis);
-            old_trial_count = trial_count;
-            if (analysis[4] > convergence_threshold && analysis[4] == previous_max) convergence_progress++;
-            else convergence_progress = 1;
-            if (convergence_progress >= trial_increase_generation_requirement) {
-                trial_count++;
-                console.log("Progressed Trial Count: " + trial_count + " Trials");
-                convergence_progress = 1;
-                previous_max = 0;
-                convergence_threshold = analysis[4];
-                trial_increase = true;
-            } else trial_increase = false;
-            test_sums = new Array(generation_size).fill(0);
+            fitness = new Array(generation_size).fill(0);
             testing_progress = 0;
-            entity = 1;
-            trial = 1;
-            carry_over_count = 0;
-            previous_max = analysis[4];
+            individual = 1;
             Cs = createGeneration(results, analysis);
             saveGeneration(results, generation);
             generation++;
