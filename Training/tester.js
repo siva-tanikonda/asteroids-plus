@@ -1303,6 +1303,10 @@ class AI {
         //Iterate through different angles off from our current angle
         if (this.crosshair != null && (this.targetMarked(this.crosshair) || this.crosshair.life <= 0))
             this.crosshair = null;
+        
+        if (this.ship.velocity.mag() < this.C[24])
+            this.controls.forward = true;
+
         //Pick a new target if no current target
         if (this.crosshair == null) {
             let angle_offset = 0;

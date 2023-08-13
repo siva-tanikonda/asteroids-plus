@@ -26,7 +26,8 @@ const C_range = [
     [ 0, 300, 1 ],
     [ 4, 20, 1 ],
     [ 4, 20, 1 ],
-    [ 0, 1000, 1 ]
+    [ 0, 1000, 1 ],
+    [ 0, 10, 0 ]
 ];
 //Describes what ranges of indices in C each represent a gene
 const C_genes = [
@@ -43,7 +44,8 @@ const C_genes = [
     [ 18, 19 ],
     [ 20, 20 ],
     [ 21, 22 ],
-    [ 23, 23 ]
+    [ 23, 23 ],
+    [ 24, 24 ]
 ]
 const C_default = [
     null,
@@ -69,13 +71,14 @@ const C_default = [
     0,
     20,
     20,
-    1000
+    1000,
+    0
 ];
 
 //Other training constants
 const thread_count = 8;
-const generation_size = 100;
-const species_carry_size = 50;
+const generation_size = 1000;
+const species_carry_size = 500;
 const trial_increase_generation_requirement = 100000;
 const start_trial = 1;
 const start_increase_generation_convergence_threshold = 0;
@@ -85,12 +88,12 @@ const time_weight = 0;
 const score_weight = 1;
 const mutation_rate = 0.1;
 const mutation_std = 0.1;
-const partition_exponentiator = 1;
+const partition_exponentiator = 2;
 const max_display_text_length = 100;
 const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
-const save_index = 1;
-const start_from_save = false;
+const save_index = 2;
+const start_from_save = true;
 
 //Multithreading/testing info
 let Cs = [];
@@ -224,13 +227,10 @@ function saveGeneration(results, generation) {
         if (err) throw err;
     });
     results.sort((a, b) => { return b[0] - a[0] });
-    let previous_best = eval(fs.readFileSync("./Saves/Save" + save_index + "/best_fitness.json", "utf-8"));
-    if (previous_best == null || results[0][0] > previous_best[0]) {
-        const rounded_result = [ results[0][0], roundC(results[0][1]) ];
-        fs.writeFileSync("./Saves/Save" + save_index + "/best_fitness.json", JSON.stringify(rounded_result), (err) => {
-            if (err) throw err;
-        });
-    }
+    const rounded_result = [ results[0][0], roundC(results[0][1]) ];
+    fs.writeFileSync("./Saves/Save" + save_index + "/best_fitness.json", JSON.stringify(rounded_result), (err) => {
+        if (err) throw err;
+    });
 }
 
 //Creates a new generation from the results of a previous generation
