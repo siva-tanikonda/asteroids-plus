@@ -22,17 +22,20 @@ class VirtualShip {
 class Danger {
 
     constructor(item) {
-        if (item.entity == "b") this.size = 0;
-        else if (item.entity == "p") this.size = 1;
-        else if (item.entity == "a") this.size = 2 + item.size;
-        else this.size = 5 + item.size;
-        this.size = AI.danger_radius[this.size];
+        let size_index;
+        if (item.entity == "b") size_index = 0;
+        else if (item.entity == "p") size_index = 1;
+        else if (item.entity == "a") size_index = 2 + item.size;
+        else size_index = 5 + item.size;
+        this.size = AI.danger_radius[size_index];
         this.position = item.position.copy();
         this.velocity = item.velocity.copy();
         this.danger_level = ai.calculateDanger(this);
         this.entity = "d";
         if (this.danger_level >= 1)
             ai.in_danger = true;
+        if (size_index >= 5)
+            ai.saucer_exists = true;
     }
 
 }
@@ -125,30 +128,31 @@ class AI {
         this.nudge_values = [ 0, 0, 0, 0 ];
         this.size_groups = [ 0, 0 ];
         this.random_aiming_movement_cooldown = this.C[23];
+        this.saucer_exists = false;
     }
 
     calculateDanger(danger) {
-        return optimizeInWrap((offset) => {
-            const p = Vector.sub(Vector.add(danger.position, offset), this.ship.position);
-            let result = 0;
-            //Add danger velocity term
-            const danger_velocity_term = Math.max(0, -p.comp(danger.velocity));
-            result += this.C[2] * (danger_velocity_term ** this.C[3]);
-            //Add ship velocity term
-            const ship_velocity_term = Math.max(0, p.comp(this.ship.velocity));
-            result += this.C[4] * (ship_velocity_term ** this.C[5]);
-            //Add ship direction term
-            let ship_direction_term = new Vector(Math.cos(this.ship.angle), Math.sin(-this.ship.angle));
-            ship_direction_term = Math.max(0, p.comp(ship_direction_term));
-            result += this.C[6] * (ship_direction_term ** this.C[7]);
-            //Add distance term
-            let distance_term = 1 / Math.max(1, p.mag() - this.ship.size - danger.size);
-            result += this.C[1];
-            result *= (distance_term ** this.C[0]);
-            return result;
+        const p = optimizeInWrap((offset) => {
+            return Vector.sub(Vector.add(danger.position, offset), this.ship.position);
         }, (best, next) => {
-            return (best == null || next > best);
+            return (best == null || next.mag() < best.mag());
         });
+        let result = 0;
+        //Add danger velocity term
+        const danger_velocity_term = Math.max(0, -p.comp(danger.velocity));
+        result += this.C[2] * (danger_velocity_term ** this.C[3]);
+        //Add ship velocity term
+        const ship_velocity_term = Math.max(0, p.comp(this.ship.velocity));
+        result += this.C[4] * (ship_velocity_term ** this.C[5]);
+        //Add ship direction term
+        let ship_direction_term = new Vector(Math.cos(this.ship.angle), Math.sin(-this.ship.angle));
+        ship_direction_term = Math.max(0, p.comp(ship_direction_term));
+        result += this.C[6] * (ship_direction_term ** this.C[7]);
+        //Add distance term
+        let distance_term = 1 / Math.max(1, p.mag() - this.ship.size - danger.size);
+        result += this.C[1];
+        result *= (distance_term ** this.C[0]);
+        return result;
     }
 
     //Generates all virtual entities to use for the game
@@ -158,6 +162,7 @@ class AI {
         this.dangers = [];
         this.targets = [];
         this.in_danger = false;
+        this.saucer_exists = false;
         this.flee_values = [ 0, 0, 0, 0 ];
         this.size_groups = [ 0, 0 ];
         for (let i = 0; i < game.asteroids.length; i++) {
@@ -392,7 +397,7 @@ class AI {
         if (this.crosshair != null && (this.targetMarked(this.crosshair) || this.crosshair.life <= 0))
             this.crosshair = null;
 
-        if (this.ship.velocity.mag() < this.C[24])
+        if (this.ship.velocity.mag() < this.C[24] && this.saucer_exists)
             this.controls.forward = true;
         
         //Pick a new target if no current target

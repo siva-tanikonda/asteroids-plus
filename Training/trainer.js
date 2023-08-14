@@ -3,7 +3,7 @@ const fs = require("fs");
 
 //Ranges that each constant can be when training the AI ([ left_bound, right_bound, onlyInteger ])
 const C_range = [
-    [ 1, 2, 1 ],
+    [ 1, 1, 1 ],
     [ 0, 1e6, 0 ],
     [ 0, 1e3, 0 ],
     [ 1, 2, 1 ],
@@ -27,7 +27,7 @@ const C_range = [
     [ 4, 20, 1 ],
     [ 4, 20, 1 ],
     [ 0, 1000, 1 ],
-    [ 0, 10, 0 ]
+    [ 0, 2, 0 ]
 ];
 //Describes what ranges of indices in C each represent a gene
 const C_genes = [
@@ -49,36 +49,36 @@ const C_genes = [
 ]
 const C_default = [
     null,
-    0,
-    0,
     null,
-    0,
     null,
-    0,
     null,
-    0,
     null,
-    0,
     null,
-    0,
     null,
-    0,
     null,
-    0,
     null,
-    0,
     null,
-    0,
-    20,
-    20,
-    1000,
-    0
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
 ];
 
 //Other training constants
 const thread_count = 8;
 const generation_size = 1000;
-const species_carry_size = 500;
+const species_carry_size = 250;
 const max_generations = Infinity;
 const score_goal = Infinity;
 const time_weight = 0;
@@ -89,7 +89,7 @@ const partition_exponentiator = 2;
 const max_display_text_length = 100;
 const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
-const save_index = 2;
+const save_index = 6;
 const start_from_save = false;
 
 //Multithreading/testing info
@@ -233,11 +233,9 @@ function createGeneration(results, analysis) {
     //Carry-over some of the C-values
     const Cs = [];
     for (let i = 0; i < species_carry_size; i++) {
-        if (partition[i][0] >= 0) continue;
+        if (partition[i][0] < 0) continue;
         Cs.push(partition[i][2]);
     }
-    while (Cs.length < species_carry_size) 
-        Cs.push(createFirstGenerationC());
     //Normalize the inputs
     let partition_sum = 0;
     for (let i = 0; i < partition.length; i++) {
