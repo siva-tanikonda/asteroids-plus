@@ -70,6 +70,7 @@ const asteroid_configurations = {
     rotation_speed: [ 0, 0.02 ],
     //The speed multiplier based on the asteroid's size
     size_speed: [ 3, 2, 1 ],
+    invincibility_time: 100,
     //The function for the speed scaling of the asteroids
     speed_scaling: (wave) => {
         const last_wave = Math.max(1, wave - 1);
@@ -332,6 +333,7 @@ class Bullet {
 
     //Checks collision with asteroid, but also splits asteroid if there's a collision
     checkAsteroidCollision(split_asteroids, wave, asteroid, explosions) {
+        if (asteroid.invincibility > 0) return false;
         const hit = this.checkCollision(asteroid, explosions)
         if (hit)
             asteroid.destroy(split_asteroids, wave);
@@ -635,7 +637,7 @@ class Ship {
 
     //Checks if the ship has collided with an asteroid (applies split to asteroid)
     checkAsteroidCollision(split_asteroids, wave, asteroid, explosions) {
-        if (this.checkPolygonCollision(asteroid, explosions))
+        if (asteroid.invincibility <= 0 && this.checkPolygonCollision(asteroid, explosions))
             asteroid.destroy(split_asteroids, wave);
     }
 
@@ -682,6 +684,9 @@ class Asteroid {
     constructor(position, size, wave) {
         const type = Math.floor(randomInRange([0, 3]));
         this.size = size;
+        if (!game.title_screen && size == 2)
+            this.invincibility = asteroid_configurations.invincibility_time;
+        else this.invincibility = 0;
         this.bounds = asteroid_configurations.shapes[type].copy();
         this.bounds.scale(asteroid_configurations.sizes[size]);
         this.rect = this.bounds.getRect();
@@ -724,6 +729,8 @@ class Asteroid {
         this.updatePosition(delay);
         //Updates the bounding rect of the asteroid based on the rotation and translation
         this.rect = this.bounds.getRect();
+        if (this.invincibility > 0)
+            this.invincibility -= delay;
     }
 
     //Draws the asteroid with a certain offset
@@ -731,12 +738,15 @@ class Asteroid {
         ctx.translate(offset.x, offset.y);
         ctx.strokeStyle = "white";
         ctx.lineWidth = 1.5;
+        if (this.invincibility > 0)
+            ctx.globalAlpha = 0.25;
         ctx.beginPath();
         ctx.moveTo(this.bounds.points[this.bounds.points.length - 1].x, this.bounds.points[this.bounds.points.length - 1].y);
         for (let i = 0; i < this.bounds.points.length; i++)
             ctx.lineTo(this.bounds.points[i].x, this.bounds.points[i].y);
         ctx.stroke();
         ctx.resetTransform();
+        ctx.globalAlpha = 1;
         if (settings.debug.show_hitboxes) {
             ctx.translate(offset.x, offset.y);
             Debug.drawBounds(this);

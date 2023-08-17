@@ -208,27 +208,22 @@ class AI {
                 this.nudge_values[1] += this.C[14] * ((-p.x) ** this.C[15]);
             }
         }
-        for (let i = 0; i < 4; i++) {
-            this.flee_values[i] = Math.min(this.flee_values[i], 1);
-            this.nudge_values[i] = Math.min(this.nudge_values[i], 1);
-        }
     }
 
     //Fleeing strategy
     manageFleeing() {
         this.crosshair = null;
         this.random_aiming_movement_cooldown = this.C[23];
-        if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1)
+        if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1 && (this.flee_values[0] >= 1 || this.flee_values[3] >= 1 || this.flee_values[2] >= 1))
             this.controls.left = true;
-        if (this.flee_values[1] + this.nudge_values[1] >= 1 && this.flee_values[0] < 1)
+        if (this.flee_values[1] + this.nudge_values[1] >= 1 && this.flee_values[0] < 1 && (this.flee_values[1] >= 1 || this.flee_values[3] >= 1 || this.flee_values[2] >= 1))
             this.controls.right = true;
         if (this.controls.left && this.controls.right) {
-            this.controls.left = this.controls.right = false;
             if (this.flee_values[0] >= this.flee_values[1])
-                this.controls.left = true;
-            else this.controls.right = true;
+                this.controls.right = false;
+            else this.controls.left = false;
         }
-        if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1)
+        if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1 && (this.flee_values[2] >= 1 || this.flee_values[0] >= 1 || this.flee_values[1] >= 1))
             this.controls.forward = true;
     }
 
@@ -324,9 +319,9 @@ class AI {
     checkCollateralDamage(target) {
         for (let i = 0; i < this.targets.length; i++) {
             const result = this.checkBulletCollisionTime(this.targets[i], true);
-            if (result != null && Object.is(target, this.targets[i])) return false;
+            if (result != null && !Object.is(target, this.targets[i])) return true;
         }
-        return true;
+        return false;
     }
 
     //Checks if destroying the target will violate the clutter optimization rules
@@ -352,6 +347,7 @@ class AI {
         let destroyed = null;
         let min_time = Infinity;
         for (let i = 0; i < this.targets.length; i++) {
+            if (this.targets[i].size_index < 3 && this.targets[i].reference.invincibility > 0) continue;
             const result = this.checkBulletCollisionTime(this.targets[i]);
             if (result != null && result < min_time) {
                 destroyed = this.targets[i];
@@ -436,12 +432,13 @@ class AI {
             this.predictStates(-(AI.rotation_precision + delay) * iterations);
             if (target != null) {
                 this.crosshair = new Crosshair(target.reference, aim_angle);
-                this.random_aiming_movement_cooldown = this.C[23];
+                if (target.reference.entity == "a")
+                    this.random_aiming_movement_cooldown = this.C[23];
             }
-            else this.random_aiming_movement_cooldown -= delay;
-            if (this.random_aiming_movement_cooldown <= 0)
-                this.controls.forward = true;
+            this.random_aiming_movement_cooldown = Math.max(0, this.random_aiming_movement_cooldown - delay);
         }
+        if (this.random_aiming_movement_cooldown <= 0 && this.ship.velocity.mag() < 1)
+            this.controls.forward = true;
         //Actually rotate towards the target
         if (this.crosshair == null) return;
         const goal_angle = this.crosshair.angle;
@@ -468,7 +465,6 @@ class AI {
         this.generateVirtualEntities();
         if (this.in_danger) this.manageFleeing();
         else this.manageAim(delay);
-        this.generateVirtualEntities();
         this.manageShooting(delay);
         this.updateMarkers(delay);
     }

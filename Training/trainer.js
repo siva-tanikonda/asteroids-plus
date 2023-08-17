@@ -3,7 +3,7 @@ const fs = require("fs");
 
 //Ranges that each constant can be when training the AI ([ left_bound, right_bound, onlyInteger ])
 const C_range = [
-    [ 1, 1, 1 ],
+    [ 2, 2, 1 ],
     [ 0, 1e6, 0 ],
     [ 0, 1e3, 0 ],
     [ 1, 2, 1 ],
@@ -26,7 +26,7 @@ const C_range = [
     [ 0, 300, 1 ],
     [ 4, 20, 1 ],
     [ 4, 20, 1 ],
-    [ 0, 1000, 1 ],
+    [ 1000, 1000, 1 ],
     [ 0, 2, 0 ]
 ];
 //Describes what ranges of indices in C each represent a gene
@@ -49,58 +49,68 @@ const C_genes = [
 ]
 const C_default = [
     null,
+    0,
+    0,
     null,
+    0,
     null,
+    0,
     null,
+    0,
     null,
+    0,
     null,
+    0,
     null,
+    0,
     null,
+    0,
     null,
+    0,
     null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null
+    0,
+    20,
+    20,
+    1000,
+    0
 ];
 
 //Other training constants
 const thread_count = 8;
 const generation_size = 1000;
-const species_carry_size = 250;
+const species_carry_size = 500;
+const inclusion_threshold = 0;
+const inclusion_limit = 3;
+const progression_leeway = 3;
 const max_generations = Infinity;
 const score_goal = Infinity;
 const time_weight = 0;
 const score_weight = 1;
-const mutation_rate = 0.1;
+const mutation_rate = 0.04;
 const mutation_std = 0.1;
-const partition_exponentiator = 2;
+const shift_rate = 0.01;
+const shift_std = 0.1;
+const partition_exponentiator = 10;
 const max_display_text_length = 100;
 const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
-const save_index = 6;
+const save_index = 1;
+const start_trial = 1;
 const start_from_save = false;
 
 //Multithreading/testing info
 let Cs = [];
 let generation = 1;
 let individual = 1;
+let trial = start_trial;
 let used_threads_count = null;
 let testing_progress = 0;
 let used_threads = [];
 let fitness = [];
 const threads = [];
+let max_fitness = 0;
+let carry_scores = false;
+let individuals_carried = 0;
 
 //Calculates the fitness score of a trial
 function calculateFitness(score, time) {
@@ -119,12 +129,9 @@ function sampleNormalDistribution(mean, std) {
 function createFirstGenerationC() {
     let C = new Array(C_range.length);
     for (let i = 0; i < C_range.length; i++) {
-        if (C_default[i] == null) {
-            if (C_range[i][2] == 1)
-                C[i] = C_range[i][0] + Math.floor(Math.random() * (C_range[i][1] - C_range[i][0] + 1))
-            else
-                C[i] = C_range[i][0] + Math.random() * (C_range[i][1] - C_range[i][0]);
-        } else C[i] = C_default[i];
+        if (C_default[i] == null)
+            C[i] = C_range[i][0] + Math.random() * (C_range[i][1] - C_range[i][0]);
+        else C[i] = C_default[i];
     }
     return C;
 }
@@ -233,21 +240,35 @@ function createGeneration(results, analysis) {
     //Carry-over some of the C-values
     const Cs = [];
     for (let i = 0; i < species_carry_size; i++) {
-        if (partition[i][0] < 0) continue;
+        if (partition[i][0] < inclusion_threshold) break;
+        if (carry_scores) {
+            fitness[i] = partition[i][1];
+            individuals_carried = i + 1;
+        }
         Cs.push(partition[i][2]);
     }
     //Normalize the inputs
     let partition_sum = 0;
     for (let i = 0; i < partition.length; i++) {
-        partition[i][0] = Math.max(partition[i][0], 0);
-        partition_sum += partition[i][0] ** partition_exponentiator;
+        if (partition[i][0] < inclusion_threshold) break;
+        partition_sum += partition_exponentiator ** Math.min(partition[i][0], inclusion_limit);
     }
     if (partition_sum == 0) {
-        for (let i = 0; i < partition.length; i++)
+        for (let i = 0; i < partition.length; i++) {
+            if (partition[i][0] < inclusion_threshold) {
+                partition[i][0] = 0;
+                continue;
+            }
             partition[i][0] = 1 / partition.length;
+        }
     } else {
-        for (let i = 0; i < partition.length; i++)
-            partition[i][0] = (partition[i][0] ** partition_exponentiator) / partition_sum;
+        for (let i = 0; i < partition.length; i++) {
+            if (partition[i][0] < inclusion_threshold) {
+                partition[i][0] = 0;
+                continue;
+            }
+            partition[i][0] = (partition_exponentiator ** Math.min(partition[i][0], inclusion_limit)) / partition_sum;
+        }
     }
     //Run crossover from current species
     for (let i = 0; Cs.length < generation_size; i++) {
@@ -260,30 +281,40 @@ function createGeneration(results, analysis) {
             if (seed < 0 && partition[id1][0] > 0) break;
             id1++;
         }
-        seed = Math.random();
+        /*seed = Math.random();
         let id2 = 0;
         while (id2 < partition.length - 1) {
             seed -= partition[id2][0];
             if (seed < 0 && partition[id2][0] > 0) break;
             id2++;
         }
-        const ratio1 = partition[id1][0] / (partition[id1][0] + partition[id2][0]);
+        const ratio1 = partition[id1][0] / (partition[id1][0] + partition[id2][0]);*/
         for (let j = 0; j < C_genes.length; j++) {
             //Find out which gene to take based on the partition
             const l = C_genes[j][0];
             const r = C_genes[j][1];
             //Choose which parent to pick the gene from and copy it
-            for (let k = l; k <= r; k++)
-                C[k] = ratio1 * partition[id1][2][k] + (1 - ratio1) * partition[id2][2][k];
+            for (let k = l; k <= r; k++) {
+                //C[k] = ratio1 * partition[id1][2][k] + (1 - ratio1) * partition[id2][2][k];
+                C[k] = partition[id1][2][k];
+            }
             //Mutate the individual
             if (Math.random() < mutation_rate) {
                 for (let k = l; k <= r; k++) {
                     const difference = sampleNormalDistribution(0, mutation_std);
-                    C[k] += (C_range[k][1] - C_range[k][0]) * difference;
+                    C[k] *= Math.E ** difference;
                     C[k] = Math.max(C_range[k][0], C[k]);
                     C[k] = Math.min(C_range[k][1], C[k]);
                 }
             } 
+            if (Math.random() < shift_rate) {
+                for (let k = l; k <= r; k++) {
+                    const difference = sampleNormalDistribution(0, shift_std);
+                    C[k] += (C_range[k][1] - C_range[k][0]) * difference;
+                    C[k] = Math.max(C_range[k][0], C[k]);
+                    C[k] = Math.min(C_range[k][1], C[k]);
+                }
+            }
         }
         Cs.push(C);
     }
@@ -340,6 +371,8 @@ function train() {
     openSaveFiles();
     createThreads();
     Cs = createFirstGeneration();
+    if (start_trial == -1)
+        trial = generation;
     let analysis = [ 0, 0, 0, 0, 0 ];
     let results = null;
     const interval = setInterval(() => {
@@ -348,14 +381,14 @@ function train() {
             if (used_threads_count == thread_count) return;
             for (let j = 0; j < thread_count; j++)
                 if (!used_threads[j]) {
-                    sendMessage(j, JSON.stringify([ roundC(Cs[individual - 1]), individual, generation ]));
+                    sendMessage(j, JSON.stringify([ roundC(Cs[individual - 1]), individual, trial ]));
                     individual++;
                     break;
                 }
             const progress = testing_progress / generation_size;
             const bars = "#".repeat(Math.floor(progress * progress_bar_length));
             const blanks = "-".repeat(progress_bar_length - bars.length);
-            let text = "Generation " + generation + ": [" + bars + blanks + "] -> " + (progress * 100).toFixed(1) + "%";
+            let text = "Generation " + generation + " (Trial " + trial + "): [" + bars + blanks + "] -> " + (progress * 100).toFixed(1) + "%";
             while (text.length < max_display_text_length)
                 text += " ";
             process.stdout.write(text + "\r");
@@ -369,8 +402,18 @@ function train() {
             fitness = new Array(generation_size).fill(0);
             testing_progress = 0;
             individual = 1;
+            carry_scores = true;
+            individuals_carried = 0;
+            if (progression_leeway == Infinity || max_fitness <= analysis[1] + progression_leeway * analysis[2]) {
+                trial++;
+                console.log("Progressed to Trial " + trial);
+                max_fitness = Math.max(max_fitness, analysis[1]);
+                carry_scores = false;
+            }
             Cs = createGeneration(results, analysis);
             saveGeneration(results, generation);
+            testing_progress = individuals_carried;
+            individual = testing_progress + 1;
             generation++;
         }
         if (generation > max_generations || analysis[4] >= score_goal) {

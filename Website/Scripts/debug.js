@@ -128,7 +128,7 @@ class AIDebug {
         ctx.globalAlpha = 0.5;
         ctx.translate(item.position.x, item.position.y);
         //Draw arrows
-        let scale_flee = ai.flee_values[2] * 75;
+        let scale_flee = Math.min(ai.flee_values[2] * 75, 75);
         ctx.rotate(-item.angle);
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -137,7 +137,7 @@ class AIDebug {
         ctx.moveTo(scale_flee, 0);
         ctx.lineTo(scale_flee - 5, 0 + 5);
         ctx.stroke();
-        scale_flee = ai.flee_values[0] * 75;
+        scale_flee = Math.min(ai.flee_values[0] * 75, 75);
         ctx.rotate(-Math.PI / 2);
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -146,7 +146,7 @@ class AIDebug {
         ctx.moveTo(scale_flee, 0);
         ctx.lineTo(scale_flee - 5, 0 + 5);
         ctx.stroke();
-        scale_flee = ai.flee_values[3] * 75;
+        scale_flee = Math.min(ai.flee_values[3] * 75, 75);
         ctx.rotate(-Math.PI / 2);
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -155,7 +155,7 @@ class AIDebug {
         ctx.moveTo(scale_flee, 0);
         ctx.lineTo(scale_flee - 5, 0 + 5);
         ctx.stroke();
-        scale_flee = ai.flee_values[1] * 75;
+        scale_flee = Math.min(ai.flee_values[1] * 75, 75);
         ctx.rotate(-Math.PI / 2);
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -198,7 +198,7 @@ class AIDebug {
         ctx.globalAlpha = 0.5;
         ctx.translate(item.position.x, item.position.y);
         //Draw arrows
-        let scale_flee = ai.nudge_values[2] * 75;
+        let scale_flee = Math.min(ai.nudge_values[2] * 75, 75);
         ctx.rotate(-item.angle);
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -207,7 +207,7 @@ class AIDebug {
         ctx.moveTo(scale_flee, 0);
         ctx.lineTo(scale_flee - 5, 0 + 5);
         ctx.stroke();
-        scale_flee = ai.nudge_values[0] * 75;
+        scale_flee = Math.min(ai.nudge_values[0] * 75, 75);
         ctx.rotate(-Math.PI / 2);
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -216,7 +216,7 @@ class AIDebug {
         ctx.moveTo(scale_flee, 0);
         ctx.lineTo(scale_flee - 5, 0 + 5);
         ctx.stroke();
-        scale_flee = ai.nudge_values[3] * 75;
+        scale_flee = Math.min(ai.nudge_values[3] * 75, 75);
         ctx.rotate(-Math.PI / 2);
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -225,7 +225,7 @@ class AIDebug {
         ctx.moveTo(scale_flee, 0);
         ctx.lineTo(scale_flee - 5, 0 + 5);
         ctx.stroke();
-        scale_flee = ai.nudge_values[1] * 75;
+        scale_flee = Math.min(ai.nudge_values[1] * 75, 75);
         ctx.rotate(-Math.PI / 2);
         ctx.beginPath();
         ctx.moveTo(0, 0);

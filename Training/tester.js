@@ -5,8 +5,8 @@ let thread_id = null;
 const seedrandom = require("seedrandom");
 let random = null;
 const canvas_bounds = {
-    width: 2160,
-    height: 960
+    width: 900,
+    height: 900
 };
 const game_speed = 1;
 const delay = 1;
@@ -97,6 +97,7 @@ const asteroid_configurations = {
     rotation_speed: [ 0, 0.02 ],
     //The speed multiplier based on the asteroid's size
     size_speed: [ 3, 2, 1 ],
+    invincibility_time: 100,
     //The function for the speed scaling of the asteroids
     speed_scaling: (wave) => {
         const last_wave = Math.max(1, wave - 1);
@@ -296,6 +297,7 @@ class Bullet {
 
     //Checks collision with asteroid, but also splits asteroid if there's a collision
     checkAsteroidCollision(split_asteroids, wave, asteroid, explosions) {
+        if (asteroid.invincibility > 0) return false;
         const hit = this.checkCollision(asteroid, explosions)
         if (hit)
             asteroid.destroy(split_asteroids, wave);
@@ -506,7 +508,7 @@ class Ship {
 
     //Checks if the ship has collided with an asteroid (applies split to asteroid)
     checkAsteroidCollision(split_asteroids, wave, asteroid, explosions) {
-        if (this.checkPolygonCollision(asteroid, explosions))
+        if (asteroid.invincibility <= 0 && this.checkPolygonCollision(asteroid, explosions))
             asteroid.destroy(split_asteroids, wave);
     }
 
@@ -553,6 +555,9 @@ class Asteroid {
     constructor(position, size, wave) {
         const type = Math.floor(randomInRange(random, [0, 3]));
         this.size = size;
+        if (!game.title_screen && size == 2)
+            this.invincibility = asteroid_configurations.invincibility_time;
+        else this.invincibility = 0;
         this.bounds = asteroid_configurations.shapes[type].copy();
         this.bounds.scale(asteroid_configurations.sizes[size]);
         this.rect = this.bounds.getRect();
@@ -595,6 +600,8 @@ class Asteroid {
         this.updatePosition(delay);
         //Updates the bounding rect of the asteroid based on the rotation and translation
         this.rect = this.bounds.getRect();
+        if (this.invincibility > 0)
+            this.invincibility -= delay;
     }
 
     //Splits the asteroid in two
@@ -1120,27 +1127,22 @@ class AI {
                 this.nudge_values[1] += this.C[14] * ((-p.x) ** this.C[15]);
             }
         }
-        for (let i = 0; i < 4; i++) {
-            this.flee_values[i] = Math.min(this.flee_values[i], 1);
-            this.nudge_values[i] = Math.min(this.nudge_values[i], 1);
-        }
     }
 
     //Fleeing strategy
     manageFleeing() {
         this.crosshair = null;
         this.random_aiming_movement_cooldown = this.C[23];
-        if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1)
+        if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1 && (this.flee_values[0] >= 1 || this.flee_values[3] >= 1 || this.flee_values[2] >= 1))
             this.controls.left = true;
-        if (this.flee_values[1] + this.nudge_values[1] >= 1 && this.flee_values[0] < 1)
+        if (this.flee_values[1] + this.nudge_values[1] >= 1 && this.flee_values[0] < 1 && (this.flee_values[1] >= 1 || this.flee_values[3] >= 1 || this.flee_values[2] >= 1))
             this.controls.right = true;
         if (this.controls.left && this.controls.right) {
-            this.controls.left = this.controls.right = false;
             if (this.flee_values[0] >= this.flee_values[1])
-                this.controls.left = true;
-            else this.controls.right = true;
+                this.controls.right = false;
+            else this.controls.left = false;
         }
-        if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1)
+        if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1 && (this.flee_values[2] >= 1 || this.flee_values[0] >= 1 || this.flee_values[1] >= 1))
             this.controls.forward = true;
     }
 
@@ -1236,9 +1238,9 @@ class AI {
     checkCollateralDamage(target) {
         for (let i = 0; i < this.targets.length; i++) {
             const result = this.checkBulletCollisionTime(this.targets[i], true);
-            if (result != null && Object.is(target, this.targets[i])) return false;
+            if (result != null && !Object.is(target, this.targets[i])) return true;
         }
-        return true;
+        return false;
     }
 
     //Checks if destroying the target will violate the clutter optimization rules
@@ -1264,6 +1266,7 @@ class AI {
         let destroyed = null;
         let min_time = Infinity;
         for (let i = 0; i < this.targets.length; i++) {
+            if (this.targets[i].size_index < 3 && this.targets[i].reference.invincibility > 0) continue;
             const result = this.checkBulletCollisionTime(this.targets[i]);
             if (result != null && result < min_time) {
                 destroyed = this.targets[i];
@@ -1348,12 +1351,13 @@ class AI {
             this.predictStates(-(AI.rotation_precision + delay) * iterations);
             if (target != null) {
                 this.crosshair = new Crosshair(target.reference, aim_angle);
-                this.random_aiming_movement_cooldown = this.C[23];
+                if (target.reference.entity == "a")
+                    this.random_aiming_movement_cooldown = this.C[23];
             }
-            else this.random_aiming_movement_cooldown -= delay;
-            if (this.random_aiming_movement_cooldown <= 0)
-                this.controls.forward = true;
+            this.random_aiming_movement_cooldown = Math.max(0, this.random_aiming_movement_cooldown - delay);
         }
+        if (this.random_aiming_movement_cooldown <= 0 && this.ship.velocity.mag() < 1)
+            this.controls.forward = true;
         //Actually rotate towards the target
         if (this.crosshair == null) return;
         const goal_angle = this.crosshair.angle;
@@ -1380,7 +1384,6 @@ class AI {
         this.generateVirtualEntities();
         if (this.in_danger) this.manageFleeing();
         else this.manageAim(delay);
-        this.generateVirtualEntities();
         this.manageShooting(delay);
         this.updateMarkers(delay);
     }

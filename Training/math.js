@@ -1,6 +1,6 @@
 const canvas_bounds = {
-    width: 2160,
-    height: 960
+    width: 900,
+    height: 900
 };
 
 class Vector {
