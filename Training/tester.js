@@ -22,7 +22,8 @@ let controls = {
 };
 const settings = {
     remove_particles: true,
-    game_precision: 25
+    game_precision: 25,
+    game_lives: 1
 };
 let game = null;
 
@@ -42,7 +43,6 @@ const ship_configuration = {
     thruster_flash_rate: 0.05,
     teleport_speed: 0.025,
     teleport_recharge_rate: 0.01,
-    lives: 1,
     invincibility_flash_rate: 0.1
 };
 const asteroid_configurations = {
@@ -338,7 +338,7 @@ class Ship {
         this.teleport_recharge_rate = ship_configuration.teleport_recharge_rate;
         this.teleport_location = new Vector();
         this.bounds.translate(this.position);
-        this.lives = ship_configuration.lives;
+        this.lives = settings.game_lives;
         this.dead = false;
         this.invincibility = 0;
         this.invincibility_time = 100;

@@ -13,7 +13,6 @@ const ship_configuration = {
     thruster_flash_rate: 0.05,
     teleport_speed: 0.025,
     teleport_recharge_rate: 0.01,
-    lives: 3,
     invincibility_flash_rate: 0.1
 };
 
@@ -374,7 +373,7 @@ class Ship {
         this.teleport_recharge_rate = ship_configuration.teleport_recharge_rate;
         this.teleport_location = new Vector();
         this.bounds.translate(this.position);
-        this.lives = ship_configuration.lives;
+        this.lives = settings.game_lives;
         this.dead = false;
         this.invincibility = 0;
         this.invincibility_time = 100;

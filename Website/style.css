@@ -146,7 +146,7 @@ input[type="checkbox"]:disabled {
     margin-bottom:0px;
 }
 
-#game-speed-input {
+.game-text-input {
     position: relative;
     display: inline-block;
     width: 50px;

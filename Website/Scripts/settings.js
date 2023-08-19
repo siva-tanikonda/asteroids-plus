@@ -2,6 +2,7 @@
 const settings = {
     game_precision: 25,
     game_speed: 1,
+    game_lives: 3,
     remove_particles: false,
     debug: {
         show_hitboxes: false,
@@ -26,6 +27,10 @@ function updateSettings() {
     const game_speed = document.getElementById("game-speed-input").value;
     if (!isNaN(game_speed) && game_speed != 0)
         settings.game_speed = game_speed;
+    
+    const game_lives = document.getElementById("game-lives-input").value;
+    if (!isNaN(game_lives) && game_lives != 0)
+        settings.game_lives = game_lives;
     
     //check if we enabled all debug settings
     const enable_all_debug = document.getElementById("game-enable-all-debug-input").checked;

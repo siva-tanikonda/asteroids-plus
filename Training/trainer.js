@@ -78,7 +78,7 @@ const C_default = [
 ];
 
 //Other training constants
-const thread_count = 8;
+const thread_count = 10;
 const generation_size = 1000;
 const species_carry_size = 500;
 const inclusion_threshold = 0;
@@ -98,7 +98,7 @@ const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
 const discovery_multiplier = 3;
 const discovery_threshold = 3;
-const save_index = 2;
+const save_index = 3;
 const start_from_save = true;
 
 //Multithreading/testing info
