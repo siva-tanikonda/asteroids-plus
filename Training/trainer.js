@@ -99,20 +99,19 @@ const interval_wait = 1000 / 60;
 const discovery_multiplier = 3;
 const discovery_threshold = 3;
 const save_index = 2;
-const start_trial = -1;
 const start_from_save = true;
 
 //Multithreading/testing info
 let Cs = [];
 let generation = 1;
 let individual = 1;
-let trial = start_trial;
+let trial = 1;
 let used_threads_count = null;
 let testing_progress = 0;
 let used_threads = [];
 let fitness = [];
 const threads = [];
-let max_fitness = 0;
+let max_fitness_mean = 0;
 let carry_scores = false;
 let individuals_carried = 0;
 
@@ -154,8 +153,18 @@ function createFirstGeneration() {
             testing_progress = 0;
             individual = 1;
             generation = max_previous_generation + 1;
-            const previous_generation_results = eval(fs.readFileSync("./Saves/Save" + save_index + "/Generations/generation" + max_previous_generation + ".json", "utf-8"));
+            const previous_generation_data = eval(fs.readFileSync("./Saves/Save" + save_index + "/Generations/generation" + max_previous_generation + ".json", "utf-8"));
+            const previous_generation_results = previous_generation_data[2];
+            trial = previous_generation_data[0];
+            max_fitness_mean = previous_generation_data[1];
+            console.log("Loaded Data From Save " + save_index);
             const analysis = analyzeGenerationResults(previous_generation_results);
+            if (progression_leeway == Infinity || max_fitness_mean <= analysis[1] + progression_leeway * analysis[2]) {
+                trial++;
+                console.log("Progressed to Trial " + trial);
+                max_fitness_mean = Math.max(max_fitness_mean, analysis[1]);
+                carry_scores = false;
+            }
             return createGeneration(previous_generation_results, analysis);
         }
     }
@@ -221,7 +230,7 @@ function openSaveFiles() {
 //Saves the generation to a file
 function saveGeneration(results, generation) {
     fs.openSync("./Saves/Save" + save_index + "/Generations/generation" + generation + ".json", "a+");
-    fs.writeFileSync("./Saves/Save" + save_index + "/Generations/generation" + generation + ".json", JSON.stringify(results), (err) => {
+    fs.writeFileSync("./Saves/Save" + save_index + "/Generations/generation" + generation + ".json", JSON.stringify([ trial, max_fitness_mean, results ]), (err) => {
         if (err) throw err;
     });
     results.sort((a, b) => { return b[0] - a[0] });
@@ -370,8 +379,6 @@ function train() {
     openSaveFiles();
     createThreads();
     Cs = createFirstGeneration();
-    if (start_trial == -1)
-        trial = generation;
     let analysis = [ 0, 0, 0, 0, 0 ];
     let results = null;
     const interval = setInterval(() => {
@@ -403,10 +410,10 @@ function train() {
             individual = 1;
             carry_scores = true;
             individuals_carried = 0;
-            if (progression_leeway == Infinity || max_fitness <= analysis[1] + progression_leeway * analysis[2]) {
+            if (progression_leeway == Infinity || max_fitness_mean <= analysis[1] + progression_leeway * analysis[2]) {
                 trial++;
                 console.log("Progressed to Trial " + trial);
-                max_fitness = Math.max(max_fitness, analysis[1]);
+                max_fitness_mean = Math.max(max_fitness_mean, analysis[1]);
                 carry_scores = false;
             }
             Cs = createGeneration(results, analysis);
