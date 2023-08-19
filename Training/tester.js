@@ -1060,15 +1060,14 @@ class AI {
         const danger_velocity_term = Math.max(0, -p.comp(danger.velocity));
         result += this.C[2] * (danger_velocity_term ** this.C[3]);
         //Add ship velocity term
-        const ship_velocity_term = Math.max(0, p.comp(this.ship.velocity));
+        let ship_velocity_term = Math.max(0, p.comp(this.ship.velocity));
         result += this.C[4] * (ship_velocity_term ** this.C[5]);
+        ship_velocity_term = Math.max(0, -p.comp(this.ship.velocity));
+        result -= this.C[6] * (ship_velocity_term ** this.C[7]);
         //Add ship direction term
         let ship_direction_term = new Vector(Math.cos(this.ship.angle), Math.sin(-this.ship.angle));
         ship_direction_term = Math.max(0, p.comp(ship_direction_term)); 
-        result += this.C[6] * (ship_direction_term ** this.C[7]);
-        ship_direction_term = new Vector(Math.cos(this.ship.angle), Math.sin(-this.ship.angle));
-        ship_direction_term = Math.max(0, -p.comp(ship_direction_term));
-        result -= this.C[8] * (ship_direction_term ** this.C[9]);
+        result += this.C[8] * (ship_direction_term ** this.C[9]);
         //Add distance term
         let distance_term = 1 / Math.max(1, p.mag() - this.ship.size - danger.size);
         result += this.C[1];

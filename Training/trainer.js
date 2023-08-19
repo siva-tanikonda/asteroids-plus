@@ -4,15 +4,15 @@ const fs = require("fs");
 //Ranges that each constant can be when training the AI ([ left_bound, right_bound, onlyInteger ])
 const C_range = [
     [ 1, 1, 1 ],
-    [ 0, 1e6, 0 ],
     [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
-    [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
-    [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
-    [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
+    [ 0, 1, 0 ],
+    [ 1, 1, 1 ],
+    [ 0, 1, 0 ],
+    [ 1, 1, 1 ],
+    [ 0, 1, 0 ],
+    [ 1, 1, 1 ],
+    [ 0, 1, 0 ],
+    [ 1, 1, 1 ],
     [ 0, 2, 0 ],
     [ 1, 2, 1 ],
     [ 0, 2, 0 ],
@@ -88,9 +88,9 @@ const max_generations = Infinity;
 const score_goal = Infinity;
 const time_weight = 0;
 const score_weight = 1;
-const mutation_rate = 1 / 26;
+const mutation_rate = 1 / 21;
 const mutation_std = 0.1;
-const shift_rate = 1 / (26 * 3);
+const shift_rate = 1 / (21 * 3);
 const shift_std = 0.1;
 const partition_exponentiator = 10;
 const max_display_text_length = 100;
