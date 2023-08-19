@@ -3,7 +3,7 @@ const ship_configuration = {
     width: 30,
     height: 16,
     rear_offset: 6,
-    rotation_speed: 3 * Math.PI / 180,
+    rotation_speed: 4 * Math.PI / 180,
     acceleration: 0.2,
     drag_coefficient: 0.0025,
     fire_rate: 0.05,

@@ -3,8 +3,10 @@ const fs = require("fs");
 
 //Ranges that each constant can be when training the AI ([ left_bound, right_bound, onlyInteger ])
 const C_range = [
-    [ 2, 2, 1 ],
+    [ 1, 1, 1 ],
     [ 0, 1e6, 0 ],
+    [ 0, 1e3, 0 ],
+    [ 1, 2, 1 ],
     [ 0, 1e3, 0 ],
     [ 1, 2, 1 ],
     [ 0, 1e3, 0 ],
@@ -26,7 +28,6 @@ const C_range = [
     [ 0, 300, 1 ],
     [ 4, 20, 1 ],
     [ 4, 20, 1 ],
-    [ 1000, 1000, 1 ],
     [ 0, 2, 0 ]
 ];
 //Describes what ranges of indices in C each represent a gene
@@ -42,11 +43,11 @@ const C_genes = [
     [ 14, 15 ],
     [ 16, 17 ],
     [ 18, 19 ],
-    [ 20, 20 ],
-    [ 21, 22 ],
-    [ 23, 23 ],
-    [ 24, 24 ]
-]
+    [ 20, 21 ],
+    [ 22, 22 ],
+    [ 23, 24 ],
+    [ 25, 25 ]
+];
 const C_default = [
     null,
     0,
@@ -69,9 +70,10 @@ const C_default = [
     0,
     null,
     0,
+    null,
+    0,
     20,
     20,
-    1000,
     0
 ];
 
@@ -86,17 +88,19 @@ const max_generations = Infinity;
 const score_goal = Infinity;
 const time_weight = 0;
 const score_weight = 1;
-const mutation_rate = 0.04;
+const mutation_rate = 1 / 26;
 const mutation_std = 0.1;
-const shift_rate = 0.01;
+const shift_rate = 1 / (26 * 3);
 const shift_std = 0.1;
 const partition_exponentiator = 10;
 const max_display_text_length = 100;
 const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
-const save_index = 1;
-const start_trial = 1;
-const start_from_save = false;
+const discovery_multiplier = 3;
+const discovery_threshold = 3;
+const save_index = 2;
+const start_trial = -1;
+const start_from_save = true;
 
 //Multithreading/testing info
 let Cs = [];
@@ -270,36 +274,31 @@ function createGeneration(results, analysis) {
             partition[i][0] = (partition_exponentiator ** Math.min(partition[i][0], inclusion_limit)) / partition_sum;
         }
     }
+    let mutation_multiplier = 1;
+    if (analysis[1] + discovery_threshold * analysis[2] > analysis[4]) {
+        console.log("Using Discovery Mode");
+        mutation_multiplier = discovery_multiplier;
+    }
     //Run crossover from current species
     for (let i = 0; Cs.length < generation_size; i++) {
         const C = new Array(C_range.length);
         //Pick the individual
         let seed = Math.random();
-        let id1 = 0;
-        while (id1 < partition.length - 1) {
-            seed -= partition[id1][0];
-            if (seed < 0 && partition[id1][0] > 0) break;
-            id1++;
+        let id = 0;
+        while (id < partition.length - 1) {
+            seed -= partition[id][0];
+            if (seed < 0 && partition[id][0] > 0) break;
+            id++;
         }
-        /*seed = Math.random();
-        let id2 = 0;
-        while (id2 < partition.length - 1) {
-            seed -= partition[id2][0];
-            if (seed < 0 && partition[id2][0] > 0) break;
-            id2++;
-        }
-        const ratio1 = partition[id1][0] / (partition[id1][0] + partition[id2][0]);*/
         for (let j = 0; j < C_genes.length; j++) {
             //Find out which gene to take based on the partition
             const l = C_genes[j][0];
             const r = C_genes[j][1];
             //Choose which parent to pick the gene from and copy it
-            for (let k = l; k <= r; k++) {
-                //C[k] = ratio1 * partition[id1][2][k] + (1 - ratio1) * partition[id2][2][k];
-                C[k] = partition[id1][2][k];
-            }
+            for (let k = l; k <= r; k++)
+                C[k] = partition[id][2][k];
             //Mutate the individual
-            if (Math.random() < mutation_rate) {
+            if (Math.random() < mutation_rate * mutation_multiplier) {
                 for (let k = l; k <= r; k++) {
                     const difference = sampleNormalDistribution(0, mutation_std);
                     C[k] *= Math.E ** difference;
@@ -307,7 +306,7 @@ function createGeneration(results, analysis) {
                     C[k] = Math.min(C_range[k][1], C[k]);
                 }
             } 
-            if (Math.random() < shift_rate) {
+            if (Math.random() < shift_rate * mutation_multiplier) {
                 for (let k = l; k <= r; k++) {
                     const difference = sampleNormalDistribution(0, shift_std);
                     C[k] += (C_range[k][1] - C_range[k][0]) * difference;

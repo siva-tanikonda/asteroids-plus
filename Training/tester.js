@@ -32,7 +32,7 @@ const ship_configuration = {
     width: 30,
     height: 16,
     rear_offset: 6,
-    rotation_speed: 3 * Math.PI / 180,
+    rotation_speed: 4 * Math.PI / 180,
     acceleration: 0.2,
     drag_coefficient: 0.0025,
     fire_rate: 0.05,
@@ -1046,7 +1046,6 @@ class AI {
         this.flee_values = [ 0, 0, 0, 0 ];
         this.nudge_values = [ 0, 0, 0, 0 ];
         this.size_groups = [ 0, 0 ];
-        this.random_aiming_movement_cooldown = this.C[23];
         this.saucer_exists = false;
     }
 
@@ -1065,12 +1064,16 @@ class AI {
         result += this.C[4] * (ship_velocity_term ** this.C[5]);
         //Add ship direction term
         let ship_direction_term = new Vector(Math.cos(this.ship.angle), Math.sin(-this.ship.angle));
-        ship_direction_term = Math.max(0, p.comp(ship_direction_term));
+        ship_direction_term = Math.max(0, p.comp(ship_direction_term)); 
         result += this.C[6] * (ship_direction_term ** this.C[7]);
+        ship_direction_term = new Vector(Math.cos(this.ship.angle), Math.sin(-this.ship.angle));
+        ship_direction_term = Math.max(0, -p.comp(ship_direction_term));
+        result -= this.C[8] * (ship_direction_term ** this.C[9]);
         //Add distance term
         let distance_term = 1 / Math.max(1, p.mag() - this.ship.size - danger.size);
         result += this.C[1];
         result *= (distance_term ** this.C[0]);
+        result = Math.max(0, result);
         return result;
     }
 
@@ -1112,19 +1115,19 @@ class AI {
             p.mul(this.dangers[i].danger_level);
             p.rotate(-this.ship.angle, new Vector());
             if (p.y < 0)
-                this.flee_values[0] += this.C[8] * ((-p.y) ** this.C[9]);
+                this.flee_values[0] += this.C[10] * ((-p.y) ** this.C[11]);
             else
-                this.flee_values[1] += this.C[8] * (p.y ** this.C[9]);
-            this.nudge_values[2] += this.C[16] * (Math.abs(p.y) ** this.C[17]);
+                this.flee_values[1] += this.C[10] * (p.y ** this.C[11]);
+            this.nudge_values[2] += this.C[18] * (Math.abs(p.y) ** this.C[19]);
             if (p.x > 0) {
-                this.flee_values[2] += this.C[10] * (p.x ** this.C[11]);
-                this.nudge_values[0] += this.C[18] * (p.x ** this.C[19]);
-                this.nudge_values[1] += this.C[18] * (p.x ** this.C[19]);
+                this.flee_values[2] += this.C[12] * (p.x ** this.C[13]);
+                this.nudge_values[0] += this.C[20] * (p.x ** this.C[21]);
+                this.nudge_values[1] += this.C[20] * (p.x ** this.C[21]);
             }
             else {
-                this.flee_values[3] += this.C[12] * ((-p.x) ** this.C[13]);
-                this.nudge_values[0] += this.C[14] * ((-p.x) ** this.C[15]);
-                this.nudge_values[1] += this.C[14] * ((-p.x) ** this.C[15]);
+                this.flee_values[3] += this.C[14] * ((-p.x) ** this.C[15]);
+                this.nudge_values[0] += this.C[16] * ((-p.x) ** this.C[17]);
+                this.nudge_values[1] += this.C[16] * ((-p.x) ** this.C[17]);
             }
         }
     }
@@ -1132,7 +1135,6 @@ class AI {
     //Fleeing strategy
     manageFleeing() {
         this.crosshair = null;
-        this.random_aiming_movement_cooldown = this.C[23];
         if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1 && (this.flee_values[0] >= 1 || this.flee_values[3] >= 1 || this.flee_values[2] >= 1))
             this.controls.left = true;
         if (this.flee_values[1] + this.nudge_values[1] >= 1 && this.flee_values[0] < 1 && (this.flee_values[1] >= 1 || this.flee_values[3] >= 1 || this.flee_values[2] >= 1))
@@ -1227,7 +1229,7 @@ class AI {
             if (!pessimistic_size) r1 = target.size;
             else r1 = target.pessimistic_size;
             const result = this.findCirclePointCollision(p1, v1, r1, p2, v2);
-            if (result >= this.ship.bullet_life - 1 || (target.size > 0 && target.size < 3 && Vector.add(p1, Vector.mul(v1, result)) - target.size < this.C[20])) return null;
+            if (result >= this.ship.bullet_life - 1 || (target.size > 0 && target.size < 3 && Vector.add(p1, Vector.mul(v1, result)) - target.size < this.C[22])) return null;
             return result;
         }, (best, next) => {
             return (best == null || (next != null && best > next));
@@ -1253,10 +1255,10 @@ class AI {
         }
         if (target.size_index == 1) {
             if (this.size_groups[0] + extra_size_groups[0] == 0) return false;
-            if (this.size_groups[0] + extra_size_groups[0] + 2 > this.C[21]) return true;
-            if (this.size_groups[0] + extra_size_groups[0] + this.size_groups[1] + extra_size_groups[1] + 1 > this.C[22]) return true;
+            if (this.size_groups[0] + extra_size_groups[0] + 2 > this.C[23]) return true;
+            if (this.size_groups[0] + extra_size_groups[0] + this.size_groups[1] + extra_size_groups[1] + 1 > this.C[24]) return true;
         } else if (target.size_index == 2) {
-            if (this.size_groups[0] + extra_size_groups[0] + this.size_groups[1] + extra_size_groups[1] + 2 > this.C[22]) return true;
+            if (this.size_groups[0] + extra_size_groups[0] + this.size_groups[1] + extra_size_groups[1] + 2 > this.C[24]) return true;
         }
         return false;
     }
@@ -1312,7 +1314,7 @@ class AI {
         if (this.crosshair != null && (this.targetMarked(this.crosshair) || this.crosshair.life <= 0))
             this.crosshair = null;
         
-        if (this.ship.velocity.mag() < this.C[24] && this.saucer_exists)
+        if (this.ship.velocity.mag() < this.C[25] && this.saucer_exists)
             this.controls.forward = true;
 
         //Pick a new target if no current target
@@ -1349,15 +1351,9 @@ class AI {
                 iterations++;
             }
             this.predictStates(-(AI.rotation_precision + delay) * iterations);
-            if (target != null) {
+            if (target != null)
                 this.crosshair = new Crosshair(target.reference, aim_angle);
-                if (target.reference.entity == "a")
-                    this.random_aiming_movement_cooldown = this.C[23];
-            }
-            this.random_aiming_movement_cooldown = Math.max(0, this.random_aiming_movement_cooldown - delay);
         }
-        if (this.random_aiming_movement_cooldown <= 0 && this.ship.velocity.mag() < 1)
-            this.controls.forward = true;
         //Actually rotate towards the target
         if (this.crosshair == null) return;
         const goal_angle = this.crosshair.angle;
