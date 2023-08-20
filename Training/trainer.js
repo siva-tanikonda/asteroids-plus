@@ -3,16 +3,16 @@ const fs = require("fs");
 
 //Ranges that each constant can be when training the AI ([ left_bound, right_bound, onlyInteger ])
 const C_range = [
-    [ 1, 1, 1 ],
+    [ 2, 2, 1 ],
+    [ 0, 1e6, 0 ],
     [ 0, 1e3, 0 ],
-    [ 0, 1, 0 ],
-    [ 1, 1, 1 ],
-    [ 0, 1, 0 ],
-    [ 1, 1, 1 ],
-    [ 0, 1, 0 ],
-    [ 1, 1, 1 ],
-    [ 0, 1, 0 ],
-    [ 1, 1, 1 ],
+    [ 1, 2, 1 ],
+    [ 0, 1e3, 0 ],
+    [ 1, 2, 1 ],
+    [ 0, 1e3, 0 ],
+    [ 1, 2, 1 ],
+    [ 0, 1e3, 0 ],
+    [ 1, 2, 1 ],
     [ 0, 2, 0 ],
     [ 1, 2, 1 ],
     [ 0, 2, 0 ],
@@ -26,9 +26,13 @@ const C_range = [
     [ 0, 2, 0 ],
     [ 1, 2, 1 ],
     [ 0, 300, 1 ],
-    [ 4, 20, 1 ],
-    [ 4, 20, 1 ],
-    [ 0, 2, 0 ]
+    [ 2, 20, 1 ],
+    [ 3, 20, 1 ],
+    [ 0, 2, 0 ],
+    [ 0, 1e3, 0 ],
+    [ 1, 2, 1 ],
+    [ 0, 1e3, 0 ],
+    [ 1, 2, 1 ]
 ];
 //Describes what ranges of indices in C each represent a gene
 const C_genes = [
@@ -46,7 +50,9 @@ const C_genes = [
     [ 20, 21 ],
     [ 22, 22 ],
     [ 23, 24 ],
-    [ 25, 25 ]
+    [ 25, 25 ],
+    [ 26, 27 ],
+    [ 28, 29 ]
 ];
 const C_default = [
     null,
@@ -74,23 +80,27 @@ const C_default = [
     0,
     20,
     20,
-    0
+    0,
+    0,
+    null,
+    0,
+    null
 ];
 
 //Other training constants
-const thread_count = 10;
+const thread_count = 8;
 const generation_size = 1000;
 const species_carry_size = 500;
 const inclusion_threshold = 0;
 const inclusion_limit = 3;
-const progression_leeway = 3;
+const progression_leeway = 1;
 const max_generations = Infinity;
 const score_goal = Infinity;
 const time_weight = 0;
 const score_weight = 1;
-const mutation_rate = 1 / 21;
+const mutation_rate = 1 / 29;
 const mutation_std = 0.1;
-const shift_rate = 1 / (21 * 3);
+const shift_rate = 1 / (29 * 3);
 const shift_std = 0.1;
 const partition_exponentiator = 10;
 const max_display_text_length = 100;
@@ -98,7 +108,7 @@ const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
 const discovery_multiplier = 3;
 const discovery_threshold = 3;
-const save_index = 3;
+const save_index = 6;
 const start_from_save = true;
 
 //Multithreading/testing info
@@ -128,6 +138,18 @@ function sampleNormalDistribution(mean, std) {
     return c * std + mean;
 }
 
+function fillC(C_small) {
+    let C = new Array(C_range.length);
+    for (let i = 0; i < C_range.length; i++) {
+        if (C_small.length <= i) {
+            if (C_default[i] == null)
+                C[i] = C_range[i][0] + Math.random() * (C_range[i][1] - C_range[i][0]);
+            else C[i] = C_default[i];
+        } else C[i] = C_small[i];
+    }
+    return C;
+}
+
 //Generates a random C
 function createFirstGenerationC() {
     let C = new Array(C_range.length);
@@ -155,17 +177,23 @@ function createFirstGeneration() {
             generation = max_previous_generation + 1;
             const previous_generation_data = eval(fs.readFileSync("./Saves/Save" + save_index + "/Generations/generation" + max_previous_generation + ".json", "utf-8"));
             const previous_generation_results = previous_generation_data[2];
+            for (let i = 0; i < previous_generation_results.length; i++)
+                previous_generation_results[i][1] = fillC(previous_generation_results[i][1]);
             trial = previous_generation_data[0];
             max_fitness_mean = previous_generation_data[1];
             console.log("Loaded Data From Save " + save_index);
             const analysis = analyzeGenerationResults(previous_generation_results);
+            carry_scores = true;
+            individuals_carried = 0;
             if (progression_leeway == Infinity || max_fitness_mean <= analysis[1] + progression_leeway * analysis[2]) {
-                trial++;
                 console.log("Progressed to Trial " + trial);
                 max_fitness_mean = Math.max(max_fitness_mean, analysis[1]);
                 carry_scores = false;
             }
-            return createGeneration(previous_generation_results, analysis);
+            const Cs = createGeneration(previous_generation_results, analysis);
+            testing_progress = individuals_carried;
+            individual = testing_progress + 1;
+            return Cs;
         }
     }
     fitness = new Array(generation_size).fill(0);
@@ -284,7 +312,7 @@ function createGeneration(results, analysis) {
         }
     }
     let mutation_multiplier = 1;
-    if (analysis[1] + discovery_threshold * analysis[2] > analysis[4]) {
+    if (carry_scores && analysis[1] + discovery_threshold * analysis[2] > analysis[4]) {
         console.log("Using Discovery Mode");
         mutation_multiplier = discovery_multiplier;
     }

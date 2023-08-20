@@ -12,7 +12,7 @@ let fps_cooldown = 0;
 const fps_reset_rate = 2e-2;
 
 //This is the set of constants for the AI
-const C = [1,0,0,0,0,0,0,0,0.1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+const C = [2,8245.266365982894,29.3416036610977,1,0,2,79.94284802202525,1,106.65449322469334,1,1.37272463841968,1,0.30455491838561993,1,0.2001159816021172,1,0,1,0.20227412210505777,1,0.5136291271906139,1,16,19,16,0.4073951396370079,0,1,0,2];
 //Do initial setup steps for the game
 resizeCanvas();
 Asteroid.analyzeAsteroidConfigurations();

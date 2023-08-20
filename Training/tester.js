@@ -1057,8 +1057,10 @@ class AI {
         });
         let result = 0;
         //Add danger velocity term
-        const danger_velocity_term = Math.max(0, -p.comp(danger.velocity));
+        let danger_velocity_term = Math.max(0, -p.comp(danger.velocity));
         result += this.C[2] * (danger_velocity_term ** this.C[3]);
+        danger_velocity_term = Math.max(0, p.comp(danger.velocity));
+        result -= this.C[28] * (danger_velocity_term ** this.C[29]);
         //Add ship velocity term
         let ship_velocity_term = Math.max(0, p.comp(this.ship.velocity));
         result += this.C[4] * (ship_velocity_term ** this.C[5]);
@@ -1068,6 +1070,9 @@ class AI {
         let ship_direction_term = new Vector(Math.cos(this.ship.angle), Math.sin(-this.ship.angle));
         ship_direction_term = Math.max(0, p.comp(ship_direction_term)); 
         result += this.C[8] * (ship_direction_term ** this.C[9]);
+        ship_direction_term = new Vector(Math.cos(this.ship.angle), Math.sin(-this.ship.angle));
+        ship_direction_term = Math.max(0, -p.comp(ship_direction_term)); 
+        result -= this.C[26] * (ship_direction_term ** this.C[27]);
         //Add distance term
         let distance_term = 1 / Math.max(1, p.mag() - this.ship.size - danger.size);
         result += this.C[1];
@@ -1134,16 +1139,16 @@ class AI {
     //Fleeing strategy
     manageFleeing() {
         this.crosshair = null;
-        if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1 && (this.flee_values[0] >= 1 || this.flee_values[3] >= 1 || this.flee_values[2] >= 1))
+        if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1)
             this.controls.left = true;
-        if (this.flee_values[1] + this.nudge_values[1] >= 1 && this.flee_values[0] < 1 && (this.flee_values[1] >= 1 || this.flee_values[3] >= 1 || this.flee_values[2] >= 1))
+        if (this.flee_values[1] + this.nudge_values[1] >= 1 && this.flee_values[0] < 1)
             this.controls.right = true;
         if (this.controls.left && this.controls.right) {
             if (this.flee_values[0] >= this.flee_values[1])
                 this.controls.right = false;
             else this.controls.left = false;
         }
-        if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1 && (this.flee_values[2] >= 1 || this.flee_values[0] >= 1 || this.flee_values[1] >= 1))
+        if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1)
             this.controls.forward = true;
     }
 
@@ -1379,6 +1384,7 @@ class AI {
         this.generateVirtualEntities();
         if (this.in_danger) this.manageFleeing();
         else this.manageAim(delay);
+        this.generateVirtualEntities();
         this.manageShooting(delay);
         this.updateMarkers(delay);
     }
