@@ -63,6 +63,7 @@ input[type="checkbox"] {
     border: 1.5px solid currentColor;
     display: inline-block;
     align-items: center;
+    place-items: center;
 }
 
 input[type="checkbox"]::before {

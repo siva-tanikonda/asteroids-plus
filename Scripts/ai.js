@@ -171,6 +171,7 @@ class AI {
         this.in_danger = false;
         this.saucer_exists = false;
         this.flee_values = [ 0, 0, 0, 0 ];
+        this.nudge_values = [ 0, 0, 0, 0 ];
         this.size_groups = [ 0, 0 ];
         for (let i = 0; i < game.asteroids.length; i++) {
             this.dangers.push(new Danger(game.asteroids[i]));
@@ -231,6 +232,11 @@ class AI {
         }
         if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1)
             this.controls.forward = true;
+        if (this.flee_values[0] >= 1 && this.flee_values[1] >= 1 && this.flee_values[3] >= 1) {
+            if (this.flee_values[0] >= this.flee_values[1])
+                this.controls.left = true;
+            else this.controls.right = true;
+        }
     }
 
     //Formula for calculating the time it takes for a circle and point to collide (each with a unique constant velocity)
@@ -436,8 +442,10 @@ class AI {
                 iterations++;
             }
             this.predictStates(-(AI.rotation_precision + delay) * iterations);
-            if (target != null)
+            if (target != null) {
                 this.crosshair = new Crosshair(target.reference, aim_angle);
+            } else if (this.ship.velocity.mag() < 1)
+                this.controls.forward = true;
         }
         //Actually rotate towards the target
         if (this.crosshair == null) return;

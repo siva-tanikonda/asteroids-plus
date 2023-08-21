@@ -10,7 +10,7 @@ const canvas_bounds = {
 };
 const game_speed = 1;
 const delay = 1;
-const start_wave = 1;
+const start_wave = 0;
 let controls = {
     left: false,
     right: false,
@@ -105,7 +105,7 @@ const asteroid_configurations = {
     },
     //The function for the number of asteroids that spawn in the game after all have been destroyed
     spawn_count: (wave) => {
-        return Math.floor((wave + 2) * (canvas_bounds.width * canvas_bounds.height) / 1e6);
+        return Math.floor((wave * 2 + 2) * (canvas_bounds.width * canvas_bounds.height) / 1e6);
     }
 };
 const explosion_configuration = {
@@ -165,7 +165,7 @@ const saucer_configurations = {
     bullet_life: 200,
     //The spawn rate of the saucer (given that no saucer is already in the game)
     spawn_rate: (wave) => {
-        return Math.min(1, wave / 1000);
+        return Math.min(1, wave / 2000);
     }
 };
 
@@ -176,7 +176,7 @@ const point_values = {
     //Score given for a saucer kill by the player
     saucers: 0,
     //The number of points needed to get an extra life
-    extra_life: 10000
+    extra_life: Infinity
 };
 
 //Class for the particle
@@ -803,9 +803,6 @@ class Game {
         else if (this.paused && controls.pause && !this.old_pause)
             this.paused = false;
 
-        //Update the wave of the game
-        this.wave = this.score / 1000 + start_wave;
-
         //Check if the game is paused, over, or beginning and update the flash animation (also check if player is dead)
         if (this.title_screen || (this.ship.dead && this.ship.lives <= 0) || this.paused) {
             this.title_flash += this.title_flash_rate * delay;
@@ -825,8 +822,10 @@ class Game {
         if (this.paused) return;
 
         //Check if the asteroids have been cleared, and if so, make new ones
-        if (this.asteroids.length == 0)
+        if (this.asteroids.length == 0) {
+            this.wave++;
             this.makeAsteroids();
+        }
 
         //Check if we need to make a new saucer and if so, then make one
         if (!this.title_screen && this.saucers.length == 0)
@@ -1090,6 +1089,7 @@ class AI {
         this.in_danger = false;
         this.saucer_exists = false;
         this.flee_values = [ 0, 0, 0, 0 ];
+        this.nudge_values = [ 0, 0, 0, 0 ];
         this.size_groups = [ 0, 0 ];
         for (let i = 0; i < game.asteroids.length; i++) {
             this.dangers.push(new Danger(game.asteroids[i]));
@@ -1150,6 +1150,11 @@ class AI {
         }
         if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1)
             this.controls.forward = true;
+        if (this.flee_values[0] >= 1 && this.flee_values[1] >= 1 && this.flee_values[3] >= 1) {
+            if (this.flee_values[0] >= this.flee_values[1])
+                this.controls.left = true;
+            else this.controls.right = true;
+        }
     }
 
     //Formula for calculating the time it takes for a circle and point to collide (each with a unique constant velocity)

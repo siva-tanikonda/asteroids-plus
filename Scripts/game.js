@@ -77,7 +77,7 @@ const asteroid_configurations = {
     },
     //The function for the number of asteroids that spawn in the game after all have been destroyed
     spawn_count: (wave) => {
-        return Math.floor((wave + 2) * (canvas_bounds.width * canvas_bounds.height) / 1e6);
+        return Math.floor((wave * 2 + 2) * (canvas_bounds.width * canvas_bounds.height) / 1e6);
     }
 };
 
@@ -139,7 +139,7 @@ const saucer_configurations = {
     bullet_life: 200,
     //The spawn rate of the saucer (given that no saucer is already in the game)
     spawn_rate: (wave) => {
-        return Math.min(1, wave / 1000);
+        return Math.min(1, wave / 2000);
     }
 };
 
@@ -947,7 +947,7 @@ class Game {
     constructor (title_screen = false) {
         this.ship = new Ship();
         this.ship_bullets = [];
-        this.wave = 1;
+        this.wave = 0;
         this.asteroids = [];
         this.explosions = [];
         this.saucers = [];
@@ -995,9 +995,6 @@ class Game {
         else if (this.paused && controls.pause && !this.old_pause)
             this.paused = false;
 
-        //Update the wave of the game
-        this.wave = this.score / 1000 + 1;
-
         //Check if the game is paused, over, or beginning and update the flash animation (also check if player is dead)
         if (this.title_screen || (this.ship.dead && this.ship.lives <= 0) || this.paused) {
             this.title_flash += this.title_flash_rate * delay;
@@ -1017,8 +1014,10 @@ class Game {
         if (this.paused) return;
 
         //Check if the asteroids have been cleared, and if so, make new ones
-        if (this.asteroids.length == 0)
+        if (this.asteroids.length == 0) {
+            this.wave++;
             this.makeAsteroids();
+        }
 
         //Check if we need to make a new saucer and if so, then make one
         if (!this.title_screen && this.saucers.length == 0)

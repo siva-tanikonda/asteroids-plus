@@ -26,8 +26,8 @@ const C_range = [
     [ 0, 2, 0 ],
     [ 1, 2, 1 ],
     [ 0, 300, 1 ],
-    [ 2, 20, 1 ],
-    [ 3, 20, 1 ],
+    [ 2, 100, 1 ],
+    [ 3, 100, 1 ],
     [ 0, 2, 0 ],
     [ 0, 1e3, 0 ],
     [ 1, 2, 1 ],
@@ -88,7 +88,7 @@ const C_default = [
 ];
 
 //Other training constants
-const thread_count = 8;
+const thread_count = 11;
 const generation_size = 1000;
 const species_carry_size = 500;
 const inclusion_threshold = 0;
@@ -312,7 +312,7 @@ function createGeneration(results, analysis) {
         }
     }
     let mutation_multiplier = 1;
-    if (carry_scores && analysis[1] + discovery_threshold * analysis[2] > analysis[4]) {
+    if (analysis[1] + discovery_threshold * analysis[2] > analysis[4]) {
         console.log("Using Discovery Mode");
         mutation_multiplier = discovery_multiplier;
     }
