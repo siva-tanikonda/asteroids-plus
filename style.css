@@ -62,7 +62,6 @@ input[type="checkbox"] {
     height: 18px;
     border: 1.5px solid currentColor;
     display: inline-block;
-    align-items: center;
     place-items: center;
 }
 

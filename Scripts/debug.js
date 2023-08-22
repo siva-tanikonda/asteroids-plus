@@ -276,9 +276,9 @@ class AIDebug {
     static drawTargetMinDistance(item) {
         if (item.entity != "s") return;
         ctx.fillStyle = "#f59445";
-        ctx.globalAlpha = 0.05;
+        ctx.globalAlpha = 0.1;
         ctx.beginPath();
-        ctx.arc(item.position.x, item.position.y, ai.C[20], 0, 2 * Math.PI);
+        ctx.arc(item.position.x, item.position.y, ai.C[22], 0, 2 * Math.PI);
         ctx.fill();
         ctx.globalAlpha = 1.0;
     }

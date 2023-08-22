@@ -6,33 +6,33 @@ const C_range = [
     [ 2, 2, 1 ],
     [ 0, 1e6, 0 ],
     [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 2, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 2, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 2, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 2, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 2, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 2, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 300, 1 ],
     [ 2, 100, 1 ],
     [ 3, 100, 1 ],
     [ 0, 2, 0 ],
     [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ]
+    [ 1, 3, 1 ]
 ];
 //Describes what ranges of indices in C each represent a gene
 const C_genes = [
@@ -98,6 +98,7 @@ const max_generations = Infinity;
 const score_goal = Infinity;
 const time_weight = 0;
 const score_weight = 1;
+const flee_time_weight = 0;
 const mutation_rate = 1 / 29;
 const mutation_std = 0.1;
 const shift_rate = 1 / (29 * 3);
@@ -108,7 +109,7 @@ const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
 const discovery_multiplier = 3;
 const discovery_threshold = 3;
-const save_index = 6;
+const save_index = 7;
 const start_from_save = true;
 
 //Multithreading/testing info
@@ -126,8 +127,8 @@ let carry_scores = false;
 let individuals_carried = 0;
 
 //Calculates the fitness score of a trial
-function calculateFitness(score, time) {
-    return score * score_weight + time * time_weight;
+function calculateFitness(score, time, flee_time) {
+    return score * score_weight + time * time_weight + flee_time * flee_time_weight;
 }
 
 //Samples from normal distribution
@@ -377,7 +378,7 @@ function createThreads() {
             used_threads[i] = false;
             used_threads_count--;
             if (input.length == 2) {
-                fitness[input[0] - 1] = calculateFitness(input[1][0], input[1][1]);
+                fitness[input[0] - 1] = calculateFitness(input[1][0], input[1][1], input[1][2]);
                 testing_progress++;    
             }
         });

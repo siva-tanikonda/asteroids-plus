@@ -1421,12 +1421,14 @@ function test(C, trial) {
         start: false,
         pause: false
     };
+    let flee_time = 0;
     random = seedrandom(trial);
     game = new Game();
     ai = new AI(C);
     let dead = false;
     while (!dead) {
         ai.update(delay);
+        if (ai.in_danger) flee_time += delay;
         ai.applyControls();
         const iteration_updates = settings.game_precision * game_speed;
         for (let j = 0; j < iteration_updates; j++) {
@@ -1437,7 +1439,7 @@ function test(C, trial) {
             }
         }
     }
-    return [ game.score, game.time ];
+    return [ game.score, game.time, flee_time ];
 }
 
 //Listen for when we want to 
