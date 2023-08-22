@@ -1,26 +1,22 @@
 /*Font Loading*/
-
 @font-face {
     font-family: 'Roboto Mono Thin';
     src: url('Fonts/Roboto Mono.ttf') format('truetype');
     font-style: normal;
     font-weight: 100;
 }
-
 @font-face {
     font-family: 'Roboto Mono Light';
     src: url('Fonts/Roboto Mono.ttf') format('truetype');
     font-style: normal;
     font-weight: 300;
 }
-
 @font-face {
     font-family: 'Roboto Mono Regular';
     src: url('Fonts/Roboto Mono.ttf') format('truetype');
     font-style: normal;
     font-weight: 400;
 }
-
 @font-face {
     font-family: 'Roboto Mono Bold';
     src: url('Fonts/Roboto Mono.ttf') format('truetype');
@@ -28,8 +24,7 @@
     font-weight: 700;
 }
 
-/*Game Screen Styling*/
-
+/*HTML Body Styling*/
 body {
     margin: 0;
     padding: 0;
@@ -38,6 +33,7 @@ body {
     height: 100%;
 }
 
+/*Game Screen Styling*/
 #canvas {
     position: absolute;
     right: 0px;
@@ -45,8 +41,71 @@ body {
     background-color: rgb(20, 20, 20);
 }
 
-/*Side Bar Content Styling*/
+/*Side Bar Styling*/
+#side-bar {
+    position: absolute;
+    padding: 0px;
+    left: 0px;
+    top: 0px;
+    width: 400px;
+    height: 100%;
+    background-color: rgb(22, 22, 22);
+    border-right: 1.5px solid white;
+}
 
+/*Setting Container Styling*/
+.setting-container {
+    white-space: no-wrap;
+    overflow-x: auto;
+    vertical-align: center;
+    margin-bottom: -20px;
+}
+.setting {
+    font-family: 'Roboto Mono Thin';
+    color: white;
+    display: inline-block;
+    vertical-align: center;
+}
+#settings-container {
+    position: relative;
+    left: 22.5px;
+    top: 30px;
+    width: 300px;
+    height: 75px;
+    text-align: left;
+    padding: 0px;
+    margin: 0px;
+}
+.setting-title {
+    position: relative;
+    font-family: 'Roboto Mono Thin';
+    color: white;
+    margin-bottom:0px;
+}
+.setting-indent {
+    position: relative;
+    left: 25px;
+}
+
+/*Side Bar Title Styling*/
+#title-container {
+    position: relative;
+    left: 22.5px;
+    top: 25px;
+    width: 350px;
+    height: 75px;
+    text-align: center;
+    vertical-align: center;
+    border: 1.5px solid white;
+}
+#title {
+    position: relative;
+    top: -5px;
+    font-family: 'Roboto Mono Thin';
+    color: white;
+}
+
+/*Checkbox Styling*/
 input[type="checkbox"] {
     position: relative;
     appearance: none;
@@ -64,7 +123,6 @@ input[type="checkbox"] {
     display: inline-block;
     place-items: center;
 }
-
 input[type="checkbox"]::before {
     content: "";
     width: 12px;
@@ -76,76 +134,14 @@ input[type="checkbox"]::before {
     background-color: white;
     display: block;
 }
-
 input[type="checkbox"]:checked::before {
     transform: scale(1);
 }
-
 input[type="checkbox"]:disabled {
     opacity: 0.5;
 }
 
-.setting-container {
-    white-space: no-wrap;
-    overflow-x: auto;
-    vertical-align: center;
-    margin-bottom: -20px;
-}
-
-.setting {
-    font-family: 'Roboto Mono Thin';
-    color: white;
-    display: inline-block;
-    vertical-align: center;
-}
-
-#side-bar {
-    position: absolute;
-    padding: 0px;
-    left: 0px;
-    top: 0px;
-    width: 400px;
-    height: 100%;
-    background-color: rgb(22, 22, 22);
-    border-right: 1.5px solid white;
-}
-
-#title-container {
-    position: relative;
-    left: 22.5px;
-    top: 25px;
-    width: 350px;
-    height: 75px;
-    text-align: center;
-    vertical-align: center;
-    border: 1.5px solid white;
-}
-
-#title {
-    position: relative;
-    top: -5px;
-    font-family: 'Roboto Mono Thin';
-    color: white;
-}
-
-#settings-container {
-    position: relative;
-    left: 22.5px;
-    top: 30px;
-    width: 300px;
-    height: 75px;
-    text-align: left;
-    padding: 0px;
-    margin: 0px;
-}
-
-.setting-title {
-    position: relative;
-    font-family: 'Roboto Mono Thin';
-    color: white;
-    margin-bottom:0px;
-}
-
+/*Setting Text Input Styling*/
 .game-text-input {
     position: relative;
     display: inline-block;
@@ -159,9 +155,4 @@ input[type="checkbox"]:disabled {
     border-bottom: 1.5px solid white;
     padding-bottom: 0px;
     font-family: 'Roboto Mono Light';
-}
-
-.setting-indent {
-    position: relative;
-    left: 25px;
 }

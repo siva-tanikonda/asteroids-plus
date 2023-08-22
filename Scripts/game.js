@@ -1,18 +1,24 @@
 //Ship config information
 const ship_configuration = {
+    //Physical appearance of ship
     width: 30,
     height: 16,
     rear_offset: 6,
+    //Movement parameters
     rotation_speed: 4 * Math.PI / 180,
     acceleration: 0.2,
     drag_coefficient: 0.0025,
+    //Bullet firing parameters
     fire_rate: 0.05,
     bullet_speed: 10,
     bullet_life: 60,
+    //Visual effect information
     trail_length: 8,
     thruster_flash_rate: 0.05,
+    //Teleportation information
     teleport_speed: 0.025,
     teleport_recharge_rate: 0.01,
+    //Invincibility settings
     invincibility_flash_rate: 0.1
 };
 
@@ -69,13 +75,14 @@ const asteroid_configurations = {
     rotation_speed: [ 0, 0.02 ],
     //The speed multiplier based on the asteroid's size
     size_speed: [ 3, 2, 1 ],
+    //Invincibility time at the start of a wave
     invincibility_time: 100,
     //The function for the speed scaling of the asteroids
     speed_scaling: (wave) => {
         const last_wave = Math.max(1, wave - 1);
         return [ Math.max(1, 1 + 0.1 * Math.log2(last_wave)), Math.max(1, 1 + 0.1 * Math.log2(wave)) ];
     },
-    //The function for the number of asteroids that spawn in the game after all have been destroyed
+    //The function for the number of asteroids that spawn in the game after all have been destroyed (or the game starts)
     spawn_count: (wave) => {
         return Math.floor((wave * 2 + 2) * (canvas_bounds.width * canvas_bounds.height) / 1e6);
     }
@@ -174,6 +181,7 @@ function renderWrap(position, radius, action, offset_x = true, offset_y = true) 
 //Class for the particle
 class Particle {
     
+    //Constructor
     constructor(position, velocity, drag_coefficient, radius, life) {
         this.position = position;
         this.velocity = velocity;
@@ -186,7 +194,7 @@ class Particle {
     //Updates the position of the particle
     updatePosition(delay) {
         const initial_velocity = this.velocity.copy();
-        this.velocity.mul(1 / (Math.E ** (this.drag_coefficient * delay)));
+        this.velocity.mul(1 / (Math.E ** (this.drag_coefficient * delay))); //Differential Equation to deal with accelerated movement over a short time
         this.position = Vector.div(Vector.add(Vector.mul(this.position, this.drag_coefficient), Vector.sub(initial_velocity, this.velocity)), this.drag_coefficient);
         wrap(this.position);
     }
@@ -225,6 +233,7 @@ class Particle {
 //Class for explosion
 class Explosion {
 
+    //Constructor
     constructor(position) {
         this.particles = [];
         if (!settings.remove_particles) {
@@ -276,6 +285,7 @@ class Explosion {
 //Class for bullet
 class Bullet {
 
+    //Constructor
     constructor(position, velocity, life) {
         this.position = position;
         this.velocity = velocity;
@@ -344,6 +354,7 @@ class Bullet {
 //Class for player ship
 class Ship {
 
+    //Constructor
     constructor() {
         this.position = new Vector(canvas_bounds.width / 2, canvas_bounds.height / 2);
         this.velocity = new Vector();
@@ -428,7 +439,7 @@ class Ship {
             this.thruster_status = 0;
         }
         const initial_velocity = this.velocity.copy();
-        this.velocity.mul(1 / (Math.E ** (this.drag_coefficient * delay)));
+        this.velocity.mul(1 / (Math.E ** (this.drag_coefficient * delay))); //Differential equation to get accelerated velocity over a short period of time
         this.position = Vector.div(Vector.add(Vector.mul(this.position, this.drag_coefficient), Vector.sub(initial_velocity, this.velocity)), this.drag_coefficient);
     }
 
@@ -680,6 +691,7 @@ class Asteroid {
         }
     }
 
+    //Constructor
     constructor(position, size, wave) {
         const type = Math.floor(randomInRange([0, 3]));
         this.size = size;
@@ -786,6 +798,7 @@ class Saucer {
         saucer_configurations.shape.translate(new Vector(-rect.left, -rect.top));
     }
 
+    //Constructor
     constructor(size, wave) {
         this.bounds = saucer_configurations.shape.copy();
         this.size = size;
@@ -876,6 +889,7 @@ class Saucer {
         this.bullet_cooldown = Math.min(1, this.bullet_cooldown + this.fire_rate * delay);
     }
 
+    //Updates the saucer
     update(ship, saucer_bullets, delay) {
         this.updatePosition(delay);
         this.fire(ship, saucer_bullets, delay);
@@ -944,6 +958,7 @@ class Saucer {
 //Game class
 class Game {
     
+    //Constructor
     constructor (title_screen = false) {
         this.ship = new Ship();
         this.ship_bullets = [];
@@ -1013,7 +1028,7 @@ class Game {
         //Don't update the game if the game is paused
         if (this.paused) return;
 
-        //Check if the asteroids have been cleared, and if so, make new ones
+        //Check if the asteroids have been cleared, and if so, make new ones and update the wave
         if (this.asteroids.length == 0) {
             this.wave++;
             this.makeAsteroids();
@@ -1023,7 +1038,7 @@ class Game {
         if (!this.title_screen && this.saucers.length == 0)
             this.makeSaucer(delay);
 
-        //Check if player get's an extra life
+        //Check if player gets an extra life
         if (this.score >= (1 + this.extra_lives) * point_values.extra_life && this.ship.lives != 0) {
             this.ship.lives++;
             this.extra_lives++;
@@ -1109,6 +1124,7 @@ class Game {
         }
         this.explosions = new_explosions;
 
+        //Updates the time in the game
         this.time += delay / 60;
 
         return false;

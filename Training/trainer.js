@@ -1,3 +1,4 @@
+//Load external dependencies
 const { Worker } = require("worker_threads");
 const fs = require("fs");
 
@@ -6,33 +7,33 @@ const C_range = [
     [ 2, 2, 1 ],
     [ 0, 1e6, 0 ],
     [ 0, 1e3, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 2, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 2, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 2, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 2, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 2, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 2, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 300, 1 ],
     [ 2, 100, 1 ],
     [ 3, 100, 1 ],
     [ 0, 2, 0 ],
     [ 0, 1e3, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 3, 1 ]
+    [ 1, 2, 1 ]
 ];
 //Describes what ranges of indices in C each represent a gene
 const C_genes = [
@@ -54,6 +55,7 @@ const C_genes = [
     [ 26, 27 ],
     [ 28, 29 ]
 ];
+//Describes default values at start of the algorithm
 const C_default = [
     null,
     0,
@@ -78,8 +80,8 @@ const C_default = [
     0,
     null,
     0,
-    20,
-    20,
+    100,
+    100,
     0,
     0,
     null,
@@ -87,10 +89,10 @@ const C_default = [
     null
 ];
 
-//Other training constants
+//Training settings
 const thread_count = 11;
 const generation_size = 1000;
-const species_carry_size = 500;
+const individuals_carry_size = 500;
 const inclusion_threshold = 0;
 const inclusion_limit = 3;
 const progression_leeway = 1;
@@ -98,7 +100,7 @@ const max_generations = Infinity;
 const score_goal = Infinity;
 const time_weight = 0;
 const score_weight = 1;
-const flee_time_weight = 0;
+const flee_time_weight = -1;
 const mutation_rate = 1 / 29;
 const mutation_std = 0.1;
 const shift_rate = 1 / (29 * 3);
@@ -107,8 +109,8 @@ const partition_exponentiator = 10;
 const max_display_text_length = 100;
 const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
-const discovery_multiplier = 3;
-const discovery_threshold = 3;
+const exploration_multiplier = 3;
+const exploration_threshold = 3;
 const save_index = 7;
 const start_from_save = true;
 
@@ -139,6 +141,7 @@ function sampleNormalDistribution(mean, std) {
     return c * std + mean;
 }
 
+//Fills C-values that aren't defined in a certain C-value
 function fillC(C_small) {
     let C = new Array(C_range.length);
     for (let i = 0; i < C_range.length; i++) {
@@ -241,7 +244,7 @@ function printGenerationAnalysis(generation, analysis) {
     console.log(blank + "Max Fitness - " + analysis[4]);
 }
 
-//Open Save Files
+//Open save files
 function openSaveFiles() {
     if (!fs.existsSync("./Saves"))
         fs.mkdirSync("./Saves");
@@ -281,7 +284,7 @@ function createGeneration(results, analysis) {
     partition.sort((a, b) => { return b[0] - a[0] });
     //Carry-over some of the C-values
     const Cs = [];
-    for (let i = 0; i < species_carry_size; i++) {
+    for (let i = 0; i < individuals_carry_size; i++) {
         if (partition[i][0] < inclusion_threshold) break;
         if (carry_scores) {
             fitness[i] = partition[i][1];
@@ -312,15 +315,16 @@ function createGeneration(results, analysis) {
             partition[i][0] = (partition_exponentiator ** Math.min(partition[i][0], inclusion_limit)) / partition_sum;
         }
     }
+    //Check if we should use exploration or exploitation mode
     let mutation_multiplier = 1;
-    if (analysis[1] + discovery_threshold * analysis[2] > analysis[4]) {
-        console.log("Using Discovery Mode");
-        mutation_multiplier = discovery_multiplier;
-    }
+    if (analysis[1] + exploration_threshold * analysis[2] > analysis[4]) {
+        console.log("Using Exploration Mode");
+        mutation_multiplier = exploration_multiplier;
+    } else console.log("Using Exploitation Mode");
     //Run crossover from current species
     for (let i = 0; Cs.length < generation_size; i++) {
         const C = new Array(C_range.length);
-        //Pick the individual
+        //Pick the individual to copy
         let seed = Math.random();
         let id = 0;
         while (id < partition.length - 1) {
@@ -335,7 +339,7 @@ function createGeneration(results, analysis) {
             //Choose which parent to pick the gene from and copy it
             for (let k = l; k <= r; k++)
                 C[k] = partition[id][2][k];
-            //Mutate the individual
+            //Mutate the individual multiplicatively
             if (Math.random() < mutation_rate * mutation_multiplier) {
                 for (let k = l; k <= r; k++) {
                     const difference = sampleNormalDistribution(0, mutation_std);
@@ -343,7 +347,8 @@ function createGeneration(results, analysis) {
                     C[k] = Math.max(C_range[k][0], C[k]);
                     C[k] = Math.min(C_range[k][1], C[k]);
                 }
-            } 
+            }
+            //Mutate the individual with a shift
             if (Math.random() < shift_rate * mutation_multiplier) {
                 for (let k = l; k <= r; k++) {
                     const difference = sampleNormalDistribution(0, shift_std);
@@ -377,6 +382,7 @@ function createThreads() {
             const input = JSON.parse(msg);
             used_threads[i] = false;
             used_threads_count--;
+            //What to do if results are returned
             if (input.length == 2) {
                 fitness[input[0] - 1] = calculateFitness(input[1][0], input[1][1], input[1][2]);
                 testing_progress++;    
@@ -412,7 +418,7 @@ function train() {
     let results = null;
     const interval = setInterval(() => {
         if (generation <= max_generations && individual <= generation_size) {
-            //If currently testing something, then attempt to test next trial
+            //If currently testing something, then wait for next interval-step
             if (used_threads_count == thread_count) return;
             for (let j = 0; j < thread_count; j++)
                 if (!used_threads[j]) {
@@ -420,6 +426,7 @@ function train() {
                     individual++;
                     break;
                 }
+            //Show testing progress
             const progress = testing_progress / generation_size;
             const bars = "#".repeat(Math.floor(progress * progress_bar_length));
             const blanks = "-".repeat(progress_bar_length - bars.length);
@@ -451,6 +458,7 @@ function train() {
             individual = testing_progress + 1;
             generation++;
         }
+        //End the algorithm if we have reached our goal/generation limit
         if (generation > max_generations || analysis[4] >= score_goal) {
             clearInterval(interval);
             closeThreads();

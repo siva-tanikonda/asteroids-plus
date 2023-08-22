@@ -68,7 +68,7 @@ class Debug {
     static drawGameData(game) {
         ctx.font = "14px Roboto Mono Bold";
         ctx.fillStyle = "#f2564b";
-        const wave_text = "Wave: " + game.wave.toFixed(2);
+        const wave_text = "Wave: " + game.wave;
         const wave_size = ctx.measureText(wave_text);
         ctx.fillText(wave_text, canvas_bounds.width - wave_size.width - 10, 20);
         const saucer_text = "Saucer Count: " + game.saucers.length;

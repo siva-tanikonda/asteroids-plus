@@ -6,14 +6,15 @@ const user_input = new UserInput();
 let canvas_bounds = canvas.getBoundingClientRect();
 let old_timestamp = 0;
 
-//Some debugging information
+//FPS tracking information
 let fps = 0;
 let fps_cooldown = 0;
 const fps_reset_rate = 2e-2;
 
 //This is the set of constants for the AI
-const C = [2,0,45.89217003925497,1,106.05230385515718,1,31.89765204328199,1,0,1,0.3990388120192756,1,0.09561219769120652,2,0.06466617138349005,2,0.7150548981550583,2,0.08641493593917365,2,0.22039000459263447,2,0,18,15,0.5693706616929236,0,2,125.58715358642553,1];
-//Do initial setup steps for the game
+const C = [2,7106.327237647595,0,2,8.034461785589228,1,0,1,0,2,0,1,0.20781384788589374,2,0,1,0.11529775493509331,1,0,1,0.09696288141111573,1,0,98,85,0,0,2,153.50881503145504,2];
+
+//Do initial setup steps for the game/game window
 resizeCanvas();
 Asteroid.analyzeAsteroidConfigurations();
 Saucer.analyzeSaucerConfigurations();
@@ -33,24 +34,28 @@ window.addEventListener("resize", resizeCanvas);
 //Updates the game
 function update(delay) {
 
-    //Basic rules for the update function
+    //Deals with boundary cases for the delay
     if (isNaN(delay) || delay == 0) return;
 
+    //Updates the game/AI settings
     updateSettings();
 
-    //Updates AI decisions and applies input to the game
+    //Applies user controls
     user_input.applyControls();
+
+    //Updates AI decisions and applies input to the game
     if (settings.ai) {
         ai.update(delay);
         ai.applyControls();
         controls.teleport = false;
     }
 
-    const iteration_updates = settings.game_precision * settings.game_speed;
     //Based on settings.game_speed, we update to allow for precise collision code and simultaneously whatever speed the player wants the game to run
+    const iteration_updates = settings.game_precision * settings.game_speed;
     for (let i = 0; i < iteration_updates; i++) {
         //Updates the game and creates a new game if the player chose to restart the game
         const done = game.update(delay / settings.game_precision);
+        //If the game-over screen was exited, we reset the game
         if (done)
             game = new Game();
     }
@@ -70,6 +75,7 @@ function draw() {
 
 //The game loop is created and executed
 function loop(timestamp) {
+    //Manage the FPS tracker
     seconds_passed = (timestamp - old_timestamp) / 1000;
     old_timestamp = timestamp;
     if (settings.debug.show_game_data) {
@@ -77,6 +83,7 @@ function loop(timestamp) {
             fps = 1 / seconds_passed, fps_cooldown = 1;
         fps_cooldown = Math.max(0, fps_cooldown - fps_reset_rate);
     }
+    //Update/draw the game and AI debug
     update(seconds_passed * 60);
     draw();
     window.requestAnimationFrame(loop);

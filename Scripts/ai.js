@@ -1,3 +1,4 @@
+//Virtual ship for AI to use for calculations
 class VirtualShip {
 
     constructor(ship) {
@@ -19,6 +20,7 @@ class VirtualShip {
     
 }
 
+//Danger class for AI to analyze dangers
 class Danger {
 
     constructor(item) {
@@ -40,6 +42,7 @@ class Danger {
 
 }
 
+//Target class for AI to use for targeting
 class Target {
 
     constructor(item) {
@@ -57,6 +60,7 @@ class Target {
 
 }
 
+//Marker class for AI to track targets it has shot
 class Marker {
 
     constructor(min_time, target) {
@@ -67,6 +71,7 @@ class Marker {
 
 }
 
+//Crosshair class for AI to track target it is aiming
 class Crosshair {
 
     constructor(item, angle) {
@@ -102,11 +107,13 @@ function optimizeInWrap(func, cmp) {
 
 class AI {
 
+    //AI constants (unrelated to C)
     static danger_radius = [ 0, 18, 14, 34, 53, 60, 70 ];
     static pessimistic_radius = [ 14, 34, 53, 27, 32 ];
     static target_radius = [ 5, 17.5, 25, 10, 12 ];
     static rotation_precision = 1;
 
+    //Constructor
     constructor(C) {
         //Control choices of the AI
         this.controls = {
@@ -130,6 +137,7 @@ class AI {
         this.saucer_exists = false;
     }
 
+    //Calculates the danger value of a danger
     calculateDanger(danger) {
         const p = optimizeInWrap((offset) => {
             return Vector.sub(Vector.add(danger.position, offset), this.ship.position);

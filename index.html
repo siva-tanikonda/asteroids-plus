@@ -2,10 +2,10 @@
 <html>
     <head>
 
-        <!-- Title of Site -->
+        <!-- Title -->
         <title>Asteroids AI</title>
 
-        <!-- Loads the CSS Styling -->
+        <!-- CSS Styling -->
         <link rel="stylesheet" href="style.css">
     
     </head>
@@ -14,57 +14,68 @@
         <!-- Game Display -->
         <canvas id="canvas" width="750" height="576">Your Web Browser Doesn't Support HTML5 Canvas</canvas>
 
-        <!-- Side Bar -->
+        <!-- Settings Interface -->
         <div id="side-bar" width="400">
             <div id="title-container">
                 <h1 id="title">Asteroids AI</h1>
             </div>
             <div id="settings-container">
                 <h2 class="setting-title"><u>General Settings</u></h2>
+                <!-- Game Speed Input -->
                 <div class="setting-container">
                     <h3 class="setting">Game Speed: </h3>
                     <input type="number" id="game-speed-input" class="game-text-input" value="1" maxlength="2" min="1" max="10">
                 </div>
+                <!-- Lives Input -->
                 <div class="setting-container">
                     <h3 class="setting">Lives: </h3>
                     <input type="number" id="game-lives-input" class="game-text-input" value="3" maxlength="2" min="1" max="10">
                 </div>
+                <!-- Game Particles Input -->
                 <div class="setting-container">
                     <input type="checkbox" id="game-particles-input">
                     <h3 class="setting">Disable Particles</h3>
                 </div>
                 <h2 class="setting-title"><u>Debug Settings</u></h2>
+                <!-- Enable All Debug Visuals -->
                 <div class="setting-container">
                     <input type="checkbox" id="game-enable-all-debug-input">
                     <h3 class="setting">Enable All</h3>
                 </div>
                 <div class="setting-indent" id="debug-settings-container">
+                    <!-- Show Hitboxes Input -->
                     <div class="setting-container">
                         <input type="checkbox" id="game-hitbox-input">
                         <h3 class="setting">Show Hitboxes</h3>
                     </div>
+                    <!-- Show Positions Input -->
                     <div class="setting-container">
                         <input type="checkbox" id="game-position-input">
                         <h3 class="setting">Show Positions</h3>
                     </div>
+                    <!-- Show Velocities Input -->
                     <div class="setting-container">
                         <input type="checkbox" id="game-velocity-input">
                         <h3 class="setting">Show Velocities</h3>
                     </div>
+                    <!-- Show Accelerations Input -->
                     <div class="setting-container">
                         <input type="checkbox" id="game-acceleration-input">
                         <h3 class="setting">Show Accelerations</h3>
                     </div>
+                    <!-- Show Game Data Input -->
                     <div class="setting-container">
                         <input type="checkbox" id="game-data-input">
                         <h3 class="setting">Show Game Data</h3>
                     </div>
                 </div>
                 <h2 class="setting-title"><u>AI Settings</u></h2>
+                <!-- Enable AI Input -->
                 <div class="setting-container">
                     <input type="checkbox" id="game-ai-input">
                     <h3 class="setting">Enable AI</h3>
                 </div>
+                <!-- Show AI Strategy Input -->
                 <div class="setting-indent" id="ai-settings-container" hidden>
                     <div class="setting-container">
                         <input type="checkbox" id="game-ai-strategy-input">
@@ -74,7 +85,7 @@
             </div>
         </div>
 
-        <!-- Scripts -->
+        <!-- JavaScript -->
         <script src="Scripts/math.js"></script>
         <script src="Scripts/controls.js"></script>
         <script src="Scripts/debug.js"></script>

@@ -1,63 +1,96 @@
+//Vector class
 class Vector {
+
+    //Constructor
     constructor(x = 0, y = 0) {
         this.x = x;
         this.y = y;
     }
+
+    //Creates a full copy of the vector
     copy() {
         return new Vector(this.x, this.y);
     }
+
+    //Gets the magnitude of the vector
     mag() {
         return Math.sqrt(this.x ** 2 + this.y ** 2);
     }
+
+    //Normalizes the vector (scales it down to a magnitude of 1)
     normalize() {
         const len = this.mag();
         if (len == 0) return;
         this.x /= len;
         this.y /= len;
     }
+
+    //Adds another vector onto current vector
     add(v) {
         this.x += v.x;
         this.y += v.y;
     }
+
+    //Subtracts another vector from the current vector
     sub(v) {
         this.x -= v.x;
         this.y -= v.y;
     }
+
+    //Multiplies current vector by a constant
     mul(k) {
         this.x *= k;
         this.y *= k;
     }
+
+    //Divides the current vector by a constant
     div(k) {
         this.x /= k;
         this.y /= k;
     }
+
+    //Rotates a vector by an angle while centered at a certain vector
     rotate(a, d) {
         const nx = ((this.x - d.x) * Math.cos(a) + (this.y - d.y) * Math.sin(a)) + d.x;
         this.y = ((d.x - this.x) * Math.sin(a) + (this.y - d.y) * Math.cos(a)) + d.y;
         this.x = nx;
     }
+
+    //Gets dot product of current vector and another vector
     dot(v) {
         return this.x * v.x + this.y * v.y;
     }
+
+    //Gets the 3rd dimension of the cross-product of current vector and another vector
     cross(v) {
         return this.x * v.y - this.y * v.x;
     }
+
+    //Gets the angle relative to +x of current vector
     angle() {
         let angle = Math.atan2(this.y, this.x);
         while (angle < 0) angle += Math.PI * 2;
         return angle;
     }
+
+    //Gets distance of current vector to another vector
     dist(v) {
         return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2);
     }
+
+    //Gets the scalar component of the projection of another vector onto current vector
     comp(v) {
         if (this.mag() == 0) return 0;
         return this.dot(v);
     }
+
+    //Gets the projection of another vector onto current vector
     proj(v) {
         if (this.mag() == 0) return new Vector();
         return Vector.mul(Vector.div(this, this.mag()), this.comp(v));
     }
+
+    //Static versions of above functions
     static copy(v) {
         return new Vector(v.x, v.y);
     }
@@ -108,6 +141,8 @@ class Vector {
         if (u.mag() == 0) return Vector();
         return Vector.mul(Vector.div(u, u.mag()), u.comp(v));
     }
+
+    //Gets the direction of a turn described by three vectors (left is -1, straight is 0, and right is 1)
     static side(u, v, w) {
         const uv = Vector.sub(v, u);
         const vw = Vector.sub(w, v);
@@ -118,9 +153,13 @@ class Vector {
         else
             return 0;
     }
+
 }
 
+//Rectangle Class
 class Rect {
+
+    //Constructor
     constructor(left, top, right, bottom) {
         this.left = this.x = left;
         this.right = right;
@@ -129,16 +168,25 @@ class Rect {
         this.width = right - left;
         this.height = bottom - top;
     }
+
+    //Checks if another rectangle intersects this rectangle
     intersects(r) {
         return !(this.right < r.left || this.left > r.right || this.top > r.bottom || this.bottom < r.top);
     }
+
+
 }
 
+//Line Segment Class
 class LineSegment {
+
+    //Constructor
     constructor(a, b) {
         this.a = a;
         this.b = b;
     }
+
+    //Checks if a point is on this line
     containsPoint(v) {
         const side = Vector.side(this.a, this.b, v);
         if (side != 0) return false;
@@ -146,6 +194,8 @@ class LineSegment {
         const max_x = Math.max(this.a.x, this.b.x);
         return (v.x >= min_x && v.x <= max_x);
     }
+
+    //Checks if another line intersects with this line
     intersects(l) {
         if (l.containsPoint(this.a) || l.containsPoint(this.b) || this.containsPoint(l.a) || this.containsPoint(l.b))
             return true;
@@ -157,20 +207,28 @@ class LineSegment {
             return false;
         return (s1 != s2 && s3 != s4);
     }
+
 }
 
+//Polygon Class
 class Polygon {
+
+    //Constructor
     constructor(points) {
         this.points = [];
         for (let i = 0; i < points.length; i++)
             this.points.push(new Vector(points[i][0], points[i][1]));
     }
+
+    //Creates a full copy of this polygon
     copy() {
         const c_points = [];
         for (let i = 0; i < this.points.length; i++)
             c_points.push([this.points[i].x, this.points[i].y]);
         return new Polygon(c_points);
     }
+
+    //Gets the rectangular bound of this polygon
     getRect() {
         let min_x, min_y, max_x, max_y;
         min_x = min_y = Infinity;
@@ -183,18 +241,26 @@ class Polygon {
         }
         return new Rect(min_x, min_y, max_x, max_y);
     }
+
+    //Scales the polygon by some factor k from the origin
     scale(k) {
         for (let i = 0; i < this.points.length; i++)
             this.points[i].mul(k);
     }
+
+    //Rotates the polygon by an angle around a certain point
     rotate(a, d) {
         for (let i = 0; i < this.points.length; i++)
             this.points[i].rotate(a, d);
     }
+
+    //Translates the polygon by some vector
     translate(v) {
         for (let i = 0; i < this.points.length; i++)
             this.points[i].add(v);
     }
+
+    //Checks if a point is in this polygon
     containsPoint(v) {
         const rect = this.getRect();
         if (v.x < rect.left || v.x > rect.right || v.y < rect.top || v.y > rect.bottom)
@@ -226,6 +292,8 @@ class Polygon {
         }
         return result;
     }
+
+    //Checks if a line segment intersects this polygon
     intersectsLineSegment(l) {
         for (let i = 0; i < this.points.length; i++) {
             const j = (i + 1) % this.points.length;
@@ -235,6 +303,8 @@ class Polygon {
         }
         return false;
     }
+
+    //Checks if another polygon intersects this polygon
     intersectsPolygon(p) {
         const rect1 = p.getRect();
         const rect2 = this.getRect();
@@ -251,12 +321,15 @@ class Polygon {
         }
         return false;
     }
+
 }
 
+//Gives a random number in a range (described by a 2-element array)
 function randomInRange(range) {
     return range[0] + Math.random() * (range[1] - range[0]);
 }
 
+//Wraps a vector around the canvas
 function wrap(v, wrap_x = true, wrap_y = true) {
     while (v.x >= canvas_bounds.width && wrap_x)
         v.x -= canvas_bounds.width;
@@ -268,6 +341,7 @@ function wrap(v, wrap_x = true, wrap_y = true) {
         v.y += canvas_bounds.height;
 }
 
+//Solves a quadratic and gives a list of solutions
 function solveQuadratic(a, b, c) {
     var dsc = b ** 2 - 4 * a * c;
     if (dsc < 0) return [];

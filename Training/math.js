@@ -1,3 +1,4 @@
+//Canvas bounds variable
 const canvas_bounds = {
     width: 900,
     height: 900
@@ -124,7 +125,6 @@ class Vector {
             return 0;
     }
 }
-
 class Rect {
     constructor(left, top, right, bottom) {
         this.left = this.x = left;
@@ -138,7 +138,6 @@ class Rect {
         return !(this.right < r.left || this.left > r.right || this.top > r.bottom || this.bottom < r.top);
     }
 }
-
 class LineSegment {
     constructor(a, b) {
         this.a = a;
@@ -163,7 +162,6 @@ class LineSegment {
         return (s1 != s2 && s3 != s4);
     }
 }
-
 class Polygon {
     constructor(points) {
         this.points = [];
@@ -257,11 +255,9 @@ class Polygon {
         return false;
     }
 }
-
 function randomInRange(random, range) {
     return range[0] + random() * (range[1] - range[0]);
 }
-
 function wrap(v, wrap_x = true, wrap_y = true) {
     while (v.x >= canvas_bounds.width && wrap_x)
         v.x -= canvas_bounds.width;
@@ -272,7 +268,6 @@ function wrap(v, wrap_x = true, wrap_y = true) {
     while (v.y < 0 && wrap_y)
         v.y += canvas_bounds.height;
 }
-
 function solveQuadratic(a, b, c) {
     var dsc = b ** 2 - 4 * a * c;
     if (dsc < 0) return [];
@@ -286,4 +281,5 @@ function solveQuadratic(a, b, c) {
     }
 }
 
+//Exports necessary classes and function to other files
 module.exports = { Vector, Rect, Polygon, randomInRange, wrap, solveQuadratic };

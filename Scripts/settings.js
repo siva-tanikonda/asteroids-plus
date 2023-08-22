@@ -24,15 +24,17 @@ let previous_ai_enabled = false;
 //Updates the settings based on what boxes are checked and what values the user enters
 function updateSettings() {
     
+    //Update game speed setting
     const game_speed = document.getElementById("game-speed-input").value;
     if (!isNaN(game_speed) && game_speed != 0)
         settings.game_speed = game_speed;
     
+    //Update game lives setting
     const game_lives = document.getElementById("game-lives-input").value;
     if (!isNaN(game_lives) && game_lives != 0)
         settings.game_lives = game_lives;
     
-    //check if we enabled all debug settings
+    //check if we enabled all debug settings and apply necessary actions
     const enable_all_debug = document.getElementById("game-enable-all-debug-input").checked;
     document.getElementById("game-enable-all-debug-input").blur();
     if (enable_all_debug && !previous_enable_all_debug) {
@@ -56,7 +58,7 @@ function updateSettings() {
     }
     previous_enable_all_debug = enable_all_debug;
 
-    //Manage debug settings
+    //Manage debug settings if not all are enabled
     if (!enable_all_debug) {
         settings.debug.show_hitboxes = document.getElementById("game-hitbox-input").checked;
         settings.debug.show_positions = document.getElementById("game-position-input").checked;
@@ -86,7 +88,7 @@ function updateSettings() {
         document.getElementById("ai-settings-container").hidden = true;
     previous_ai_enabled = settings.ai;
 
-    //Manage AI settings
+    //Manage AI debug activation
     settings.ai_settings.show_strategy = document.getElementById("game-ai-strategy-input").checked;
     document.getElementById("game-ai-strategy-input").blur();
     if (!settings.ai)

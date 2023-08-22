@@ -1,3 +1,4 @@
+//Controls variable
 const controls = {
     left: false,
     right: false,
@@ -10,6 +11,7 @@ const controls = {
 
 class UserInput {
 
+    //Constructor
     constructor() {
         this.left = this.right = this.forward = this.fire = this.teleport = this.start = this.pause = false;
         document.body.onkeydown = (evt) => {
@@ -45,7 +47,8 @@ class UserInput {
                 this.pause = false;
         };
     }
-
+    
+    //Applies controls of user input to official variable
     applyControls() {
         controls.left = this.left;
         controls.right = this.right;
