@@ -1209,7 +1209,7 @@ function test(C, trial) {
     //Runs the game loop
     while (!dead) {
         ai.update(delay);
-        if (ai.in_danger && (ai.controls.left || ai.controls.right || ai.controls.forward)) flee_time += delay * game_speed;
+        if (ai.in_danger) flee_time += delay * game_speed;
         game_time += delay * game_speed;
         ai.applyControls();
         const iteration_updates = settings.game_precision * game_speed;
