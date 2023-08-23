@@ -90,12 +90,12 @@ const C_default = [
 ];
 
 //Training settings
-const thread_count = 11;
+const thread_count = 8;
 const generation_size = 1000;
 const individuals_carry_size = 500;
 const inclusion_threshold = 0;
 const inclusion_limit = 3;
-const progression_leeway = 1;
+const progression_leeway = 3;
 const max_generations = Infinity;
 const score_goal = Infinity;
 const time_weight = 0;
@@ -105,13 +105,13 @@ const mutation_rate = 1 / 29;
 const mutation_std = 0.1;
 const shift_rate = 1 / (29 * 3);
 const shift_std = 0.1;
-const partition_exponentiator = 10;
+const partition_exponentiator = 100;
 const max_display_text_length = 100;
 const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
 const exploration_multiplier = 3;
 const exploration_threshold = 3;
-const save_index = 7;
+const save_index = 8;
 const start_from_save = true;
 
 //Multithreading/testing info
@@ -207,6 +207,7 @@ function createFirstGeneration() {
     const Cs = [];
     for (let i = 0; i < generation_size; i++)
         Cs.push(createFirstGenerationC());
+    console.log("Created First Generation");
     return Cs;
 }
 
@@ -292,11 +293,19 @@ function createGeneration(results, analysis) {
         }
         Cs.push(partition[i][2]);
     }
+    //Check if we should use exploration or exploitation mode
+    let mutation_multiplier = 1;
+    let exponentiator = partition_exponentiator;
+    if (analysis[1] + exploration_threshold * analysis[2] > analysis[4]) {
+        console.log("Using Exploration Mode");
+        mutation_multiplier = exploration_multiplier;
+        exponentiator **= 1 / exploration_multiplier;
+    } else console.log("Using Exploitation Mode");
     //Normalize the inputs
     let partition_sum = 0;
     for (let i = 0; i < partition.length; i++) {
         if (partition[i][0] < inclusion_threshold) break;
-        partition_sum += partition_exponentiator ** Math.min(partition[i][0], inclusion_limit);
+        partition_sum += exponentiator ** Math.min(partition[i][0], inclusion_limit);
     }
     if (partition_sum == 0) {
         for (let i = 0; i < partition.length; i++) {
@@ -312,15 +321,9 @@ function createGeneration(results, analysis) {
                 partition[i][0] = 0;
                 continue;
             }
-            partition[i][0] = (partition_exponentiator ** Math.min(partition[i][0], inclusion_limit)) / partition_sum;
+            partition[i][0] = (exponentiator ** Math.min(partition[i][0], inclusion_limit)) / partition_sum;
         }
     }
-    //Check if we should use exploration or exploitation mode
-    let mutation_multiplier = 1;
-    if (analysis[1] + exploration_threshold * analysis[2] > analysis[4]) {
-        console.log("Using Exploration Mode");
-        mutation_multiplier = exploration_multiplier;
-    } else console.log("Using Exploitation Mode");
     //Run crossover from current species
     for (let i = 0; Cs.length < generation_size; i++) {
         const C = new Array(C_range.length);

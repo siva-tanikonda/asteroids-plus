@@ -1201,6 +1201,7 @@ function test(C, trial) {
         pause: false
     };
     let flee_time = 0;
+    let game_time = 0;
     random = seedrandom(trial);
     game = new Game();
     ai = new AI(C);
@@ -1208,7 +1209,8 @@ function test(C, trial) {
     //Runs the game loop
     while (!dead) {
         ai.update(delay);
-        if (ai.in_danger) flee_time += delay;
+        if (ai.in_danger && (ai.controls.left || ai.controls.right || ai.controls.forward)) flee_time += delay * game_speed;
+        game_time += delay * game_speed;
         ai.applyControls();
         const iteration_updates = settings.game_precision * game_speed;
         for (let j = 0; j < iteration_updates; j++) {
@@ -1219,7 +1221,7 @@ function test(C, trial) {
             }
         }
     }
-    return [ game.score, game.time, flee_time ];
+    return [ game.score, game_time, flee_time ];
 }
 
 //Listen for messages of initialization or a new trial to test 
