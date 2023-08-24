@@ -1144,10 +1144,8 @@ class AI {
                 iterations++;
             }
             this.predictStates(-(AI.rotation_precision + delay) * iterations);
-            if (target != null) {
+            if (target != null)
                 this.crosshair = new Crosshair(target.reference, aim_angle);
-            } else if (this.ship.velocity.mag() < 1)
-                this.controls.forward = true;
         }
         if (this.crosshair == null) return;
         const goal_angle = this.crosshair.angle;

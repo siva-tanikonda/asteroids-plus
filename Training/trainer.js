@@ -95,7 +95,7 @@ const generation_size = 1000;
 const individuals_carry_size = 500;
 const inclusion_threshold = 0;
 const inclusion_limit = 3;
-const progression_leeway = 3;
+const progression_leeway = 1;
 const max_generations = Infinity;
 const score_goal = Infinity;
 const time_weight = 0;
@@ -112,7 +112,7 @@ const interval_wait = 1000 / 60;
 const exploration_multiplier = 3;
 const exploration_threshold = 3;
 const save_index = 8;
-const start_from_save = true;
+const start_from_save = false;
 
 //Multithreading/testing info
 let Cs = [];
@@ -299,7 +299,6 @@ function createGeneration(results, analysis) {
     if (analysis[1] + exploration_threshold * analysis[2] > analysis[4]) {
         console.log("Using Exploration Mode");
         mutation_multiplier = exploration_multiplier;
-        exponentiator **= 1 / exploration_multiplier;
     } else console.log("Using Exploitation Mode");
     //Normalize the inputs
     let partition_sum = 0;
