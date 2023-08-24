@@ -644,6 +644,7 @@ class Game {
     constructor (title_screen = false) {
         this.ship = new Ship();
         this.ship_bullets = [];
+        //Start at a start_wave (if you want to train starting from a future wave)
         this.wave = start_wave;
         this.asteroids = [];
         this.explosions = [];
