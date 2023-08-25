@@ -446,7 +446,7 @@ function train() {
             //If testing is done, compile and analyze the results and then finally create the new generation
             results = [];
             for (let i = 0; i < Cs.length; i++)
-                results.push([ fitness[i] / trial_count, Cs[i] ]);
+                results.push([ fitness[i], Cs[i] ]);
             analysis = analyzeGenerationResults(results);
             printGenerationAnalysis(generation, analysis);
             fitness = new Array(generation_size).fill(0);
