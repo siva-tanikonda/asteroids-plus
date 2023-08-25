@@ -962,7 +962,7 @@ class Game {
     constructor (title_screen = false) {
         this.ship = new Ship();
         this.ship_bullets = [];
-        this.wave = 0;
+        this.wave = 10;
         this.asteroids = [];
         this.explosions = [];
         this.saucers = [];
@@ -983,10 +983,12 @@ class Game {
         const count = asteroid_configurations.spawn_count(this.wave);
         for (let i = 0; i < count; i++) {
             let position = new Vector(randomInRange([0, canvas_bounds.width]), randomInRange([0, canvas_bounds.height]));
-            let distance = position.dist(this.ship.position);
-            while (distance < asteroid_configurations.max_rect.width * 2) {
-                position = new Vector(randomInRange([0, canvas_bounds.width]), randomInRange([0, canvas_bounds.height]));
-                distance = position.dist(this.ship.position);
+            if (this.wave == 1) {
+                let distance = position.dist(this.ship.position);
+                while (distance < asteroid_configurations.max_rect.width * 2) {
+                    position = new Vector(randomInRange([0, canvas_bounds.width]), randomInRange([0, canvas_bounds.height]));
+                    distance = position.dist(this.ship.position);
+                }
             }
             this.asteroids.push(new Asteroid(position, 2, this.wave));
         }

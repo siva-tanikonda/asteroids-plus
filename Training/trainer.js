@@ -98,6 +98,7 @@ const inclusion_limit = 3;
 const progression_leeway = 1;
 const max_generations = Infinity;
 const score_goal = Infinity;
+const trial_count = 3;
 const time_weight = 0;
 const score_weight = 1;
 const flee_time_weight = -1;
@@ -105,19 +106,20 @@ const mutation_rate = 1 / 29;
 const mutation_std = 0.1;
 const shift_rate = 1 / (29 * 3);
 const shift_std = 0.1;
-const partition_exponentiator = 100;
+const partition_exponentiator = 10;
 const max_display_text_length = 100;
 const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
-const exploration_multiplier = 3;
+const exploration_multiplier = 2;
 const exploration_threshold = 3;
 const save_index = 8;
-const start_from_save = false;
+const start_from_save = true;
 
 //Multithreading/testing info
 let Cs = [];
 let generation = 1;
 let individual = 1;
+let seed = 0;
 let trial = 1;
 let used_threads_count = null;
 let testing_progress = 0;
@@ -183,20 +185,21 @@ function createFirstGeneration() {
             const previous_generation_results = previous_generation_data[2];
             for (let i = 0; i < previous_generation_results.length; i++)
                 previous_generation_results[i][1] = fillC(previous_generation_results[i][1]);
-            trial = previous_generation_data[0];
+            seed = previous_generation_data[0];
+            trial = 1;
             max_fitness_mean = previous_generation_data[1];
             console.log("Loaded Data From Save " + save_index);
             const analysis = analyzeGenerationResults(previous_generation_results);
             carry_scores = true;
             individuals_carried = 0;
             if (progression_leeway == Infinity || max_fitness_mean <= analysis[1] + progression_leeway * analysis[2]) {
-                console.log("Progressed to Trial " + trial);
+                console.log("Progressed to Seed " + seed);
                 max_fitness_mean = Math.max(max_fitness_mean, analysis[1]);
                 carry_scores = false;
             }
             const Cs = createGeneration(previous_generation_results, analysis);
-            testing_progress = individuals_carried;
-            individual = testing_progress + 1;
+            testing_progress = individuals_carried * trial_count;
+            individual = individuals_carried + 1;
             return Cs;
         }
     }
@@ -263,7 +266,7 @@ function openSaveFiles() {
 //Saves the generation to a file
 function saveGeneration(results, generation) {
     fs.openSync("./Saves/Save" + save_index + "/Generations/generation" + generation + ".json", "a+");
-    fs.writeFileSync("./Saves/Save" + save_index + "/Generations/generation" + generation + ".json", JSON.stringify([ trial, max_fitness_mean, results ]), (err) => {
+    fs.writeFileSync("./Saves/Save" + save_index + "/Generations/generation" + generation + ".json", JSON.stringify([ seed, max_fitness_mean, results ]), (err) => {
         if (err) throw err;
     });
     results.sort((a, b) => { return b[0] - a[0] });
@@ -327,11 +330,11 @@ function createGeneration(results, analysis) {
     for (let i = 0; Cs.length < generation_size; i++) {
         const C = new Array(C_range.length);
         //Pick the individual to copy
-        let seed = Math.random();
+        let rng = Math.random();
         let id = 0;
         while (id < partition.length - 1) {
-            seed -= partition[id][0];
-            if (seed < 0 && partition[id][0] > 0) break;
+            rng -= partition[id][0];
+            if (rng < 0 && partition[id][0] > 0) break;
             id++;
         }
         for (let j = 0; j < C_genes.length; j++) {
@@ -386,7 +389,7 @@ function createThreads() {
             used_threads_count--;
             //What to do if results are returned
             if (input.length == 2) {
-                fitness[input[0] - 1] = calculateFitness(input[1][0], input[1][1], input[1][2]);
+                fitness[input[0] - 1] += calculateFitness(input[1][0], input[1][1], input[1][2]);
                 testing_progress++;    
             }
         });
@@ -424,40 +427,44 @@ function train() {
             if (used_threads_count == thread_count) return;
             for (let j = 0; j < thread_count; j++)
                 if (!used_threads[j]) {
-                    sendMessage(j, JSON.stringify([ roundC(Cs[individual - 1]), individual, trial ]));
-                    individual++;
+                    sendMessage(j, JSON.stringify([ roundC(Cs[individual - 1]), individual, seed * trial_count + trial - 1 ]));
+                    if (trial == trial_count) {
+                        individual++;
+                        trial = 1;
+                    } else trial++;
                     break;
                 }
             //Show testing progress
-            const progress = testing_progress / generation_size;
+            const progress = testing_progress / (generation_size * trial_count);
             const bars = "#".repeat(Math.floor(progress * progress_bar_length));
             const blanks = "-".repeat(progress_bar_length - bars.length);
-            let text = "Generation " + generation + " (Trial " + trial + "): [" + bars + blanks + "] -> " + (progress * 100).toFixed(1) + "%";
+            let text = "Generation " + generation + " (Seed " + seed + "): [" + bars + blanks + "] -> " + (progress * 100).toFixed(1) + "%";
             while (text.length < max_display_text_length)
                 text += " ";
             process.stdout.write(text + "\r");
-        } else if (testing_progress == generation_size) {
+        } else if (testing_progress == generation_size * trial_count) {
             //If testing is done, compile and analyze the results and then finally create the new generation
             results = [];
             for (let i = 0; i < Cs.length; i++)
-                results.push([ fitness[i], Cs[i] ]);
+                results.push([ fitness[i] / trial_count, Cs[i] ]);
             analysis = analyzeGenerationResults(results);
             printGenerationAnalysis(generation, analysis);
             fitness = new Array(generation_size).fill(0);
             testing_progress = 0;
             individual = 1;
+            trial = 1;
             carry_scores = true;
             individuals_carried = 0;
             if (progression_leeway == Infinity || max_fitness_mean <= analysis[1] + progression_leeway * analysis[2]) {
-                trial++;
-                console.log("Progressed to Trial " + trial);
+                seed++;
+                console.log("Progressed to Seed " + seed);
                 max_fitness_mean = Math.max(max_fitness_mean, analysis[1]);
                 carry_scores = false;
             }
             Cs = createGeneration(results, analysis);
             saveGeneration(results, generation);
-            testing_progress = individuals_carried;
-            individual = testing_progress + 1;
+            testing_progress = individuals_carried * trial_count;
+            individual = individuals_carried + 1;
             generation++;
         }
         //End the algorithm if we have reached our goal/generation limit
