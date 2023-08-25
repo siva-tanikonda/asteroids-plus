@@ -113,7 +113,7 @@ const interval_wait = 1000 / 60;
 const exploration_multiplier = 2;
 const exploration_threshold = 3;
 const save_index = 8;
-const start_from_save = true;
+const start_from_save = false;
 
 //Multithreading/testing info
 let Cs = [];

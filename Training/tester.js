@@ -667,7 +667,7 @@ class Game {
             if (this.wave == start_wave + 1) {
                 let distance = position.dist(this.ship.position);
                 while (distance < asteroid_configurations.max_rect.width * 2) {
-                    position = new Vector(randomInRange([0, canvas_bounds.width]), randomInRange([0, canvas_bounds.height]));
+                    position = new Vector(randomInRange(random, [0, canvas_bounds.width]), randomInRange(random, [0, canvas_bounds.height]));
                     distance = position.dist(this.ship.position);
                 }
             }

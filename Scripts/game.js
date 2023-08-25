@@ -962,7 +962,7 @@ class Game {
     constructor (title_screen = false) {
         this.ship = new Ship();
         this.ship_bullets = [];
-        this.wave = 10;
+        this.wave = 0;
         this.asteroids = [];
         this.explosions = [];
         this.saucers = [];
