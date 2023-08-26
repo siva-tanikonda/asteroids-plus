@@ -12,7 +12,7 @@ let fps_cooldown = 0;
 const fps_reset_rate = 2e-2;
 
 //This is the set of constants for the AI
-const C = [2,0,18.288533608309656,1,0,2,15.127905556315582,2,0,1,0,1,0.4788526002994643,1,0.1933056995485422,2,0.15372562607028542,2,0.5890007570879553,2,0.17626075223647839,2,0,74,91,0.6295893442572492,0,2,92.58942332392203,1];
+const C = [2,0,2.5e-2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 
 //Do initial setup steps for the game/game window
 resizeCanvas();
@@ -46,7 +46,7 @@ function update(delay) {
     //Updates AI decisions and applies input to the game
     if (settings.ai) {
         ai.update(delay);
-        ai.applyControls();
+        //ai.applyControls();
         controls.teleport = false;
     }
 

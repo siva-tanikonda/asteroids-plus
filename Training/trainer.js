@@ -7,13 +7,17 @@ const C_range = [
     [ 2, 2, 1 ],
     [ 0, 1e6, 0 ],
     [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
+    [ 1, 3, 1 ],
+    [ 0, 1e3, 0 ],
+    [ 1, 3, 1 ],
+    [ 0, 1e3, 0 ],
+    [ 1, 3, 1 ],
     [ 0, 2, 0 ],
     [ 1, 2, 1 ],
     [ 0, 2, 0 ],
@@ -29,11 +33,7 @@ const C_range = [
     [ 0, 300, 1 ],
     [ 2, 100, 1 ],
     [ 3, 100, 1 ],
-    [ 0, 2, 0 ],
-    [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ],
-    [ 0, 1e3, 0 ],
-    [ 1, 2, 1 ]
+    [ 0, 2, 0 ]
 ];
 //Describes what ranges of indices in C each represent a gene
 const C_genes = [
@@ -49,11 +49,11 @@ const C_genes = [
     [ 16, 17 ],
     [ 18, 19 ],
     [ 20, 21 ],
-    [ 22, 22 ],
-    [ 23, 24 ],
-    [ 25, 25 ],
-    [ 26, 27 ],
-    [ 28, 29 ]
+    [ 22, 23 ],
+    [ 24, 25 ],
+    [ 26, 26 ],
+    [ 27, 28 ],
+    [ 29, 29 ],
 ];
 //Describes default values at start of the algorithm
 const C_default = [
@@ -80,22 +80,22 @@ const C_default = [
     0,
     null,
     0,
-    100,
-    100,
-    0,
+    null,
     0,
     null,
     0,
-    null
+    100,
+    100,
+    0,
 ];
 
 //Training settings
-const thread_count = 8;
+const thread_count = 12;
 const generation_size = 1000;
 const individuals_carry_size = 500;
 const inclusion_threshold = 0;
 const inclusion_limit = 3;
-const progression_leeway = 3;
+const progression_leeway = 1;
 const max_generations = Infinity;
 const score_goal = Infinity;
 const trial_count = 3;
@@ -112,8 +112,8 @@ const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
 const exploration_multiplier = 3;
 const exploration_threshold = 3;
-const save_index = 8;
-const start_from_save = false;
+const save_index = 1;
+const start_from_save = true;
 
 //Multithreading/testing info
 let Cs = [];
