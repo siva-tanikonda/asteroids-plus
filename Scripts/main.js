@@ -46,7 +46,7 @@ function update(delay) {
     //Updates AI decisions and applies input to the game
     if (settings.ai) {
         ai.update(delay);
-        //ai.applyControls();
+        ai.applyControls();
         controls.teleport = false;
     }
 
