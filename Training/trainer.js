@@ -7,17 +7,17 @@ const C_range = [
     [ 2, 2, 1 ],
     [ 0, 1e6, 0 ],
     [ 0, 1e3, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 1e3, 0 ],
-    [ 1, 3, 1 ],
+    [ 1, 2, 1 ],
     [ 0, 2, 0 ],
     [ 1, 2, 1 ],
     [ 0, 2, 0 ],
@@ -95,7 +95,7 @@ const generation_size = 1000;
 const individuals_carry_size = 500;
 const inclusion_threshold = 0;
 const inclusion_limit = 3;
-const progression_leeway = 1;
+const progression_leeway = 3;
 const max_generations = Infinity;
 const score_goal = Infinity;
 const trial_count = 3;

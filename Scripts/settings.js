@@ -95,3 +95,11 @@ function updateSettings() {
         settings.ai_settings.show_strategy = false;
 
 }
+
+//Toggles the information box on or off
+function toggleInfoBox() {
+    const box = document.getElementById("info-box");
+    const box_toggle = document.getElementById("info-button");
+    box.hidden = !box.hidden;
+    box_toggle.hidden = !box_toggle.hidden;
+}
