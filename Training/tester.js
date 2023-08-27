@@ -27,7 +27,7 @@ let controls = {
 const settings = {
     remove_particles: true,
     game_precision: 25,
-    game_lives: 1
+    game_lives: 3
 };
 let game = null;
 let ai = null;
@@ -386,8 +386,6 @@ class Ship {
         this.updateInvincibility(delay);
 
     }
-
-    //Checks if the ship has collided with a bullet
     checkBulletCollision(bullet, explosions) {
         if (bullet.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
             return false;
@@ -405,8 +403,6 @@ class Ship {
         }
         return false;
     }
-
-    //Checks if the ship has collided with a polygon
     checkPolygonCollision(item, explosions) {
         if (item.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
             return false;
@@ -429,14 +425,10 @@ class Ship {
         }
         return false;
     }
-
-    //Checks if the ship has collided with an asteroid (applies split to asteroid)
     checkAsteroidCollision(split_asteroids, wave, asteroid, explosions) {
         if (asteroid.invincibility <= 0 && this.checkPolygonCollision(asteroid, explosions))
             asteroid.destroy(split_asteroids, wave);
     }
-
-    //Checks if the ship has collided with a saucer
     checkSaucerCollision(saucer, explosions) {
         if (saucer.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
             return false;

@@ -90,7 +90,7 @@ const C_default = [
 ];
 
 //Training settings
-const thread_count = 12;
+const thread_count = 8;
 const generation_size = 1000;
 const individuals_carry_size = 500;
 const inclusion_threshold = 0;
@@ -98,7 +98,7 @@ const inclusion_limit = 3;
 const progression_leeway = 3;
 const max_generations = Infinity;
 const score_goal = Infinity;
-const trial_count = 3;
+const trial_count = 1;
 const time_weight = 0;
 const score_weight = 1;
 const flee_time_weight = -1;
