@@ -179,9 +179,11 @@ $$X\sim\text{Bernoulli}(\frac{\text{partition value of individual }2}{\text{part
 *Note: This is often referred-to as [Uniform Crossover](https://en.wikipedia.org/wiki/Crossover_(genetic_algorithm)#Uniform_crossover)*
 ##### Regular Mutation vs. Shift Mutation
 The regular mutation does the following (where $C$ represents the vector of constants that characterize an individual):
-$$C_i:=C_ie^X\\ X\sim\mathcal{N}(0,\text{mutation STD})$$
+$$C_i:=C_ie^X$$
+$$X\sim\mathcal{N}(0,\text{mutation STD})$$
 The shift mutation does the following (and is generally more rare):
-$$C_i:=C_i+X(\text{maximum value of constant }i - \text{minimum value of constant }i)\\ X\sim\mathcal{N}(0, \text{shift STD})$$
+$$C_i:=C_i+X(\text{maximum value of constant }i - \text{minimum value of constant }i)$$
+$$X\sim\mathcal{N}(0, \text{shift STD})$$
 
 *You can find the slection process on lines 284-384 of Training/trainer.js.*
 ### Optimizations
