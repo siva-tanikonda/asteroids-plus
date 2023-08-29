@@ -27,7 +27,7 @@ let controls = {
 const settings = {
     remove_particles: true,
     game_precision: 25,
-    game_lives: 3
+    game_lives: 1
 };
 let game = null;
 let ai = null;

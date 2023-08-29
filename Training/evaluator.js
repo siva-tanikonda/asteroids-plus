@@ -2,7 +2,7 @@
 const { Worker } = require("worker_threads");
 
 //C-value to evaluate
-const C = [2,0,26.455393490744594,1,58.33548691029564,1,18.78268216446524,1,0,2,0.7250507393562081,1,0.4910690621840317,2,0.26051862113410285,1,0.6848944534484483,2,0.15764627310281296,2,0.26936065777687024,2,25,100,100,0,0,1,196.93522385385694,2];
+const C = [2,10416.721464899465,59.955482045353826,1,162.7837645554929,1,0,2,147.4404565439194,1,0,1,61.50158356245864,1,0.7547305135947239,1,0.4900607858353643,2,0.15811573150106836,2,0.8175042324545903,1,0.20393212081150042,1,0.3240621294161336,1,58,100,93,0.5855806545991619];
 
 //Settings for the evaluator
 const thread_count = 8;
@@ -13,6 +13,7 @@ const flee_time_weight = 0;
 const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
 const max_display_text_length = 100;
+const seed = 12345;
 
 //Global variables needed for evaluation
 let trial = 1;
@@ -106,7 +107,7 @@ function evaluate() {
         if (trial <= trial_count) { //Sends trials to threads to evaluate
             for (let i = 0; i < thread_count; i++)
                 if (!used_threads[i]) {
-                    sendMessage(i, JSON.stringify([ C, trial, trial ]));
+                    sendMessage(i, JSON.stringify([ C, trial, seed + trial ]));
                     trial++;
                     break;
                 }

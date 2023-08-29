@@ -275,10 +275,11 @@ class AIDebug {
     //Draws the minimum fire range of the ship
     static drawTargetMinDistance(item) {
         if (item.entity != "s") return;
+        console.log("dfasfdasf");
         ctx.fillStyle = "#f59445";
         ctx.globalAlpha = 0.1;
         ctx.beginPath();
-        ctx.arc(item.position.x, item.position.y, ai.C[22], 0, 2 * Math.PI);
+        ctx.arc(item.position.x, item.position.y, ai.C[26], 0, 2 * Math.PI);
         ctx.fill();
         ctx.globalAlpha = 1.0;
     }

@@ -1,6 +1,11 @@
 //Load external dependencies
 const { Worker } = require("worker_threads");
+const seedrandom = require("seedrandom");
 const fs = require("fs");
+
+//Create a random number generator for predictable results on the genetic algorithm
+const sd = 7777;
+let random = new seedrandom(sd);
 
 //Ranges that each constant can be when training the AI ([ left_bound, right_bound, onlyInteger ])
 const C_range = [
@@ -94,14 +99,14 @@ const thread_count = 8;
 const generation_size = 1000;
 const individuals_carry_size = 500;
 const inclusion_threshold = 0;
-const inclusion_limit = 3;
-const progression_leeway = 1;
+const inclusion_limit = 4;
+const progression_leeway = 2;
 const max_generations = Infinity;
 const score_goal = Infinity;
-const trial_count = 1;
+const trial_count = 3;
 const time_weight = 0;
 const score_weight = 1;
-const flee_time_weight = -1;
+const flee_time_weight = 0;
 const mutation_rate = 1 / 29;
 const mutation_std = 0.1;
 const shift_rate = 1 / (29 * 3);
@@ -137,8 +142,8 @@ function calculateFitness(score, time, flee_time) {
 
 //Samples from normal distribution
 function sampleNormalDistribution(mean, std) {
-    const a = 1 - Math.random();
-    const b = Math.random();
+    const a = 1 - random();
+    const b = random();
     const c = Math.sqrt(-2.0 * Math.log(a)) * Math.cos(2.0 * Math.PI * b);
     return c * std + mean;
 }
@@ -149,7 +154,7 @@ function fillC(C_small) {
     for (let i = 0; i < C_range.length; i++) {
         if (C_small.length <= i) {
             if (C_default[i] == null)
-                C[i] = C_range[i][0] + Math.random() * (C_range[i][1] - C_range[i][0]);
+                C[i] = C_range[i][0] + random() * (C_range[i][1] - C_range[i][0]);
             else C[i] = C_default[i];
         } else C[i] = C_small[i];
     }
@@ -161,7 +166,7 @@ function createFirstGenerationC() {
     let C = new Array(C_range.length);
     for (let i = 0; i < C_range.length; i++) {
         if (C_default[i] == null)
-            C[i] = C_range[i][0] + Math.random() * (C_range[i][1] - C_range[i][0]);
+            C[i] = C_range[i][0] + random() * (C_range[i][1] - C_range[i][0]);
         else C[i] = C_default[i];
     }
     return C;
@@ -329,23 +334,33 @@ function createGeneration(results, analysis) {
     //Run crossover from current species
     for (let i = 0; Cs.length < generation_size; i++) {
         const C = new Array(C_range.length);
-        //Pick the individual to copy
-        let rng = Math.random();
-        let id = 0;
-        while (id < partition.length - 1) {
-            rng -= partition[id][0];
-            if (rng < 0 && partition[id][0] > 0) break;
-            id++;
+        //Pick the individuals to combine and calculate the partition
+        let rng = random();
+        let id1 = 0;
+        while (id1 < partition.length - 1) {
+            rng -= partition[id1][0];
+            if (rng < 0 && partition[id1][0] > 0) break;
+            id1++;
         }
+        rng = random();
+        let id2 = 0;
+        while (id2 < partition.length - 1) {
+            rng -= partition[id2][0];
+            if (rng < 0 && partition[id2][0] > 0) break;
+            id2++;
+        }
+        const margin = partition[id1][0] / (partition[id1][0] + partition[id2][0]);
         for (let j = 0; j < C_genes.length; j++) {
             //Find out which gene to take based on the partition
             const l = C_genes[j][0];
             const r = C_genes[j][1];
             //Choose which parent to pick the gene from and copy it
+            rng = random();
             for (let k = l; k <= r; k++)
-                C[k] = partition[id][2][k];
+                if (rng < margin) C[k] = partition[id1][2][k];
+                else C[k] = partition[id2][2][k];
             //Mutate the individual multiplicatively
-            if (Math.random() < mutation_rate * mutation_multiplier) {
+            if (random() < mutation_rate * mutation_multiplier) {
                 for (let k = l; k <= r; k++) {
                     const difference = sampleNormalDistribution(0, mutation_std);
                     C[k] *= Math.E ** difference;
@@ -354,7 +369,7 @@ function createGeneration(results, analysis) {
                 }
             }
             //Mutate the individual with a shift
-            if (Math.random() < shift_rate * mutation_multiplier) {
+            if (random() < shift_rate * mutation_multiplier) {
                 for (let k = l; k <= r; k++) {
                     const difference = sampleNormalDistribution(0, shift_std);
                     C[k] += (C_range[k][1] - C_range[k][0]) * difference;
