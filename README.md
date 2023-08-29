@@ -27,4 +27,4 @@ You can play the game for yourself and see the AI in action at https://siva-tani
   $ node evaluator.js
   ```
 ## AI Strategy & Training Methodology
-You can find descriptions for the AI strategy and genetic algorithm at https://github.com/siva-tanikonda/asteroids-ai/wiki
+You can find descriptions for the AI strategy and genetic algorithm in the wiki: https://github.com/siva-tanikonda/asteroids-ai/wiki
