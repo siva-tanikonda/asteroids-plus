@@ -118,7 +118,10 @@ input[type="checkbox"] {
     appearance: none;
     background-color: transparent;
     margin: 0px;
-    margin-right: 4px;
+    margin-right: 3px;
+    margin-left: 3px;
+    margin-top: 3px;
+    margin-bottom: 3px;
     padding: 0px;
     top: 2px;
     font: inherit;
