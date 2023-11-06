@@ -1,12 +1,12 @@
 # Asteroids AI
 ## How to Use
 ### Play Game/View AI
-You can play the game for yourself and see the AI in action at https://siva-tanikonda.github.io/asteroids-ai/
+You can play the game for yourself and see the AI in action at [siva-tanikonda.github.io/asteroids-ai](https://siva-tanikonda.github.io/asteroids-ai/)
 
 *Note: The amount of asteroids on-screen scales with the resolution of the game window, so your results may vary from the training results. In addition, the game-speed variable doesn't change the rate at which the AI updates its decision, which is intentional and another way of stress-testing the AI.*
 ### Using the Trainer
 #### Dependencies
-* **Node.js** - This is a JavaScript runtime environment that you can install at https://nodejs.org/
+* **Node.js** - This is a JavaScript runtime environment that you can install at [nodejs.org](https://nodejs.org)
 * **seedrandom** - This is an NPM package for a seeded random number generator. You can install it with:
   ```
   $ cd /INSERT_PROJECTS_DIRECTORY_HERE/asteroids-ai/Training
@@ -27,4 +27,4 @@ You can play the game for yourself and see the AI in action at https://siva-tani
   $ node evaluator.js
   ```
 ## AI Strategy & Training Methodology
-You can find descriptions for the AI strategy and genetic algorithm at https://github.com/siva-tanikonda/asteroids-ai/wiki
+You can find descriptions for the AI strategy and genetic algorithm in the wiki: [github.com/siva-tanikonda/asteroids-ai/wiki](https://github.com/siva-tanikonda/asteroids-ai/wiki/)
