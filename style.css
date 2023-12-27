@@ -44,7 +44,7 @@ body {
 #canvas {
     position: absolute;
     right: 0px;
-    image-rendering: crisp-edges;
+    image-rendering: pixelated;
     background-color: rgb(20, 20, 20);
 }
 

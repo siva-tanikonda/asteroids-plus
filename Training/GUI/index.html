@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <Title>Asteroids AI Trainer</Title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+
+        <canvas id="canvas" width="750" height="576">Your Web Browser Doesn't Support HTML5 Canvas</canvas>
+        
+        <div id="navigation-bar">
+            <button class="button" id="left-button" onclick="updateGeneration(-1);">&lt;</button>
+            <button class="button" id="right-button" onclick="updateGeneration(1);">&gt;</button>
+            <div id="auto-container">
+                <input type="checkbox" id="auto-checkbox" onclick="toggleAutoProgression();">
+                <h3 id="auto-header">&nbsp Auto-Progression</h3>
+            </div>
+        </div>
+
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+        <script src="Scripts/main.js"></script>
+
+    </body>
+</html>

@@ -1,7 +1,22 @@
 //Load external dependencies
+const express = require("express");
+const { join } = require("path");
+const { createServer } = require("http");
 const { Worker } = require("worker_threads");
+const { Server } = require("socket.io");
 const seedrandom = require("seedrandom");
 const fs = require("fs");
+
+//Setup GUI
+const port = 2000;
+const app = express();
+const path = join(__dirname, "GUI");
+const server = createServer(app);
+const io = new Server(server);
+app.use(express.static(path));
+server.listen(port, () => {
+    console.log("Server running at http://localhost:" + port);
+});
 
 //Create a random number generator for predictable results on the genetic algorithm
 const sd = 7777;
@@ -96,8 +111,8 @@ const C_default = [
 
 //Training settings
 const thread_count = 8;
-const generation_size = 1000;
-const individuals_carry_size = 500;
+const generation_size = 50;
+const individuals_carry_size = 10;
 const inclusion_threshold = 0;
 const inclusion_limit = 4;
 const progression_leeway = 2;
@@ -112,12 +127,11 @@ const mutation_std = 0.1;
 const shift_rate = 1 / (29 * 3);
 const shift_std = 0.1;
 const partition_exponentiator = 10;
-const max_display_text_length = 100;
-const progress_bar_length = 50;
 const interval_wait = 1000 / 60;
+const histogram_count = 10;
 const exploration_multiplier = 3;
 const exploration_threshold = 3;
-const save_index = 1;
+const save_index = 2;
 const start_from_save = true;
 
 //Multithreading/testing info
@@ -130,6 +144,8 @@ let used_threads_count = null;
 let testing_progress = 0;
 let used_threads = [];
 let fitness = [];
+let statistics = [];
+let histograms = [];
 const threads = [];
 let max_fitness_mean = 0;
 let carry_scores = false;
@@ -181,6 +197,12 @@ function createFirstGeneration() {
             const number = parseInt(file.substring(generation_prefix.length));
             max_previous_generation = Math.max(max_previous_generation, number);
         });
+        for (let i = 1; i < max_previous_generation; i++) {
+            const generation_data = eval(fs.readFileSync("./Saves/Save" + save_index + "/Generations/generation" + i + ".json", "utf-8"));
+            const generation_results = generation_data[2];
+            statistics.push(analyzeGenerationResults(generation_results));
+            histograms.push(createGenerationHistogram(generation_results));
+        }
         if (max_previous_generation > 0) {
             fitness = new Array(generation_size).fill(0);
             testing_progress = 0;
@@ -195,10 +217,11 @@ function createFirstGeneration() {
             max_fitness_mean = previous_generation_data[1];
             console.log("Loaded Data From Save " + save_index);
             const analysis = analyzeGenerationResults(previous_generation_results);
+            statistics.push(analysis);
+            histograms.push(createGenerationHistogram(previous_generation_results));
             carry_scores = true;
             individuals_carried = 0;
             if (progression_leeway == Infinity || max_fitness_mean <= analysis[1] + progression_leeway * analysis[2]) {
-                console.log("Progressed to Seed " + seed);
                 max_fitness_mean = Math.max(max_fitness_mean, analysis[1]);
                 carry_scores = false;
             }
@@ -215,7 +238,6 @@ function createFirstGeneration() {
     const Cs = [];
     for (let i = 0; i < generation_size; i++)
         Cs.push(createFirstGenerationC());
-    console.log("Created First Generation");
     return Cs;
 }
 
@@ -240,17 +262,23 @@ function analyzeGenerationResults(results) {
     return analysis;
 }
 
-//Print-out the results in the console
-function printGenerationAnalysis(generation, analysis) {
-    let text = "Generation " + generation + ": Median Fitness - " + analysis[0];
-    while (text.length < max_display_text_length)
-        text += " ";
-    const blank = new Array(("Generation " + generation + ":  ").length).join(" ");
-    console.log(text);
-    console.log(blank + "Mean Fitness - " + analysis[1]);
-    console.log(blank + "STD Fitness - " + analysis[2]);
-    console.log(blank + "Min Fitness - " + analysis[3]);
-    console.log(blank + "Max Fitness - " + analysis[4]);
+//Creates a histogram given generation results
+function createGenerationHistogram(results) {
+    let max = 0;
+    for (let i = 0; i < results.length; i++) {
+        max = Math.max(max, results[i][0]);
+    }
+    const div = max / histogram_count;
+    const counts = new Array(histogram_count).fill(0);
+    for (let i = 0; i < results.length; i++) {
+        let bucket = Math.max(0, Math.min(histogram_count - 1, Math.floor(results[i][0] / div)));
+        counts[bucket]++;
+    }
+    const buckets = [];
+    for (let i = 0; i < counts.length; i++) {
+        buckets.push([i * div, (i + 1) * div, counts[i]]);
+    }
+    return buckets;
 }
 
 //Open save files
@@ -305,9 +333,8 @@ function createGeneration(results, analysis) {
     let mutation_multiplier = 1;
     let exponentiator = partition_exponentiator;
     if (analysis[1] + exploration_threshold * analysis[2] > analysis[4]) {
-        console.log("Using Exploration Mode");
         mutation_multiplier = exploration_multiplier;
-    } else console.log("Using Exploitation Mode");
+    }
     //Normalize the inputs
     let partition_sum = 0;
     for (let i = 0; i < partition.length; i++) {
@@ -413,7 +440,6 @@ function createThreads() {
 
 //Closes all the tester threads
 function closeThreads() {
-    console.log("Closing Threads...");
     for (let i = 0; i < thread_count; i++)
         threads[i].postMessage("exit");
 }
@@ -437,6 +463,12 @@ function train() {
     let analysis = [ 0, 0, 0, 0, 0 ];
     let results = null;
     const interval = setInterval(() => {
+        let packet = {
+            progress: 1,
+            generation: generation,
+            statistics: statistics,
+            histograms: histograms
+        };
         if (generation <= max_generations && individual <= generation_size) {
             //If currently testing something, then wait for next interval-step
             if (used_threads_count == thread_count) return;
@@ -449,21 +481,17 @@ function train() {
                     } else trial++;
                     break;
                 }
-            //Show testing progress
+            //Calculate testing progress
             const progress = testing_progress / (generation_size * trial_count);
-            const bars = "#".repeat(Math.floor(progress * progress_bar_length));
-            const blanks = "-".repeat(progress_bar_length - bars.length);
-            let text = "Generation " + generation + " (Seed " + seed + "): [" + bars + blanks + "] -> " + (progress * 100).toFixed(1) + "%";
-            while (text.length < max_display_text_length)
-                text += " ";
-            process.stdout.write(text + "\r");
+            packet.progress = progress;
         } else if (testing_progress == generation_size * trial_count) {
             //If testing is done, compile and analyze the results and then finally create the new generation
             results = [];
             for (let i = 0; i < Cs.length; i++)
                 results.push([ fitness[i], Cs[i] ]);
             analysis = analyzeGenerationResults(results);
-            printGenerationAnalysis(generation, analysis);
+            statistics.push(analysis);
+            histograms.push(createGenerationHistogram(results));
             fitness = new Array(generation_size).fill(0);
             testing_progress = 0;
             individual = 1;
@@ -472,7 +500,6 @@ function train() {
             individuals_carried = 0;
             if (progression_leeway == Infinity || max_fitness_mean <= analysis[1] + progression_leeway * analysis[2]) {
                 seed++;
-                console.log("Progressed to Seed " + seed);
                 max_fitness_mean = Math.max(max_fitness_mean, analysis[1]);
                 carry_scores = false;
             }
@@ -487,6 +514,9 @@ function train() {
             clearInterval(interval);
             closeThreads();
         }
+        packet.statistics = statistics;
+        packet.histograms = histograms;
+        io.emit("data", packet);
     }, interval_wait);
 }
 
