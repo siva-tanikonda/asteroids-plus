@@ -1,0 +1,148 @@
+/*Font Loading*/
+@font-face {
+    font-family: 'Roboto Mono Thin';
+    src: url('Fonts/Roboto Mono.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 100;
+}
+@font-face {
+    font-family: 'Roboto Mono Light';
+    src: url('Fonts/Roboto Mono.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 300;
+}
+@font-face {
+    font-family: 'Roboto Mono Regular';
+    src: url('Fonts/Roboto Mono.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 400;
+}
+@font-face {
+    font-family: 'Roboto Mono Bold';
+    src: url('Fonts/Roboto Mono.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 700;
+}
+
+/*HTML Body Styling*/
+html {
+    margin: 0px;
+    padding: 0px;
+    width: 100%;
+    height: 100%;
+}
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+}
+canvas {
+    position: absolute;
+    image-rendering: pixelated;
+    background-color: rgb(20, 20, 20);
+}
+
+/*Checkbox Styling*/
+input[type="checkbox"] {
+    position: relative;
+    appearance: none;
+    background-color: transparent;
+    margin: 0px;
+    padding: 0px;
+    top: 5px;
+    font: inherit;
+    outline: none;
+    color: white;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid currentColor;
+    display: inline-block;
+    place-items: center;
+}
+input[type="checkbox"]:hover {
+    cursor: pointer;
+}
+input[type="checkbox"]::before {
+    content: "";
+    width: 12px;
+    height: 12px;
+    margin: 2px;
+    padding: 0px;
+    transform: scale(0);
+    transform-origin: center;
+    background-color: white;
+    display: block;
+}
+input[type="checkbox"]:checked::before {
+    transform: scale(1);
+}
+input[type="checkbox"]:disabled {
+    opacity: 0.5;
+}
+
+/*Game Screen Styling*/
+#canvas {
+    position: absolute;
+    right: 0px;
+    image-rendering: crisp-edges;
+    background-color: rgb(20, 20, 20);
+}
+
+/*Navigation Bar Styling*/
+#navigation-bar {
+    position: absolute;
+    display: flex;
+    bottom: 150px;
+    width:100%;
+    margin:0px;
+    height:100px;
+    padding: 0px;
+    text-align: center;
+    justify-content: center;
+}
+.button {
+    display: flex;
+    font-family: 'Roboto Mono Light';
+    font-size: 25px;
+    border: 1.5px solid white;
+    position: absolute;
+    background: transparent;
+    color: white;
+    line-height: 25px;
+}
+.button:hover:enabled {
+    cursor: pointer;
+    color: rgb(20, 20, 20);
+    background-color: white;
+}
+#left-button {
+    margin-left: -300px;
+    padding: 0px;
+    padding-top: 0px;
+    padding-bottom: 2px;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+#right-button {
+    margin-left: 300px;
+    padding: 0px;
+    padding-top: 0px;
+    padding-bottom: 2px;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+h3 {
+    font: 15px 'Roboto Mono Light';
+    color: white;
+}
+#auto-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 50px;
+}
+#auto-header {
+    margin-top: 4px;
+}
