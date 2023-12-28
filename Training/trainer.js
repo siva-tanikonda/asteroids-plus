@@ -132,7 +132,7 @@ const histogram_count = 10;
 const exploration_multiplier = 3;
 const exploration_threshold = 3;
 const save_index = 2;
-const start_from_save = true;
+const start_from_save = false;
 
 //Multithreading/testing info
 let Cs = [];

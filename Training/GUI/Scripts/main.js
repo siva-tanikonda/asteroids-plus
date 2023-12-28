@@ -134,8 +134,8 @@ function drawLinePlot(title, x, y, width, height, label_x, label_y, entries) {
     ctx.fillText(max, x - text_width / 2, y - 5);
     ctx.fillText(entries.length + 1, x + width + 5, y + height + 5);
     ctx.beginPath();
-    ctx.moveTo(x + width / (entries.length + 1), y + height - height * (entries[0] / max));
-    for (let i = 1; i < entries.length; i++) {
+    ctx.moveTo(x, y + height);
+    for (let i = 0; i < entries.length; i++) {
         ctx.lineTo(x + (i + 1) * width / (entries.length + 1), y + height - height * (entries[i] / max));
     }
     ctx.stroke();
