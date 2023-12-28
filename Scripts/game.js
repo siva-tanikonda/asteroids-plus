@@ -533,8 +533,8 @@ class Ship {
             ctx.lineTo(position.x - this.width / 2 + this.rear_offset - this.trail_length, position.y);
             ctx.lineTo(position.x - this.width / 2 + this.rear_offset, position.y + this.height / 2 - (this.height / this.width) * this.rear_offset + 1);
         }
-        ctx.stroke();
         ctx.fill();
+        ctx.stroke();
         ctx.globalAlpha = 1.0;
         ctx.resetTransform();
         if (show_hitboxes) {
