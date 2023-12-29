@@ -208,7 +208,7 @@ class Particle {
     //Update the particle
     update(delay) {
         this.updatePosition(delay);
-        this.updateLife(delay)
+        this.updateLife(delay);
     }
     
     //Draws the particle given a certain offset for the wrap
