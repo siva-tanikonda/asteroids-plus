@@ -15,6 +15,7 @@ const canvas_bounds = {
 const game_speed = 1;
 const delay = 1;
 const start_wave = 0;
+const stream_fps = 60;
 let controls = {
     left: false,
     right: false,
@@ -487,13 +488,6 @@ class Asteroid {
         this.dead = false;
         this.entity = 'a';
     }
-    rotate(delay) {
-        const old_angle = this.angle;
-        this.angle += this.rotation_speed * delay;
-        this.bounds.rotate(this.angle - old_angle, this.position);
-        while (this.angle < 0) this.angle += 2 * Math.PI;
-        while (this.angle >= 2 * Math.PI) this.angle -= 2 * Math.PI;
-    }
     updatePosition(delay) {
         const old_position = this.position.copy();
         this.position.add(Vector.mul(this.velocity, delay));
@@ -501,7 +495,6 @@ class Asteroid {
         this.bounds.translate(Vector.sub(this.position, old_position));
     }
     update(delay) {
-        this.rotate(delay);
         this.updatePosition(delay);
         this.rect = this.bounds.getRect();
         if (this.invincibility > 0)
@@ -1227,9 +1220,48 @@ parentPort.on("message", (msg) => {
     }
     const input = JSON.parse(msg);
     if (input.length > 1) {
-        const result = test(input[0], input[2]);
-        parentPort.postMessage(JSON.stringify([input[1], result]));
+        if (input[3] == -1) {
+            const result = test(input[0], input[2]);
+            parentPort.postMessage(JSON.stringify([input[1], result]));
+        } else {
+            controls = {
+                left: false,
+                right: false,
+                forward: false,
+                fire: false,
+                teleport: false,
+                start: false,
+                pause: false
+            };
+            let flee_time = 0;
+            let game_time = 0;
+            random = seedrandom(input[2]);
+            game = new Game();
+            ai = new AI(input[0]);
+            let dead = false;
+            const interval = setInterval(() => {
+                ai.update(delay);
+                if (ai.in_danger) flee_time += delay * game_speed;
+                game_time += delay * game_speed;
+                ai.applyControls();
+                const iteration_updates = settings.game_precision * game_speed;
+                for (let j = 0; j < iteration_updates; j++) {
+                    const done = game.update(delay / settings.game_precision);
+                    if (done) {
+                        dead = true;
+                        break;
+                    }
+                }
+                parentPort.postMessage(JSON.stringify([ game.score, game.ship, game.ship_bullets, game.asteroids, game.saucers, game.saucer_bullets ]));
+                if (dead) {
+                    parentPort.postMessage(JSON.stringify([ input[1], [ game.score, game_time, flee_time ] ]));
+                    clearInterval(interval);
+                }
+            }, 1000 / stream_fps);
+        }
     } else {
+        Asteroid.analyzeAsteroidConfigurations();
+        Saucer.analyzeSaucerConfigurations();
         thread_id = input[0];
         parentPort.postMessage(JSON.stringify([]));
     }

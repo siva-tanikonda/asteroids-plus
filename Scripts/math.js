@@ -309,10 +309,11 @@ class Polygon {
         const rect1 = p.getRect();
         const rect2 = this.getRect();
         if (!rect1.intersects(rect2)) return false;
-        let inside = true;
-        for (var i = 0; i < p.points.length; i++)
-            inside &= this.containsPoint(p.points[i]);
-        if (inside) return true;
+        for (var i = 0; i < p.points.length; i++) {
+            if (this.containsPoint(p.points[i])) {
+                return true;
+            }
+        }
         for (var i = 0; i < p.points.length; i++) {
             const j = (i + 1) % p.points.length;
             const segment = new LineSegment(p.points[i], p.points[j]);

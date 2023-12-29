@@ -5,6 +5,7 @@ const { createServer } = require("http");
 const { Worker } = require("worker_threads");
 const { Server } = require("socket.io");
 const seedrandom = require("seedrandom");
+const { randomInRange } = require("./math");
 const fs = require("fs");
 
 //Setup GUI
@@ -111,11 +112,11 @@ const C_default = [
 
 //Training settings
 const thread_count = 8;
-const generation_size = 50;
-const individuals_carry_size = 10;
+const generation_size = 1000;
+const individuals_carry_size = 500;
 const inclusion_threshold = 0;
-const inclusion_limit = 4;
-const progression_leeway = 2;
+const inclusion_limit = 3;
+const progression_leeway = 3;
 const max_generations = Infinity;
 const score_goal = Infinity;
 const trial_count = 3;
@@ -126,7 +127,7 @@ const mutation_rate = 1 / 29;
 const mutation_std = 0.1;
 const shift_rate = 1 / (29 * 3);
 const shift_std = 0.1;
-const partition_exponentiator = 10;
+const partition_exponentiator = Math.E;
 const interval_wait = 1000 / 60;
 const histogram_count = 10;
 const exploration_multiplier = 3;
@@ -150,6 +151,14 @@ const threads = [];
 let max_fitness_mean = 0;
 let carry_scores = false;
 let individuals_carried = 0;
+let stream_thread = -1;
+let streaming = false;
+
+io.on("connection", (socket) => {
+    socket.on("stream", (msg) => {
+        streaming = msg;
+    });
+});
 
 //Calculates the fitness score of a trial
 function calculateFitness(score, time, flee_time) {
@@ -427,12 +436,22 @@ function createThreads() {
         sendMessage(i, JSON.stringify([ i + 1 ]));
         threads[i].on("message", (msg) => {
             const input = JSON.parse(msg);
-            used_threads[i] = false;
-            used_threads_count--;
             //What to do if results are returned
             if (input.length == 2) {
+                used_threads[i] = false;
+                used_threads_count--;
                 fitness[input[0] - 1] += calculateFitness(input[1][0], input[1][1], input[1][2]);
-                testing_progress++;    
+                testing_progress++;
+                if (stream_thread == i) {
+                    stream_thread = -1;
+                }   
+            } else if (input.length == 0) {
+                used_threads[i] = false;
+                used_threads_count--;
+            } else {
+                if (streaming) {
+                    io.emit("stream", input);
+                }
             }
         });
     }
@@ -467,14 +486,20 @@ function train() {
             progress: 1,
             generation: generation,
             statistics: statistics,
-            histograms: histograms
+            histograms: histograms,
+            thread: stream_thread
         };
         if (generation <= max_generations && individual <= generation_size) {
             //If currently testing something, then wait for next interval-step
             if (used_threads_count == thread_count) return;
             for (let j = 0; j < thread_count; j++)
                 if (!used_threads[j]) {
-                    sendMessage(j, JSON.stringify([ roundC(Cs[individual - 1]), individual, seed * trial_count + trial - 1 ]));
+                    if (streaming && stream_thread == -1 && Math.random() >= 0.5) {
+                        stream_thread = j;
+                        sendMessage(j, JSON.stringify([ roundC(Cs[individual - 1]), individual, seed * trial_count + trial - 1, 1 ]));
+                    } else {
+                        sendMessage(j, JSON.stringify([ roundC(Cs[individual - 1]), individual, seed * trial_count + trial - 1, -1 ]));
+                    }
                     if (trial == trial_count) {
                         individual++;
                         trial = 1;
@@ -510,12 +535,13 @@ function train() {
             generation++;
         }
         //End the algorithm if we have reached our goal/generation limit
-        if (generation > max_generations || analysis[4] >= score_goal) {
+        if (generation > max_generations || analysis[1] >= score_goal) {
             clearInterval(interval);
             closeThreads();
         }
         packet.statistics = statistics;
         packet.histograms = histograms;
+        packet.thread = stream_thread;
         io.emit("data", packet);
     }, interval_wait);
 }

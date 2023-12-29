@@ -1,23 +1,29 @@
 const canvas = document.getElementById("canvas");
+const stream = document.getElementById("stream");
 const left_button = document.getElementById("left-button");
 const right_button = document.getElementById("right-button");
 const auto_checkbox = document.getElementById("auto-checkbox");
 const continue_button = document.getElementById("continue-button");
 const ctx = canvas.getContext("2d");
+const sctx = stream.getContext("2d");
 const socket = io();
 
-const histogram_factor = 5;
-const line_plot_factor = 10;
+const histogram_factor = 8;
+const stream_factor = 10;
+const line_plot_factor = 8;
 
 let data = {
     progress: 0,
     generation: 1,
     statistics: [ ],
-    histograms: [ ]
+    histograms: [ ],
+    thread: -1
 };
+let stream_data = [];
 let previous_packet_generation = -1;
 let generation = 1;
 let auto_progression = false;
+let streaming = false;
 
 resizeCanvas();
 
@@ -25,7 +31,10 @@ resizeCanvas();
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    stream.style.width = window.innerWidth / stream_factor;
+    stream.style.height = window.innerWidth / stream_factor;
     canvas_bounds = canvas.getBoundingClientRect();
+    stream_bounds = stream.getBoundingClientRect();
 }
 window.addEventListener("resize", resizeCanvas);
 
@@ -45,6 +54,16 @@ function updateGeneration(add) {
 
 function toggleAutoProgression() {
     auto_progression = !auto_progression;
+}
+
+function toggleStream() {
+    if (streaming) {
+        socket.emit("stream", false);
+        streaming = false;
+    } else {
+        socket.emit("stream", true);
+        streaming = true;
+    }
 }
 
 function drawHistogram() {
@@ -93,14 +112,13 @@ function drawHistogram() {
             text_length = ctx.measureText(text).width;
             ctx.fillText(text, canvas.width / 2 - canvas.width / histogram_factor - text_length / 2 + bucket_length * (i + 1), canvas.height - 275);
             const bucket_height = histogram_height * (data.histograms[generation - 1][i][2] / largest_bucket);
-            ctx.fillRect(canvas.width / 2 - canvas.width / histogram_factor + bucket_length * i + 1, canvas.height - 300 - bucket_height, bucket_length - 1, bucket_height);
+            ctx.fillRect(canvas.width / 2 - canvas.width / histogram_factor + bucket_length * i + 0.75, canvas.height - 300 - bucket_height, bucket_length - 1.5, bucket_height);
             text = data.histograms[generation - 1][i][2];
             if (text != 0) {
                 text_length = ctx.measureText(text).width;
                 ctx.fillText(text, canvas.width / 2 - canvas.width / histogram_factor + bucket_length * i + bucket_length / 2 - text_length / 2, canvas.height - 310 - bucket_height);
             }
         }
-        console.log(data.histograms[generation - 1]);
         ctx.stroke();
     }
     ctx.font = "20px Roboto Mono Regular";
@@ -132,11 +150,11 @@ function drawLinePlot(title, x, y, width, height, label_x, label_y, entries) {
     ctx.font = "12px Roboto Mono Regular";
     text_width = ctx.measureText(max).width;
     ctx.fillText(max, x - text_width / 2, y - 5);
-    ctx.fillText(entries.length + 1, x + width + 5, y + height + 5);
+    ctx.fillText(entries.length, x + width + 5, y + height + 5);
     ctx.beginPath();
     ctx.moveTo(x, y + height);
     for (let i = 0; i < entries.length; i++) {
-        ctx.lineTo(x + (i + 1) * width / (entries.length + 1), y + height - height * (entries[i] / max));
+        ctx.lineTo(x + (i + 1) * width / entries.length, y + height - height * (entries[i] / max));
     }
     ctx.stroke();
 }
@@ -148,12 +166,12 @@ function drawData() {
         means.push(data.statistics[i][1]);
     }
     const line_plot_size = canvas.width / line_plot_factor;
-    drawLinePlot("Mean", canvas.width - line_plot_size - 150, 100, line_plot_size, line_plot_size, "Generation", "Fitness", means);
+    drawLinePlot("Mean", canvas.width - line_plot_size - 200, 75, line_plot_size, line_plot_size, "Generation", "Fitness", means);
     const stds = [];
     for (let i = 0; i < data.statistics.length; i++) {
         stds.push(data.statistics[i][2]);
     }
-    drawLinePlot("STD", canvas.width - line_plot_size - 150, line_plot_size + 250, line_plot_size, line_plot_size, "Generation", "Fitness", stds);
+    drawLinePlot("STD", canvas.width - line_plot_size - 200, line_plot_size + 225, line_plot_size, line_plot_size, "Generation", "Fitness", stds);
 }
 
 function update() {
@@ -171,7 +189,12 @@ function update() {
 
 function draw() {
     ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
+    ctx.fillStyle = "white";
+    ctx.font = "25px Roboto Mono Regular";
+    const text_width = ctx.measureText("Stream").width;
+    ctx.fillText("Stream", 100 + stream_bounds.width / 2 - text_width / 2, 150);
     drawData();
+    drawStream();
 }
 
 function loop() {
@@ -188,3 +211,7 @@ socket.on("data", (packet) => {
     }
     previous_packet_generation = data.generation;
 });
+
+socket.on("stream", (packet) => {
+    stream_data = packet;
+})

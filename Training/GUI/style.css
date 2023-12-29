@@ -39,10 +39,23 @@ body {
     height: 100%;
     text-align: center;
 }
-canvas {
+#canvas {
     position: absolute;
-    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    left: 0px;
+    top: 0px;
     background-color: rgb(20, 20, 20);
+}
+#stream {
+    position: absolute;
+    image-rendering: crisp-edges;
+    background-color: rgb(20, 20, 20);
+    border: 1.5px solid white;
+    left: 100px;
+    top: 185px;
+    width: 25%;
+    height: width;
+    vertical-align: center;
 }
 
 /*Checkbox Styling*/
@@ -145,4 +158,16 @@ h3 {
 }
 #auto-header {
     margin-top: 4px;
+}
+#stream-container {
+    position: absolute;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 50px;
+}
+#stream-checkbox {
+    margin-top: 40px;
+}
+#stream-header {
+    margin-top: 44px;
 }
