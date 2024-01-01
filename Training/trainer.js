@@ -5,7 +5,6 @@ const { createServer } = require("http");
 const { Worker } = require("worker_threads");
 const { Server } = require("socket.io");
 const seedrandom = require("seedrandom");
-const { randomInRange } = require("./math");
 const fs = require("fs");
 
 //Setup GUI
@@ -16,11 +15,11 @@ const server = createServer(app);
 const io = new Server(server);
 app.use(express.static(path));
 server.listen(port, () => {
-    console.log("Server running at http://localhost:" + port);
+    console.log("GUI running at http://localhost:" + port);
 });
 
 //Create a random number generator for predictable results on the genetic algorithm
-const sd = 7777;
+const sd = 2000;
 let random = new seedrandom(sd);
 
 //Ranges that each constant can be when training the AI ([ left_bound, right_bound, onlyInteger ])
@@ -117,7 +116,7 @@ const individuals_carry_size = 500;
 const inclusion_threshold = 0;
 const inclusion_limit = 3;
 const progression_leeway = 3;
-const max_generations = Infinity;
+const max_generations = 150;
 const score_goal = Infinity;
 const trial_count = 3;
 const time_weight = 0;
@@ -132,8 +131,8 @@ const interval_wait = 1000 / 60;
 const histogram_count = 10;
 const exploration_multiplier = 3;
 const exploration_threshold = 3;
-const save_index = 2;
-const start_from_save = false;
+const save_index = 3;
+const start_from_save = true;
 
 //Multithreading/testing info
 let Cs = [];
@@ -162,7 +161,7 @@ io.on("connection", (socket) => {
 
 //Calculates the fitness score of a trial
 function calculateFitness(score, time, flee_time) {
-    return score * score_weight + time * time_weight + flee_time * flee_time_weight;
+    return Math.max(0, score * score_weight + time * time_weight + flee_time * flee_time_weight);
 }
 
 //Samples from normal distribution
@@ -440,7 +439,7 @@ function createThreads() {
             if (input.length == 2) {
                 used_threads[i] = false;
                 used_threads_count--;
-                fitness[input[0] - 1] += calculateFitness(input[1][0], input[1][1], input[1][2]);
+                fitness[input[0] - 1] += calculateFitness(input[1][0], input[1][1], input[1][2]) / trial_count;
                 testing_progress++;
                 if (stream_thread == i) {
                     stream_thread = -1;
@@ -538,6 +537,7 @@ function train() {
         if (generation > max_generations || analysis[1] >= score_goal) {
             clearInterval(interval);
             closeThreads();
+            console.log("Training complete");
         }
         packet.statistics = statistics;
         packet.histograms = histograms;

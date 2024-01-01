@@ -206,6 +206,7 @@ loop();
 
 socket.on("data", (packet) => {
     data = packet;
+    generation = Math.min(generation, data.generation);
     if ((auto_progression || previous_packet_generation == -1) && previous_packet_generation != data.generation) {
         generation = data.generation;
     }
