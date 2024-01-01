@@ -1,11 +1,12 @@
 //Loads external dependencies
 const { parentPort } = require("worker_threads");
-const { Vector, Rect, Polygon, randomInRange, wrap, solveQuadratic } = require("./math.js");
+const { Vector, Rect, Polygon, Circle, randomInRange, wrap, solveQuadratic } = require("./math.js");
 let thread_id = null;
 const seedrandom = require("seedrandom");
 
 //Holds the seeded random number generator
 let random = null;
+let random_s = null;
 
 //Constants required to make the canvas game compatible with this Node.js tester
 const canvas_bounds = {
@@ -51,51 +52,10 @@ const ship_configuration = {
     invincibility_flash_rate: 0.1
 };
 const asteroid_configurations = {
-    shapes: [
-        new Polygon([
-            [ -0.1, 0 ],
-            [ 0.75, 0 ],
-            [ 1.5, 0.4 ],
-            [ 1.2, 1 ],
-            [ 1.5, 1.6 ],
-            [ 1, 2.1 ],
-            [ 0.45, 1.6 ],
-            [ -0.1, 2.1 ],
-            [ -0.7, 1.6 ],
-            [ -0.7, 0.4 ]
-        ]),
-        new Polygon([
-            [ -0.25, 0 ],
-            [ 0.75, 0.3 ],
-            [ 1.15, 0 ],
-            [ 1.5, 0.5 ],
-            [ 0.6, 0.9 ],
-            [ 1.5, 1.35 ],
-            [ 1.5, 1.55 ],
-            [ 0.5, 2.1 ],
-            [ -0.25, 2.1 ],
-            [ 0, 1.5 ],
-            [ -0.7, 1.5 ],
-            [ -0.7, 0.75 ]
-        ]),
-        new Polygon([
-            [ -0.25, 0 ],
-            [ 0.1, 0.25 ],
-            [ 1, 0 ],
-            [ 1.5, 0.75 ],
-            [ 1, 1.2 ],
-            [ 1.5, 1.7 ],
-            [ 1, 2.1 ],
-            [ 0.4, 1.7 ],
-            [ -0.25, 2.1 ],
-            [ -0.75, 1.5 ],
-            [ -0.4, 0.9 ],
-            [ -0.7, 0.4 ]
-        ])
-    ],
+    radius: [ 14, 34, 53 ],
+    target: [ 5, 17.5, 25 ],
     max_rect: new Rect(0, 0, 75, 75),
     sizes: [ 10, 25, 40 ],
-    rotation_speed: [ 0, 0.02 ],
     size_speed: [ 3, 2, 1 ],
     invincibility_time: 100,
     speed_scaling: (wave) => {
@@ -106,24 +66,9 @@ const asteroid_configurations = {
         return Math.floor((wave * 2 + 2) * (canvas_bounds.width * canvas_bounds.height) / 1e6);
     }
 };
-const explosion_configuration = {
-    particle_count: 15,
-    particle_speed: [ 0, 8 ],
-    particle_life: [ 30, 60 ],
-    particle_drag_coefficient: 0.05,
-    particle_radius: [ 1, 2 ]
-};
 const saucer_configurations = {
-    shape: new Polygon([
-        [ 0.2, 0 ],
-        [ 0.6, -0.2 ],
-        [ 0.2, -0.4 ],
-        [ 0.15, -0.6 ],
-        [ -0.15, -0.6 ],
-        [ -0.2, -0.4 ],
-        [ -0.6, -0.2 ],
-        [ -0.2, 0 ]
-    ]),
+    radius: [ 27, 32 ],
+    target: [ 10, 12 ],
     sizes: [ 40, 50 ],
     speed_scaling: (wave) => {
         const last_wave = Math.max(1, wave - 1);
@@ -156,65 +101,6 @@ const point_values = {
     saucers: 0,
     extra_life: Infinity
 };
-class Particle {
-    constructor(position, velocity, drag_coefficient, radius, life) {
-        this.position = position;
-        this.velocity = velocity;
-        this.drag_coefficient = drag_coefficient;
-        this.radius = radius;
-        this.life = life;
-        this.dead = false;
-    }
-    updatePosition(delay) {
-        const initial_velocity = this.velocity.copy();
-        this.velocity.mul(1 / (Math.E ** (this.drag_coefficient * delay)));
-        this.position = Vector.div(Vector.add(Vector.mul(this.position, this.drag_coefficient), Vector.sub(initial_velocity, this.velocity)), this.drag_coefficient);
-        wrap(this.position);
-    }
-    updateLife(delay) {
-        this.life -= delay;
-        this.dead |= (this.life <= 0);
-    }
-    update(delay) {
-        this.updatePosition(delay);
-        this.updateLife(delay)
-    }
-}
-class Explosion {
-    constructor(position) {
-        this.particles = [];
-        if (!settings.remove_particles) {
-            for (let i = 0; i < explosion_configuration.particle_count; i++)
-                this.makeParticle(position);
-            this.dead = false;
-        } else this.dead = true;
-    }
-    makeParticle(position) {
-        if (settings.remove_particles)
-            return;
-        const speed = randomInRange(random, explosion_configuration.particle_speed);
-        const angle = random() * Math.PI * 2;
-        const life = randomInRange(random, explosion_configuration.particle_life);
-        const unit_vector = new Vector(Math.cos(angle), -Math.sin(angle));
-        const radius = randomInRange(random, explosion_configuration.particle_radius);
-        this.particles.push(new Particle(position, Vector.mul(unit_vector, speed), explosion_configuration.particle_drag_coefficient, radius, life));
-    }
-    update(delay) {
-        if (settings.remove_particles) {
-            this.dead = true;
-            return;
-        }
-        const new_particles = [];
-        for (let i = 0; i < this.particles.length; i++) {
-            this.particles[i].update(delay);
-            if (!this.particles[i].dead)
-                new_particles.push(this.particles[i]);
-        }
-        this.particles = new_particles;
-        if (this.particles.length == 0)
-            this.dead = true;
-    }
-}
 class Bullet {
     constructor(position, velocity, life) {
         this.position = position;
@@ -230,26 +116,25 @@ class Bullet {
         this.life -= delay;
         this.dead |= (this.life <= 0);
     }
-    checkCollision(item, explosions) {
+    checkCollision(item) {
         if (item.dead || this.dead)
             return false;
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
         const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
-                const hit = item.bounds.containsPoint(Vector.add(this.position, new Vector(horizontal[i], vertical[j])));
+                const hit = item.target.containsPoint(Vector.add(this.position, new Vector(horizontal[i], vertical[j])));
                 if (hit) {
                     this.dead = item.dead = true;
-                    explosions.push(new Explosion(item.position));
                     return true;
                 }
             }    
         }
         return false;
     }
-    checkAsteroidCollision(split_asteroids, wave, asteroid, explosions) {
+    checkAsteroidCollision(split_asteroids, wave, asteroid) {
         if (asteroid.invincibility > 0) return false;
-        const hit = this.checkCollision(asteroid, explosions)
+        const hit = this.checkCollision(asteroid)
         if (hit)
             asteroid.destroy(split_asteroids, wave);
         return hit;
@@ -387,7 +272,7 @@ class Ship {
         this.updateInvincibility(delay);
 
     }
-    checkBulletCollision(bullet, explosions) {
+    checkBulletCollision(bullet) {
         if (bullet.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
             return false;
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
@@ -397,14 +282,13 @@ class Ship {
                 const hit = this.bounds.containsPoint(Vector.add(bullet.position, new Vector(horizontal[i], vertical[j])));
                 if (hit) {
                     this.dead = bullet.dead = true;
-                    explosions.push(new Explosion(this.position));
                     return true;
                 }
             }    
         }
         return false;
     }
-    checkPolygonCollision(item, explosions) {
+    checkPolygonCollision(item) {
         if (item.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
             return false;
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
@@ -418,19 +302,17 @@ class Ship {
                 const hit = item.bounds.intersectsPolygon(shifted_bounds);
                 if (hit) {
                     this.dead = item.dead = true;
-                    explosions.push(new Explosion(item.position));
-                    explosions.push(new Explosion(this.position));
                     return true;
                 }
             }    
         }
         return false;
     }
-    checkAsteroidCollision(split_asteroids, wave, asteroid, explosions) {
-        if (asteroid.invincibility <= 0 && this.checkPolygonCollision(asteroid, explosions))
+    checkAsteroidCollision(split_asteroids, wave, asteroid) {
+        if (asteroid.invincibility <= 0 && this.checkPolygonCollision(asteroid))
             asteroid.destroy(split_asteroids, wave);
     }
-    checkSaucerCollision(saucer, explosions) {
+    checkSaucerCollision(saucer) {
         if (saucer.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
             return false;
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
@@ -446,44 +328,28 @@ class Ship {
                 const hit = saucer.bounds.intersectsPolygon(shifted_bounds);
                 if (hit) {
                     this.dead = saucer.dead = true;
-                    explosions.push(new Explosion(saucer.position));
-                    explosions.push(new Explosion(this.position));
                     return true;
                 }
             }    
         }
         return false;
     }
-
 }
 class Asteroid {
-    static analyzeAsteroidConfigurations() {
-        for (let i = 0; i < asteroid_configurations.shapes.length; i++) {
-            const rect = asteroid_configurations.shapes[i].getRect();
-            const shift = new Vector(-rect.left, -rect.top);
-            asteroid_configurations.shapes[i].translate(shift);
-        }
-    }
-    constructor(position, size, wave) {
-        const type = Math.floor(randomInRange(random, [0, 3]));
+    constructor(position, size, wave, seed) {
+        this.random = seedrandom(seed);
         this.size = size;
         if (!game.title_screen && size == 2)
             this.invincibility = asteroid_configurations.invincibility_time;
         else this.invincibility = 0;
-        this.bounds = asteroid_configurations.shapes[type].copy();
-        this.bounds.scale(asteroid_configurations.sizes[size]);
+        this.bounds = new Circle(position.copy(), asteroid_configurations.radius[this.size]);
+        this.target = new Circle(position.copy(), asteroid_configurations.target[this.size]);
         this.rect = this.bounds.getRect();
-        this.bounds.translate(new Vector(-this.rect.width / 2, -this.rect.height / 2));
         this.position = position;
-        this.bounds.translate(this.position);
-        this.angle = randomInRange(random, [0, Math.PI * 2]);
-        this.bounds.rotate(this.angle, this.position);
-        this.rotation_speed = randomInRange(random, asteroid_configurations.rotation_speed);
-        if (Math.floor(random() * 2) == 1)
-            this.rotation_speed *= -1;
+        this.angle = randomInRange(this.random, [0, Math.PI * 2]);
         const velocity_angle = random() * Math.PI * 2;
         this.velocity = new Vector(Math.cos(velocity_angle), Math.sin(velocity_angle));
-        const speed = randomInRange(random, asteroid_configurations.speed_scaling(wave));
+        const speed = randomInRange(this.random, asteroid_configurations.speed_scaling(wave));
         this.velocity.mul(asteroid_configurations.size_speed[size] * speed);
         this.dead = false;
         this.entity = 'a';
@@ -493,6 +359,7 @@ class Asteroid {
         this.position.add(Vector.mul(this.velocity, delay));
         wrap(this.position);
         this.bounds.translate(Vector.sub(this.position, old_position));
+        this.target.translate(Vector.sub(this.position, old_position));
     }
     update(delay) {
         this.updatePosition(delay);
@@ -504,50 +371,45 @@ class Asteroid {
         this.dead = true;
         if (this.size == 0)
             return;
-        const asteroid_1 = new Asteroid(this.position.copy(), this.size - 1, wave);
-        const asteroid_2 = new Asteroid(this.position.copy(), this.size - 1, wave);
+        const asteroid_1 = new Asteroid(this.position.copy(), this.size - 1, wave, this.random());
+        const asteroid_2 = new Asteroid(this.position.copy(), this.size - 1, wave, this.random());
         split_asteroids.push(asteroid_1);
         split_asteroids.push(asteroid_2);
     }
 
 }
 class Saucer {
-    static analyzeSaucerConfigurations() {
-        const rect = saucer_configurations.shape.getRect();
-        saucer_configurations.shape.translate(new Vector(-rect.left, -rect.top));
-    }
-    constructor(size, wave) {
-        this.bounds = saucer_configurations.shape.copy();
+    constructor(size, wave, seed) {
+        this.random = seedrandom(seed);
         this.size = size;
-        this.bounds.scale(saucer_configurations.sizes[this.size]);
-        this.rect = this.bounds.getRect();
-        this.bounds.translate(new Vector(-this.rect.width / 2, -this.rect.height / 2));
+        this.rect = new Rect(-saucer_configurations.radius[this.size], -saucer_configurations.radius[this.size], saucer_configurations.radius[this.size], saucer_configurations.radius[this.size]);
         this.position = new Vector();
-        this.position.y = randomInRange(random, [this.rect.height / 2, canvas_bounds.height - this.rect.height / 2]);
-        if (Math.floor(randomInRange(random, [0, 2])) == 0)
+        this.position.y = randomInRange(this.random, [this.rect.height / 2, canvas_bounds.height - this.rect.height / 2]);
+        if (Math.floor(randomInRange(this.random, [0, 2])) == 0)
             this.position.x = -this.rect.width / 2;
         else
             this.position.x = canvas_bounds.width + this.rect.width / 2;
-        this.bounds.translate(this.position);
-        this.velocity = new Vector(randomInRange(random, saucer_configurations.speed_scaling(wave)), 0);
+        this.bounds = new Circle(this.position.copy(), saucer_configurations.radius[this.size]);
+        this.target = new Circle(this.position.copy(), saucer_configurations.target[this.size]);
+        this.velocity = new Vector(randomInRange(this.random, saucer_configurations.speed_scaling(wave)), 0);
         if (this.position.x > canvas_bounds.width)
             this.velocity.x *= -1;
         this.direction_change_rate = saucer_configurations.direction_change_rate(wave);
         this.direction_change_cooldown = 1;
         this.vertical_movement = 1;
-        if (Math.floor(randomInRange(random, [0, 2])) == 0)
+        if (Math.floor(randomInRange(this.random, [0, 2])) == 0)
             this.vertical_movement = -1;
         this.entered_x = this.entered_y = false;
         this.bullet_life = saucer_configurations.bullet_life;
-        this.fire_rate = randomInRange(random, saucer_configurations.fire_rate(wave));
+        this.fire_rate = randomInRange(this.random, saucer_configurations.fire_rate(wave));
         this.bullet_cooldown = 0;
-        this.bullet_speed = randomInRange(random, saucer_configurations.bullet_speed(wave));
+        this.bullet_speed = randomInRange(this.random, saucer_configurations.bullet_speed(wave));
         this.dead = false;
         this.entity = 's';
     }
     updatePosition(delay) {
         if (this.direction_change_cooldown <= 0) {
-            if (Math.floor(randomInRange(random, [0, 2])) == 0) {
+            if (Math.floor(randomInRange(this.random, [0, 2])) == 0) {
                 let direction = this.velocity.x / Math.abs(this.velocity.x);
                 if (this.velocity.y == 0) {
                     const new_velocity = new Vector(direction, this.vertical_movement);
@@ -566,6 +428,7 @@ class Saucer {
         const old_position = this.position.copy();
         this.position.add(Vector.mul(this.velocity, delay));
         wrap(this.position, this.entered_x, this.entered_y);
+        this.target.translate(Vector.sub(this.position, old_position));
         this.bounds.translate(Vector.sub(this.position, old_position));
         this.entered_x |= (this.position.x <= canvas_bounds.width - this.rect.width / 2 && this.position.x >= this.rect.width / 2);
         this.entered_y |= (this.position.y >= this.rect.height / 2 && this.position.y <= canvas_bounds.height - this.rect.height / 2);
@@ -600,30 +463,6 @@ class Saucer {
         this.updatePosition(delay);
         this.fire(ship, saucer_bullets, delay);
     }
-    checkCollision(item, explosions) {
-        if (item.dead || this.dead)
-            return false;
-        const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
-        const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
-        let old_offset = new Vector();
-        const shifted_bounds = this.bounds.copy();
-        for (let i = 0; i < 3; i++) {
-            for (let j = 0; j < 3; j++) {
-                if ((horizontal[i] != 0 && !this.entered_x) || (vertical[i] != 0 && !this.entered_y))
-                    continue;
-                shifted_bounds.translate(Vector.sub(new Vector(horizontal[i], vertical[j]), old_offset));
-                old_offset = new Vector(horizontal[i], vertical[j]);
-                const hit = item.bounds.intersectsPolygon(shifted_bounds);
-                if (hit) {
-                    this.dead = item.dead = true;
-                    explosions.push(new Explosion(item.position));
-                    explosions.push(new Explosion(this.position));
-                    return true;
-                }
-            }    
-        }
-        return false;
-    }
 }
 class Game {
     constructor (title_screen = false) {
@@ -632,7 +471,6 @@ class Game {
         //Start at a start_wave (if you want to train starting from a future wave)
         this.wave = start_wave;
         this.asteroids = [];
-        this.explosions = [];
         this.saucers = [];
         this.saucer_bullets = [];
         this.score = 0;
@@ -656,12 +494,12 @@ class Game {
                     distance = position.dist(this.ship.position);
                 }
             }
-            this.asteroids.push(new Asteroid(position, 2, this.wave));
+            this.asteroids.push(new Asteroid(position, 2, this.wave, random()));
         }
     }
     makeSaucer(delay) {
         if (this.saucer_cooldown >= 1) {
-            this.saucers.push(new Saucer(Math.floor(randomInRange(random, [ 0, saucer_configurations.sizes.length ])), this.wave));
+            this.saucers.push(new Saucer(Math.floor(randomInRange(random_s, [ 0, saucer_configurations.radius.length ])), this.wave, random_s()));
             this.saucer_cooldown = 0;
         }
         this.saucer_cooldown = Math.min(1, this.saucer_cooldown + saucer_configurations.spawn_rate(this.wave) * delay);
@@ -706,21 +544,21 @@ class Game {
         const split_asteroids = [];
         if (!this.title_screen) {
             for (let i = 0; i < this.saucer_bullets.length; i++)
-                this.ship.checkBulletCollision(this.saucer_bullets[i], this.explosions);
+                this.ship.checkBulletCollision(this.saucer_bullets[i]);
             for (let i = 0; i < this.saucers.length; i++)
-                this.ship.checkSaucerCollision(this.saucers[i], this.explosions);
+                this.ship.checkSaucerCollision(this.saucers[i]);
             for (let i = 0; i < this.asteroids.length; i++)
-                this.ship.checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[i], this.explosions);
+                this.ship.checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[i]);
         }
         const new_ship_bullets = [];
         for (let i = 0; i < this.ship_bullets.length; i++) {
             for (let j = 0; j < this.asteroids.length; j++) {
-                const hit = this.ship_bullets[i].checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[j], this.explosions);
+                const hit = this.ship_bullets[i].checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[j]);
                 if (hit && this.ship.lives != 0)
                     this.score += point_values.asteroids;
             }
             for (let j = 0; j < this.saucers.length; j++) {
-                const hit = this.ship_bullets[i].checkCollision(this.saucers[j], this.explosions);
+                const hit = this.ship_bullets[i].checkCollision(this.saucers[j]);
                 if (hit && this.ship.lives != 0)
                     this.score += point_values.saucers;
             }
@@ -748,13 +586,6 @@ class Game {
                 new_asteroids.push(this.asteroids[i]);
         }
         this.asteroids = new_asteroids;
-        const new_explosions = [];
-        for (let i = 0; i < this.explosions.length; i++) {
-            this.explosions[i].update(delay);
-            if (!this.explosions[i].dead)
-                new_explosions.push(this.explosions[i]);
-        }
-        this.explosions = new_explosions;
         this.time += delay / 60;
         return false;
     }
@@ -840,7 +671,7 @@ function optimizeInWrap(func, cmp) {
 class AI {
     static danger_radius = [ 0, 18, 14, 34, 53, 60, 70 ];
     static pessimistic_radius = [ 14, 34, 53, 27, 32 ];
-    static target_radius = [ 5, 17.5, 25, 10, 12 ];
+    static target_radius = [ 4, 16.5, 24, 9, 11 ];
     static rotation_precision = 1;
     constructor(C) {
         this.controls = {
@@ -1173,7 +1004,6 @@ class AI {
         controls.forward = this.controls.forward;
         controls.fire = this.controls.fire;
     }
-
 }
 
 //Run a test on a specific seed and C-value
@@ -1191,6 +1021,7 @@ function test(C, trial) {
     let flee_time = 0;
     let game_time = 0;
     random = seedrandom(trial);
+    random_s = seedrandom(-trial);
     game = new Game();
     ai = new AI(C);
     let dead = false;
@@ -1236,6 +1067,7 @@ parentPort.on("message", (msg) => {
             let flee_time = 0;
             let game_time = 0;
             random = seedrandom(input[2]);
+            random_s = seedrandom(-input[2]);
             game = new Game();
             ai = new AI(input[0]);
             let dead = false;
@@ -1260,8 +1092,6 @@ parentPort.on("message", (msg) => {
             }, 1000 / stream_fps);
         }
     } else {
-        Asteroid.analyzeAsteroidConfigurations();
-        Saucer.analyzeSaucerConfigurations();
         thread_id = input[0];
         parentPort.postMessage(JSON.stringify([]));
     }

@@ -139,19 +139,32 @@ function renderWrap(position, radius, action, offset_x = true, offset_y = true) 
 
 class Debug {
 
-    //Draws the bounds/hitbox of an entity
     static drawBounds(item) {
         sctx.fillStyle = "#c86464";
         sctx.globalAlpha = 0.35;
-        sctx.beginPath();
-        sctx.moveTo(item.bounds.points[item.bounds.points.length - 1].x, item.bounds.points[item.bounds.points.length - 1].y);
-        for (let i = 0; i < item.bounds.points.length; i++)
-            sctx.lineTo(item.bounds.points[i].x, item.bounds.points[i].y);
-        sctx.fill();
+        if (item.entity == "p") {
+            sctx.beginPath();
+            sctx.moveTo(item.bounds.points[item.bounds.points.length - 1].x, item.bounds.points[item.bounds.points.length - 1].y);
+            for (let i = 0; i < item.bounds.points.length; i++)
+                sctx.lineTo(item.bounds.points[i].x, item.bounds.points[i].y);
+            sctx.fill();
+        } else {
+            sctx.beginPath();
+            sctx.arc(item.bounds.position.x, item.bounds.position.y, item.bounds.radius, 0, 2 * Math.PI);
+            sctx.fill();
+            sctx.fillStyle = "rgb(20, 20, 20)";
+            sctx.globalAlpha = 1.0;
+            sctx.beginPath();
+            sctx.arc(item.target.position.x, item.target.position.y, item.target.radius - 1, 0, 2 * Math.PI);
+            sctx.fill();
+            sctx.fillStyle = "#9cf0a3";
+            sctx.globalAlpha = 0.35;
+            sctx.beginPath();
+            sctx.arc(item.target.position.x, item.target.position.y, item.target.radius, 0, 2 * Math.PI);
+            sctx.fill();
+        }
         sctx.globalAlpha = 1.0;
     }
-    
-    //Draws the position of an entity
     static drawPosition(item) {
         sctx.fillStyle = "#7dfa7d";
         sctx.globalAlpha = 0.75;
@@ -160,8 +173,6 @@ class Debug {
         sctx.fill();
         sctx.globalAlpha = 1.0;
     }
-    
-    //Draws the velocity of an entity
     static drawVelocity(item) {
         const angle = Vector.angle(item.velocity);
         sctx.translate(item.position.x, item.position.y);
@@ -181,8 +192,6 @@ class Debug {
         sctx.resetTransform();
         sctx.globalAlpha = 1.0;
     }
-    
-    //Draws the velocity of an entity
     static drawAcceleration(item) {
         if (!item.accelerating) return;
         sctx.translate(item.position.x, item.position.y);
@@ -223,13 +232,8 @@ class ShipRenderer {
         sctx.lineTo(position.x + ship.width / 2, position.y);
         sctx.moveTo(position.x - ship.width / 2, position.y + ship.height / 2);
         sctx.lineTo(position.x + ship.width / 2, position.y);
-        sctx.moveTo(position.x - ship.width / 2 + ship.rear_offset, position.y - ship.height / 2 + (ship.height / ship.width) * ship.rear_offset - 1);
-        sctx.lineTo(position.x - ship.width / 2 + ship.rear_offset, position.y + ship.height / 2 - (ship.height / ship.width) * ship.rear_offset + 1);
-        if (ship.thruster_status >= 0.5) {
-            sctx.moveTo(position.x - ship.width / 2 + ship.rear_offset, position.y - ship.height / 2 + (ship.height / ship.width) * ship.rear_offset - 1);
-            sctx.lineTo(position.x - ship.width / 2 + ship.rear_offset - ship.trail_length, position.y);
-            sctx.lineTo(position.x - ship.width / 2 + ship.rear_offset, position.y + ship.height / 2 - (ship.height / ship.width) * ship.rear_offset + 1);
-        }
+        sctx.moveTo(position.x - ship.width / 2, position.y - ship.height / 2);
+        sctx.lineTo(position.x - ship.width / 2, position.y + ship.height / 2);
         sctx.fill();
         sctx.stroke();
         sctx.globalAlpha = 1.0;
@@ -296,9 +300,10 @@ class AsteroidRenderer {
         if (asteroid.invincibility > 0)
             sctx.globalAlpha = 0.25;
         sctx.beginPath();
-        sctx.moveTo(asteroid.bounds.points[asteroid.bounds.points.length - 1].x, asteroid.bounds.points[asteroid.bounds.points.length - 1].y);
-        for (let i = 0; i < asteroid.bounds.points.length; i++)
-            sctx.lineTo(asteroid.bounds.points[i].x, asteroid.bounds.points[i].y);
+        sctx.arc(asteroid.bounds.position.x, asteroid.bounds.position.y, asteroid.bounds.radius, 0, 2 * Math.PI);
+        sctx.stroke();
+        sctx.beginPath();
+        sctx.arc(asteroid.target.position.x, asteroid.target.position.y, asteroid.target.radius, 0, 2 * Math.PI);
         sctx.stroke();
         sctx.resetTransform();
         sctx.globalAlpha = 1;
@@ -324,14 +329,10 @@ class SaucerRenderer {
         sctx.fillStyle = "rgb(20, 20, 20)";
         sctx.lineWidth = 1.5;
         sctx.beginPath();
-        sctx.moveTo(saucer.bounds.points[saucer.bounds.points.length - 1].x, saucer.bounds.points[saucer.bounds.points.length - 1].y);
-        for (let i = 0; i < saucer.bounds.points.length; i++)
-            sctx.lineTo(saucer.bounds.points[i].x, saucer.bounds.points[i].y);
-        sctx.moveTo(saucer.bounds.points[1].x, saucer.bounds.points[1].y);
-        sctx.lineTo(saucer.bounds.points[saucer.bounds.points.length - 2].x, saucer.bounds.points[saucer.bounds.points.length - 2].y);
-        sctx.moveTo(saucer.bounds.points[2].x, saucer.bounds.points[2].y);
-        sctx.lineTo(saucer.bounds.points[saucer.bounds.points.length - 3].x, saucer.bounds.points[saucer.bounds.points.length - 3].y);
-        sctx.fill();
+        sctx.arc(saucer.bounds.position.x, saucer.bounds.position.y, saucer.bounds.radius, 0, 2 * Math.PI);
+        sctx.stroke();
+        sctx.beginPath();
+        sctx.arc(saucer.target.position.x, saucer.target.position.y, saucer.target.radius, 0, 2 * Math.PI);
         sctx.stroke();
         Debug.drawBounds(saucer);
         Debug.drawPosition(saucer);

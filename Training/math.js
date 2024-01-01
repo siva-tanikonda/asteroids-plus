@@ -162,6 +162,63 @@ class LineSegment {
         return (s1 != s2 && s3 != s4);
     }
 }
+class Circle {
+    
+    constructor(p, radius) {
+        this.position = p;
+        this.radius = radius;
+    }
+    
+    translate(v) {
+        this.position.add(v);
+    }
+
+    getRect() {
+        return new Rect(this.position.x - this.radius, this.position.y - this.radius, this.position.x + this.radius, this.position.y + this.radius);
+    }
+
+    containsPoint(v) {
+        const rect = this.getRect();
+        if (v.x < rect.left || v.x > rect.right || v.y < rect.top || v.y > rect.bottom)
+            return false;
+        const dist = Vector.sub(this.position, v);
+        return (dist.mag() <= this.radius);
+    }
+
+    intersectsLineSegment(l) {
+        const v1 = Vector.sub(l.a, this.position);
+        const v2 = Vector.sub(l.b, this.position);
+        const diff = Vector.sub(v1, v2);
+        const pr = diff.proj(v1);
+        const dist2 = v1.mag() ** 2 - pr.mag() ** 2;
+        if (dist2 ** 2 + v1.mag() ** 2 > diff.mag() ** 2 || dist2 ** 2 + v2.mag() ** 2 > diff.mag() ** 2) {
+            return false;
+        }
+        return (dist2 <= this.radius ** 2);
+    }
+
+    intersectsPolygon(p) {
+        const rect1 = p.getRect();
+        const rect2 = this.getRect();
+        if (!rect1.intersects(rect2)) {
+            return false;
+        }
+        for (let i = 0; i < p.points.length; i++) {
+            if (this.containsPoint(p.points[i])) {
+                return true;
+            }
+        }
+        for (let i = 0; i < p.points.length; i++) {
+            const j = (i + 1) % p.points.length;
+            const segment = new LineSegment(p.points[i], p.points[j]);
+            if (this.intersectsLineSegment(segment)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+}
 class Polygon {
     constructor(points) {
         this.points = [];
@@ -229,32 +286,6 @@ class Polygon {
         }
         return result;
     }
-    intersectsLineSegment(l) {
-        for (let i = 0; i < this.points.length; i++) {
-            const j = (i + 1) % this.points.length;
-            const segment = new LineSegment(this.points[i], this.points[j]);
-            if (segment.intersects(l))
-                return true;
-        }
-        return false;
-    }
-    intersectsPolygon(p) {
-        const rect1 = p.getRect();
-        const rect2 = this.getRect();
-        if (!rect1.intersects(rect2)) return false;
-        for (var i = 0; i < p.points.length; i++) {
-            if (this.containsPoint(p.points[i])) {
-                return true;
-            }
-        }
-        for (var i = 0; i < p.points.length; i++) {
-            const j = (i + 1) % p.points.length;
-            const segment = new LineSegment(p.points[i], p.points[j]);
-            if (this.intersectsLineSegment(segment))
-                return true;
-        }
-        return false;
-    }
 }
 function randomInRange(random, range) {
     return range[0] + random() * (range[1] - range[0]);
@@ -283,4 +314,4 @@ function solveQuadratic(a, b, c) {
 }
 
 //Exports necessary classes and function to other files
-module.exports = { Vector, Rect, Polygon, randomInRange, wrap, solveQuadratic };
+module.exports = { Vector, Rect, Circle, Polygon, randomInRange, wrap, solveQuadratic };

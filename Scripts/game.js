@@ -927,32 +927,6 @@ class Saucer {
         }, this.entered_x, this.entered_y);
     }
 
-    //Checks collision of a saucer with a generic object
-    checkCollision(item, explosions) {
-        if (item.dead || this.dead)
-            return false;
-        const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
-        const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
-        let old_offset = new Vector();
-        const shifted_bounds = this.bounds.copy();
-        for (let i = 0; i < 3; i++) {
-            for (let j = 0; j < 3; j++) {
-                if ((horizontal[i] != 0 && !this.entered_x) || (vertical[i] != 0 && !this.entered_y))
-                    continue;
-                shifted_bounds.translate(Vector.sub(new Vector(horizontal[i], vertical[j]), old_offset));
-                old_offset = new Vector(horizontal[i], vertical[j]);
-                const hit = item.bounds.intersectsPolygon(shifted_bounds);
-                if (hit) {
-                    this.dead = item.dead = true;
-                    explosions.push(new Explosion(item.position));
-                    explosions.push(new Explosion(this.position));
-                    return true;
-                }
-            }    
-        }
-        return false;
-    }
-
 }
 
 //Game class
