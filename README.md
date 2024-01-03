@@ -15,9 +15,13 @@ You can play the game for yourself and see the AI in action at [siva-tanikonda.g
   *You can only install seedrandom after installing Node.js*
 #### Trainer
 * First, you should alter any parameters in *asteroids-ai/Training/trainer.js*
-* Then, to run the trainer, execute the following command (in the *Training* directory)
+* Then, to run the trainer, execute the following command (in the *Training* directory):
   ```
   $ node trainer.js
+  ```
+* To monitor the progress of the training, go to:
+  ```
+  http://localhost:2000
   ```
 * To view the results of the training, you can look through the training history in the *Training/Saves* directory
 #### Evaluator
