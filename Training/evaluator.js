@@ -2,11 +2,11 @@
 const { Worker } = require("worker_threads");
 
 //C-value to evaluate
-const C = [2,10416.721464899465,59.955482045353826,1,162.7837645554929,1,0,2,147.4404565439194,1,0,1,61.50158356245864,1,0.7547305135947239,1,0.4900607858353643,2,0.15811573150106836,2,0.8175042324545903,1,0.20393212081150042,1,0.3240621294161336,1,58,100,93,0.5855806545991619];
+const C = [2,1291.145791273453,32.23526585564162,1,111.09537111091456,1,94.3496383832352,1,0.14892791990652504,2,0,2,0,2,0.45032563356067007,1,0.274957150858413,2,0.21534787885974632,1,1.339729100705285,1,0.033932958332917984,2,0.90315100413843,2,0,100,79,0];
 
 //Settings for the evaluator
 const thread_count = 8;
-const trial_count = 100;
+const trial_count = 1000;
 const score_weight = 1;
 const time_weight = 0;
 const flee_time_weight = 0;
@@ -25,7 +25,7 @@ const threads = [];
 
 //Calculates the fitness of the AI
 function calculateFitness(score, time, flee_time) {
-    return score_weight * score + time * time_weight + flee_time * flee_time_weight;
+    return Math.max(0, score_weight * score + time * time_weight + flee_time * flee_time_weight);
 }
 
 //Analyzes the results of all trials
@@ -112,13 +112,10 @@ function evaluate() {
     testing_progress = 0;
     trial = 1;
     const interval = setInterval(() => {
-        if (used_threads_count == thread_count) {
-            return;
-        }
         if (trial <= trial_count) { //Sends trials to threads to evaluate
             for (let i = 0; i < thread_count; i++) {
                 if (!used_threads[i]) {
-                    sendMessage(i, JSON.stringify([ C, trial, seed + trial ]));
+                    sendMessage(i, JSON.stringify([ C, trial, seed + trial, -1 ]));
                     trial++;
                     break;
                 }
