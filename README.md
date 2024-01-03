@@ -20,7 +20,7 @@ You can play the game for yourself and see the observe the final AI at [siva-tan
   ```
   *You can only install socket.io after installing Node.js*
 #### Trainer
-* First, you should alter any parameters in *asteroids-ai/Training/trainer.js*
+* First, you should alter any parameters you want to in *asteroids-ai/Training/trainer.js*
 * Then, to run the trainer, execute the following command (in the *Training* directory):
   ```
   $ node trainer.js
