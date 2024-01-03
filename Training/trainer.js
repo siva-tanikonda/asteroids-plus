@@ -19,7 +19,7 @@ server.listen(port, () => {
 });
 
 //Create a random number generator for predictable results on the genetic algorithm
-const sd = 2000;
+const sd = 9999;
 let random = new seedrandom(sd);
 
 //Ranges that each constant can be when training the AI ([ left_bound, right_bound, onlyInteger ])
@@ -116,22 +116,22 @@ const individuals_carry_size = 500;
 const inclusion_threshold = 0;
 const inclusion_limit = 3;
 const progression_leeway = 3;
-const max_generations = 150;
+const max_generations = 200;
 const score_goal = Infinity;
 const trial_count = 3;
 const time_weight = 0;
 const score_weight = 1;
 const flee_time_weight = 0;
 const mutation_rate = 1 / 29;
-const mutation_std = 0.1;
+const mutation_std = 0.001;
 const shift_rate = 1 / (29 * 3);
-const shift_std = 0.1;
+const shift_std = 0.001;
 const partition_exponentiator = Math.E;
 const interval_wait = 1000 / 60;
 const histogram_count = 10;
 const exploration_multiplier = 3;
 const exploration_threshold = 3;
-const save_index = 3;
+const save_index = 1;
 const start_from_save = true;
 
 //Multithreading/testing info
@@ -177,10 +177,14 @@ function fillC(C_small) {
     let C = new Array(C_range.length);
     for (let i = 0; i < C_range.length; i++) {
         if (C_small.length <= i) {
-            if (C_default[i] == null)
+            if (C_default[i] == null) {
                 C[i] = C_range[i][0] + random() * (C_range[i][1] - C_range[i][0]);
-            else C[i] = C_default[i];
-        } else C[i] = C_small[i];
+            } else {
+                C[i] = C_default[i];
+            }
+        } else {
+            C[i] = C_small[i];
+        }
     }
     return C;
 }
@@ -189,9 +193,11 @@ function fillC(C_small) {
 function createFirstGenerationC() {
     let C = new Array(C_range.length);
     for (let i = 0; i < C_range.length; i++) {
-        if (C_default[i] == null)
+        if (C_default[i] == null) {
             C[i] = C_range[i][0] + random() * (C_range[i][1] - C_range[i][0]);
-        else C[i] = C_default[i];
+        } else {
+            C[i] = C_default[i];
+        }
     }
     return C;
 }
@@ -218,8 +224,9 @@ function createFirstGeneration() {
             generation = max_previous_generation + 1;
             const previous_generation_data = eval(fs.readFileSync("./Saves/Save" + save_index + "/Generations/generation" + max_previous_generation + ".json", "utf-8"));
             const previous_generation_results = previous_generation_data[2];
-            for (let i = 0; i < previous_generation_results.length; i++)
+            for (let i = 0; i < previous_generation_results.length; i++) {
                 previous_generation_results[i][1] = fillC(previous_generation_results[i][1]);
+            }
             seed = previous_generation_data[0];
             trial = 1;
             max_fitness_mean = previous_generation_data[1];
@@ -244,8 +251,9 @@ function createFirstGeneration() {
     individual = 1;
     generation = 1;
     const Cs = [];
-    for (let i = 0; i < generation_size; i++)
+    for (let i = 0; i < generation_size; i++) {
         Cs.push(createFirstGenerationC());
+    }
     return Cs;
 }
 
@@ -254,15 +262,20 @@ function analyzeGenerationResults(results) {
     const analysis = [ 0, 0, 0, 0, 0 ];
     //Calculate Median fitness
     results.sort((a, b) => { return a[0] - b[0] });
-    if (results.length % 2) analysis[0] = results[Math.floor(results.length / 2)][0];
-    else analysis[0] = (results[results.length / 2][0] + results[results.length / 2 - 1][0]) / 2;
+    if (results.length % 2) {
+        analysis[0] = results[Math.floor(results.length / 2)][0];
+    } else {
+        analysis[0] = (results[results.length / 2][0] + results[results.length / 2 - 1][0]) / 2;
+    }
     //Calculate Mean fitness
-    for (let i = 0; i < results.length; i++)
+    for (let i = 0; i < results.length; i++) {
         analysis[1] += results[i][0];
+    }
     analysis[1] /= results.length;
     //Calculate STD fitness
-    for (let i = 0; i < results.length; i++)
+    for (let i = 0; i < results.length; i++) {
         analysis[2] += (results[i][0] - analysis[1]) ** 2;
+    }
     analysis[2] = Math.sqrt(analysis[2] / results.length);
     //Calculate Min/Max fitness
     analysis[3] = results[0][0];
@@ -291,12 +304,15 @@ function createGenerationHistogram(results) {
 
 //Open save files
 function openSaveFiles() {
-    if (!fs.existsSync("./Saves"))
+    if (!fs.existsSync("./Saves")) {
         fs.mkdirSync("./Saves");
-    if (!fs.existsSync("./Saves/Save" + save_index))
+    }
+    if (!fs.existsSync("./Saves/Save" + save_index)) {
         fs.mkdirSync("./Saves/Save" + save_index);
-    if (!fs.existsSync("./Saves/Save" + save_index + "/Generations"))
+    }
+    if (!fs.existsSync("./Saves/Save" + save_index + "/Generations")) {
         fs.mkdirSync("./Saves/Save" + save_index + "/Generations");
+    }
     if (!start_from_save) {
         fs.rmSync("./Saves/Save" + save_index + "/Generations", { recursive: true });
         fs.mkdirSync("./Saves/Save" + save_index + "/Generations");
@@ -330,7 +346,9 @@ function createGeneration(results, analysis) {
     //Carry-over some of the C-values
     const Cs = [];
     for (let i = 0; i < individuals_carry_size; i++) {
-        if (partition[i][0] < inclusion_threshold) break;
+        if (partition[i][0] < inclusion_threshold) {
+            break;
+        }
         if (carry_scores) {
             fitness[i] = partition[i][1];
             individuals_carried = i + 1;
@@ -346,7 +364,9 @@ function createGeneration(results, analysis) {
     //Normalize the inputs
     let partition_sum = 0;
     for (let i = 0; i < partition.length; i++) {
-        if (partition[i][0] < inclusion_threshold) break;
+        if (partition[i][0] < inclusion_threshold) {
+            break;
+        }
         partition_sum += exponentiator ** Math.min(partition[i][0], inclusion_limit);
     }
     if (partition_sum == 0) {
@@ -391,9 +411,13 @@ function createGeneration(results, analysis) {
             const r = C_genes[j][1];
             //Choose which parent to pick the gene from and copy it
             rng = random();
-            for (let k = l; k <= r; k++)
-                if (rng < margin) C[k] = partition[id1][2][k];
-                else C[k] = partition[id2][2][k];
+            for (let k = l; k <= r; k++) {
+                if (rng < margin) {
+                    C[k] = partition[id1][2][k];
+                } else {
+                    C[k] = partition[id2][2][k];
+                }
+            }
             //Mutate the individual multiplicatively
             if (random() < mutation_rate * mutation_multiplier) {
                 for (let k = l; k <= r; k++) {
@@ -420,7 +444,9 @@ function createGeneration(results, analysis) {
 
 //Sends a message to a thread
 function sendMessage(id, msg) {
-    if (used_threads[id]) return;
+    if (used_threads[id]) {
+        return;
+    }
     used_threads_count++;
     used_threads[id] = true;
     threads[id].postMessage(msg);
@@ -458,8 +484,9 @@ function createThreads() {
 
 //Closes all the tester threads
 function closeThreads() {
-    for (let i = 0; i < thread_count; i++)
+    for (let i = 0; i < thread_count; i++) {
         threads[i].postMessage("exit");
+    }
 }
 
 //Rounds a C-value
@@ -467,8 +494,9 @@ function roundC(C) {
     const C_rounded = [];
     for (let i = 0; i < C_range.length; i++) {
         C_rounded.push(C[i]);
-        if (C_range[i][2] == 1)
+        if (C_range[i][2] == 1) {
             C_rounded[i] = Math.round(C_rounded[i]);
+        }
     }
     return C_rounded;
 }
@@ -490,7 +518,9 @@ function train() {
         };
         if (generation <= max_generations && individual <= generation_size) {
             //If currently testing something, then wait for next interval-step
-            if (used_threads_count == thread_count) return;
+            if (used_threads_count == thread_count) {
+                return;
+            }
             for (let j = 0; j < thread_count; j++)
                 if (!used_threads[j]) {
                     if (streaming && stream_thread == -1 && Math.random() >= 0.5) {
@@ -502,7 +532,9 @@ function train() {
                     if (trial == trial_count) {
                         individual++;
                         trial = 1;
-                    } else trial++;
+                    } else {
+                        trial++;
+                    }
                     break;
                 }
             //Calculate testing progress
@@ -511,8 +543,9 @@ function train() {
         } else if (testing_progress == generation_size * trial_count) {
             //If testing is done, compile and analyze the results and then finally create the new generation
             results = [];
-            for (let i = 0; i < Cs.length; i++)
+            for (let i = 0; i < Cs.length; i++) {
                 results.push([ fitness[i], Cs[i] ]);
+            }
             analysis = analyzeGenerationResults(results);
             statistics.push(analysis);
             histograms.push(createGenerationHistogram(results));

@@ -11,7 +11,9 @@ class Vector {
     }
     normalize() {
         const len = this.mag();
-        if (len == 0) return;
+        if (len == 0) {
+            return;
+        }
         this.x /= len;
         this.y /= len;
     }
@@ -44,18 +46,24 @@ class Vector {
     }
     angle() {
         let angle = Math.atan2(this.y, this.x);
-        while (angle < 0) angle += Math.PI * 2;
+        while (angle < 0) {
+            angle += Math.PI * 2;
+        }
         return angle;
     }
     dist(v) {
         return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2);
     }
     comp(v) {
-        if (this.mag() == 0) return 0;
+        if (this.mag() == 0) {
+            return 0;
+        }
         return this.dot(v);
     }
     proj(v) {
-        if (this.mag() == 0) return new Vector();
+        if (this.mag() == 0) {
+            return new Vector();
+        }
         return Vector.mul(Vector.div(this, this.mag()), this.comp(v));
     }
     static copy(v) {
@@ -66,7 +74,9 @@ class Vector {
     }
     static normalize(v) {
         const len = v.mag();
-        if (len == 0) return v.copy();
+        if (len == 0) {
+            return v.copy();
+        }
         return new Vector(v.x / len, v.y / len);
     }
     static add(u, v) {
@@ -94,47 +104,61 @@ class Vector {
     }
     static angle(v) {
         let angle = Math.atan2(v.y, v.x);
-        while (angle < 0) angle += Math.PI * 2;
+        while (angle < 0) {
+            angle += Math.PI * 2;
+        }
         return angle;
     }
     static dist(u, v) {
         return Math.sqrt((u.x - v.x) ** 2 + (u.y - v.y) ** 2);
     }
     static comp(u, v) {
-        if (u.mag() == 0) return 0;
+        if (u.mag() == 0) {
+            return 0;
+        }
         return u.dot(v);
     }
     static proj(u, v) {
-        if (u.mag() == 0) return Vector();
+        if (u.mag() == 0) {
+            return Vector();
+        }
         return Vector.mul(Vector.div(u, u.mag()), u.comp(v));
     }
     static side(u, v, w) {
         const uv = Vector.sub(v, u);
         const vw = Vector.sub(w, v);
-        if (uv.cross(vw) > 0)
+        if (uv.cross(vw) > 0) {
             return -1;
-        else if (uv.cross(vw) < 0)
+        } else if (uv.cross(vw) < 0) {
             return 1;
-        else
+        } else {
             return 0;
+        }
     }
 }
 
 function renderWrap(position, radius, action, offset_x = true, offset_y = true) {
     const horizontal = [ 0 ];
     const vertical = [ 0 ];
-    if (position.x + radius >= stream.width)
+    if (position.x + radius >= stream.width) {
         horizontal.push(-stream.width);
-    if (position.x - radius <= 0)
+    }
+    if (position.x - radius <= 0) {
         horizontal.push(stream.width);
-    if (position.y + radius >= stream.height)
+    }
+    if (position.y + radius >= stream.height) {
         vertical.push(-stream.height);
-    if (position.y - radius <= 0)
+    }
+    if (position.y - radius <= 0) {
         vertical.push(stream.height);
-    for (let i = 0; i < horizontal.length; i++)
-        for (let j = 0; j < vertical.length; j++)
-            if ((horizontal[i] == 0 || offset_x) && (vertical[i] == 0 || offset_y))
+    }
+    for (let i = 0; i < horizontal.length; i++) {
+        for (let j = 0; j < vertical.length; j++) {
+            if ((horizontal[i] == 0 || offset_x) && (vertical[i] == 0 || offset_y)) {
                 action(new Vector(horizontal[i], vertical[j]));
+            }
+        }
+    }
 }
 
 class Debug {
@@ -145,8 +169,9 @@ class Debug {
         if (item.entity == "p") {
             sctx.beginPath();
             sctx.moveTo(item.bounds.points[item.bounds.points.length - 1].x, item.bounds.points[item.bounds.points.length - 1].y);
-            for (let i = 0; i < item.bounds.points.length; i++)
+            for (let i = 0; i < item.bounds.points.length; i++) {
                 sctx.lineTo(item.bounds.points[i].x, item.bounds.points[i].y);
+            }
             sctx.fill();
         } else {
             sctx.beginPath();
@@ -193,7 +218,9 @@ class Debug {
         sctx.globalAlpha = 1.0;
     }
     static drawAcceleration(item) {
-        if (!item.accelerating) return;
+        if (!item.accelerating) {
+            return;
+        }
         sctx.translate(item.position.x, item.position.y);
         sctx.rotate(-item.angle);
         sctx.translate(-item.position.x, -item.position.y);
@@ -217,8 +244,9 @@ class Debug {
 class ShipRenderer {
 
     static drawShip(ship, offset, position, alpha = 1.0) {
-        if (ship.invincibility > 0 && ship.invincibility_flash < 0.5)
+        if (ship.invincibility > 0 && ship.invincibility_flash < 0.5) {
             return;
+        }
         sctx.strokeStyle = "white";
         sctx.fillStyle = "rgb(20, 20, 20)";
         sctx.globalAlpha = alpha;
@@ -247,9 +275,9 @@ class ShipRenderer {
     }
 
     static drawWrapBeforeTeleportation(ship, offset) {
-        if (ship.teleport_buffer == 0)
+        if (ship.teleport_buffer == 0) {
             ShipRenderer.drawShip(ship, offset, ship.position);
-        else {
+        } else {
             ShipRenderer.drawShip(ship, offset, ship.position, 1.0 - ship.teleport_buffer);
         }
     }
@@ -259,14 +287,17 @@ class ShipRenderer {
     }
 
     static draw(ship) {
-        if (ship.dead) return;
+        if (ship.dead) {
+            return;
+        }
         renderWrap(ship.position, ship.width / 2, (offset) => {
             ShipRenderer.drawWrapBeforeTeleportation(ship, offset);
         });
-        if (ship.teleport_buffer != 0)
+        if (ship.teleport_buffer != 0) {
             renderWrap(ship.position, ship.width / 2, (offset) => {
                 ShipRenderer.drawWrapAfterTeleportation(ship, offset);
             });
+        }
     }
 
 }
@@ -297,8 +328,9 @@ class AsteroidRenderer {
         sctx.translate(offset.x, offset.y);
         sctx.strokeStyle = "white";
         sctx.lineWidth = 1.5;
-        if (asteroid.invincibility > 0)
+        if (asteroid.invincibility > 0) {
             sctx.globalAlpha = 0.25;
+        }
         sctx.beginPath();
         sctx.arc(asteroid.bounds.position.x, asteroid.bounds.position.y, asteroid.bounds.radius, 0, 2 * Math.PI);
         sctx.stroke();

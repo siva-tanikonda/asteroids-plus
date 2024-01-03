@@ -9,19 +9,27 @@
         <canvas id="canvas" width="750" height="576">Your Web Browser Doesn't Support HTML5 Canvas</canvas>
         <canvas id="stream" width="900" height="900">Your Web Browser Doesn't Support HTML5 Canvas</canvas>
         
+        <!-- Navigation bar to switch generations and toggle settings -->
         <div id="navigation-bar">
+
+            <!-- Generation switching buttons-->
             <button class="button" id="left-button" onclick="updateGeneration(-1);">&lt;</button>
             <button class="button" id="right-button" onclick="updateGeneration(1);">&gt;</button>
+
+            <!-- Auto-progress generations tags-->
             <div id="auto-container">
                 <input type="checkbox" id="auto-checkbox" onclick="toggleAutoProgression();">
                 <h3 id="auto-header">&nbsp Auto-Progression</h3>
             </div>
+
+            <!-- Enable stream tags -->
             <div id="stream-container">
                 <input type="checkbox" id="stream-checkbox" onclick="toggleStream();">
                 <h3 id="stream-header">&nbsp Enable Stream</h3>
             </div>
-        </div>
 
+        </div>
+        
         <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
         <script src="Scripts/stream.js"></script>
         <script src="Scripts/main.js"></script>

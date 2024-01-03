@@ -33,15 +33,20 @@ function analyzeResults(results) {
     const analysis = [ 0, 0, 0, 0, 0 ];
     //Calculate Median fitness
     results.sort((a, b) => { return a - b });
-    if (results.length % 2) analysis[0] = results[Math.floor(results.length / 2)];
-    else analysis[0] = (results[results.length / 2] + results[results.length / 2 - 1]) / 2;
+    if (results.length % 2) {
+        analysis[0] = results[Math.floor(results.length / 2)];
+    } else {
+        analysis[0] = (results[results.length / 2] + results[results.length / 2 - 1]) / 2;
+    }
     //Calculate Mean fitness
-    for (let i = 0; i < results.length; i++)
+    for (let i = 0; i < results.length; i++) {
         analysis[1] += results[i];
+    }
     analysis[1] /= results.length;
     //Calculate STD fitness
-    for (let i = 0; i < results.length; i++)
+    for (let i = 0; i < results.length; i++) {
         analysis[2] += (results[i] - analysis[1]) ** 2;
+    }
     analysis[2] = Math.sqrt(analysis[2] / results.length);
     //Calculate Min/Max fitness
     analysis[3] = results[0];
@@ -52,8 +57,9 @@ function analyzeResults(results) {
 //Prints an analysis of the trials
 function printAnalysis(analysis) {
     let text = "Median Fitness - " + analysis[0];
-    while (text.length < max_display_text_length)
+    while (text.length < max_display_text_length) {
         text += " ";
+    }
     console.log(text);
     console.log("Mean Fitness - " + analysis[1]);
     console.log("STD Fitness - " + analysis[2]);
@@ -63,7 +69,9 @@ function printAnalysis(analysis) {
 
 //Sends a message to another thread
 function sendMessage(id, msg) {
-    if (used_threads[id]) return;
+    if (used_threads[id]) {
+        return;
+    }
     used_threads_count++;
     used_threads[id] = true;
     threads[id].postMessage(msg);
@@ -91,8 +99,9 @@ function createThreads() {
 //Closes the threads
 function closeThreads() {
     console.log("Closing Threads...");
-    for (let i = 0; i < thread_count; i++)
+    for (let i = 0; i < thread_count; i++) {
         threads[i].postMessage("exit");
+    }
 }
 
 //Evaluation function
@@ -103,20 +112,24 @@ function evaluate() {
     testing_progress = 0;
     trial = 1;
     const interval = setInterval(() => {
-        if (used_threads_count == thread_count) return;
+        if (used_threads_count == thread_count) {
+            return;
+        }
         if (trial <= trial_count) { //Sends trials to threads to evaluate
-            for (let i = 0; i < thread_count; i++)
+            for (let i = 0; i < thread_count; i++) {
                 if (!used_threads[i]) {
                     sendMessage(i, JSON.stringify([ C, trial, seed + trial ]));
                     trial++;
                     break;
                 }
+            }
             const progress = testing_progress / trial_count;
             const bars = "#".repeat(Math.floor(progress * progress_bar_length));
             const blanks = "-".repeat(progress_bar_length - bars.length);
             let text = "Progress: [" + bars + blanks + "] -> " + (progress * 100).toFixed(1) + "%";
-            while (text.length < max_display_text_length)
+            while (text.length < max_display_text_length) {
                 text += " ";
+            }
             process.stdout.write(text + "\r");
         } else if (testing_progress == trial_count) { //Analyzes results when all trial outcomes are in
             analysis = analyzeResults(fitness);

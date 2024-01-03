@@ -117,8 +117,9 @@ class Bullet {
         this.dead |= (this.life <= 0);
     }
     checkCollision(item) {
-        if (item.dead || this.dead)
+        if (item.dead || this.dead) {
             return false;
+        }
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
         const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         for (let i = 0; i < 3; i++) {
@@ -133,10 +134,13 @@ class Bullet {
         return false;
     }
     checkAsteroidCollision(split_asteroids, wave, asteroid) {
-        if (asteroid.invincibility > 0) return false;
+        if (asteroid.invincibility > 0) {
+            return false;
+        }
         const hit = this.checkCollision(asteroid)
-        if (hit)
+        if (hit) {
             asteroid.destroy(split_asteroids, wave);
+        }
         return hit;
     }
 }
@@ -198,11 +202,19 @@ class Ship {
     }
     rotate(delay) {
         const old_angle = this.angle;
-        if (controls.left) this.angle += delay * this.rotation_speed;
-        if (controls.right) this.angle -= delay * this.rotation_speed;
+        if (controls.left) {
+            this.angle += delay * this.rotation_speed;
+        }
+        if (controls.right) {
+            this.angle -= delay * this.rotation_speed;
+        }
         this.bounds.rotate(this.angle - old_angle, this.position);
-        while (this.angle >= Math.PI * 2) this.angle -= Math.PI * 2;
-        while (this.angle < 0) this.angle += Math.PI * 2;
+        while (this.angle >= Math.PI * 2) {
+            this.angle -= Math.PI * 2;
+        }
+        while (this.angle < 0) {
+            this.angle += Math.PI * 2;
+        }
     }
     move(delay) {
         const direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
@@ -210,8 +222,9 @@ class Ship {
             direction.mul(this.acceleration);
             this.velocity.add(Vector.mul(direction, delay));
             this.thruster_status += this.thruster_flash_rate * delay;
-            while (this.thruster_status >= 1)
+            while (this.thruster_status >= 1) {
                 this.thruster_status--;
+            }
             this.accelerating = true;
         }
         else {
@@ -253,15 +266,19 @@ class Ship {
     updateInvincibility(delay) {
         if (this.invincibility > 0) {
             this.invincibility_flash += this.invincibility_flash_rate * delay;
-            while (this.invincibility_flash >= 1)
+            while (this.invincibility_flash >= 1) {
                 this.invincibility_flash--;
+            }
         }
         this.invincibility = Math.max(0, this.invincibility - delay);
     }
     update(delay, ship_bullets) {
-        if (this.dead && this.lives > 0)
+        if (this.dead && this.lives > 0) {
             this.reviveShip();
-        if (this.dead) return;
+        }
+        if (this.dead) {
+            return;
+        }
         this.rotate(delay);
         const old_position = this.position.copy();
         this.move(delay);
@@ -273,8 +290,9 @@ class Ship {
 
     }
     checkBulletCollision(bullet) {
-        if (bullet.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
+        if (bullet.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0) {
             return false;
+        }
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
         const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         for (let i = 0; i < 3; i++) {
@@ -289,8 +307,9 @@ class Ship {
         return false;
     }
     checkPolygonCollision(item) {
-        if (item.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
+        if (item.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0) {
             return false;
+        }
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
         const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         let old_offset = new Vector();
@@ -309,20 +328,23 @@ class Ship {
         return false;
     }
     checkAsteroidCollision(split_asteroids, wave, asteroid) {
-        if (asteroid.invincibility <= 0 && this.checkPolygonCollision(asteroid))
+        if (asteroid.invincibility <= 0 && this.checkPolygonCollision(asteroid)) {
             asteroid.destroy(split_asteroids, wave);
+        }
     }
     checkSaucerCollision(saucer) {
-        if (saucer.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0)
+        if (saucer.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0) {
             return false;
+        }
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
         const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         let old_offset = new Vector();
         const shifted_bounds = this.bounds.copy();
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
-                if ((horizontal[i] != 0 && !saucer.entered_x) || (vertical[i] != 0 && !saucer.entered_y))
+                if ((horizontal[i] != 0 && !saucer.entered_x) || (vertical[i] != 0 && !saucer.entered_y)) {
                     continue;
+                }
                 shifted_bounds.translate(Vector.sub(new Vector(horizontal[i], vertical[j]), old_offset));
                 old_offset = new Vector(horizontal[i], vertical[j]);
                 const hit = saucer.bounds.intersectsPolygon(shifted_bounds);
@@ -339,9 +361,11 @@ class Asteroid {
     constructor(position, size, wave, seed) {
         this.random = seedrandom(seed);
         this.size = size;
-        if (!game.title_screen && size == 2)
+        if (!game.title_screen && size == 2) {
             this.invincibility = asteroid_configurations.invincibility_time;
-        else this.invincibility = 0;
+        } else {
+            this.invincibility = 0;
+        }
         this.bounds = new Circle(position.copy(), asteroid_configurations.radius[this.size]);
         this.target = new Circle(position.copy(), asteroid_configurations.target[this.size]);
         this.rect = this.bounds.getRect();
@@ -364,13 +388,15 @@ class Asteroid {
     update(delay) {
         this.updatePosition(delay);
         this.rect = this.bounds.getRect();
-        if (this.invincibility > 0)
+        if (this.invincibility > 0) {
             this.invincibility -= delay;
+        }
     }
     destroy(split_asteroids, wave) {
         this.dead = true;
-        if (this.size == 0)
+        if (this.size == 0) {
             return;
+        }
         const asteroid_1 = new Asteroid(this.position.copy(), this.size - 1, wave, this.random());
         const asteroid_2 = new Asteroid(this.position.copy(), this.size - 1, wave, this.random());
         split_asteroids.push(asteroid_1);
@@ -385,20 +411,23 @@ class Saucer {
         this.rect = new Rect(-saucer_configurations.radius[this.size], -saucer_configurations.radius[this.size], saucer_configurations.radius[this.size], saucer_configurations.radius[this.size]);
         this.position = new Vector();
         this.position.y = randomInRange(this.random, [this.rect.height / 2, canvas_bounds.height - this.rect.height / 2]);
-        if (Math.floor(randomInRange(this.random, [0, 2])) == 0)
+        if (Math.floor(randomInRange(this.random, [0, 2])) == 0) {
             this.position.x = -this.rect.width / 2;
-        else
+        } else {
             this.position.x = canvas_bounds.width + this.rect.width / 2;
+        }
         this.bounds = new Circle(this.position.copy(), saucer_configurations.radius[this.size]);
         this.target = new Circle(this.position.copy(), saucer_configurations.target[this.size]);
         this.velocity = new Vector(randomInRange(this.random, saucer_configurations.speed_scaling(wave)), 0);
-        if (this.position.x > canvas_bounds.width)
+        if (this.position.x > canvas_bounds.width) {
             this.velocity.x *= -1;
+        }
         this.direction_change_rate = saucer_configurations.direction_change_rate(wave);
         this.direction_change_cooldown = 1;
         this.vertical_movement = 1;
-        if (Math.floor(randomInRange(this.random, [0, 2])) == 0)
+        if (Math.floor(randomInRange(this.random, [0, 2])) == 0) {
             this.vertical_movement = -1;
+        }
         this.entered_x = this.entered_y = false;
         this.bullet_life = saucer_configurations.bullet_life;
         this.fire_rate = randomInRange(this.random, saucer_configurations.fire_rate(wave));
@@ -437,7 +466,7 @@ class Saucer {
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
         const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         let best = Vector.sub(ship.position, this.position);
-        for (let i = 0; i < 3; i++)
+        for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
                 if (i == 0 && j == 0) continue;
                 const shifted_position = Vector.add(this.position, new Vector(horizontal[i], vertical[j]));
@@ -445,6 +474,7 @@ class Saucer {
                 if (choice.mag() < best.mag())
                     best = choice;
             }
+        }
         return best;
     }
     fire(ship, saucer_bullets, delay) {
@@ -505,85 +535,106 @@ class Game {
         this.saucer_cooldown = Math.min(1, this.saucer_cooldown + saucer_configurations.spawn_rate(this.wave) * delay);
     }
     update(delay) {
-        if (!this.title_screen && !(this.ship.dead && this.ship.lives <= 0) && !this.paused && controls.pause && !this.old_pause)
+        if (!this.title_screen && !(this.ship.dead && this.ship.lives <= 0) && !this.paused && controls.pause && !this.old_pause) {
             this.paused = true;
-        else if (this.paused && controls.pause && !this.old_pause)
+        } else if (this.paused && controls.pause && !this.old_pause) {
             this.paused = false;
+        }
         if (this.title_screen || (this.ship.dead && this.ship.lives <= 0) || this.paused) {
             this.title_flash += this.title_flash_rate * delay;
-            while (this.title_flash >= 1)
+            while (this.title_flash >= 1) {
                 this.title_flash--;
+            }
             if (!this.paused) {
-                if (!this.ship.dead)
+                if (!this.ship.dead) {
                     this.title_screen = false;
+                }
                 return true;
             }
         }
         this.old_pause = controls.pause;
-        if (this.paused) return;
+        if (this.paused) {
+            return;
+        }
         if (this.asteroids.length == 0) {
             this.wave++;
             this.makeAsteroids();
         }
-        if (!this.title_screen && this.saucers.length == 0)
+        if (!this.title_screen && this.saucers.length == 0) {
             this.makeSaucer(delay);
+        }
         if (this.score >= (1 + this.extra_lives) * point_values.extra_life && this.ship.lives != 0) {
             this.ship.lives++;
             this.extra_lives++;
         }
-        if (!this.title_screen)
+        if (!this.title_screen) {
             this.ship.update(delay, this.ship_bullets);
-        for (let i = 0; i < this.ship_bullets.length; i++)
+        }
+        for (let i = 0; i < this.ship_bullets.length; i++) {
             this.ship_bullets[i].update(delay);
-        for (let i = 0; i < this.asteroids.length; i++)
+        }
+        for (let i = 0; i < this.asteroids.length; i++) {
             this.asteroids[i].update(delay);
-        for (let i = 0; i < this.saucers.length; i++)
+        }
+        for (let i = 0; i < this.saucers.length; i++) {
             this.saucers[i].update(this.ship, this.saucer_bullets, delay);
-        for (let i = 0; i < this.saucer_bullets.length; i++)
+        }
+        for (let i = 0; i < this.saucer_bullets.length; i++) {
             this.saucer_bullets[i].update(delay);
+        }
         const split_asteroids = [];
         if (!this.title_screen) {
-            for (let i = 0; i < this.saucer_bullets.length; i++)
+            for (let i = 0; i < this.saucer_bullets.length; i++) {
                 this.ship.checkBulletCollision(this.saucer_bullets[i]);
-            for (let i = 0; i < this.saucers.length; i++)
+            }
+            for (let i = 0; i < this.saucers.length; i++) {
                 this.ship.checkSaucerCollision(this.saucers[i]);
-            for (let i = 0; i < this.asteroids.length; i++)
+            }
+            for (let i = 0; i < this.asteroids.length; i++) {
                 this.ship.checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[i]);
+            }
         }
         const new_ship_bullets = [];
         for (let i = 0; i < this.ship_bullets.length; i++) {
             for (let j = 0; j < this.asteroids.length; j++) {
                 const hit = this.ship_bullets[i].checkAsteroidCollision(split_asteroids, this.wave, this.asteroids[j]);
-                if (hit && this.ship.lives != 0)
+                if (hit && this.ship.lives != 0) {
                     this.score += point_values.asteroids;
+                }
             }
             for (let j = 0; j < this.saucers.length; j++) {
                 const hit = this.ship_bullets[i].checkCollision(this.saucers[j]);
-                if (hit && this.ship.lives != 0)
+                if (hit && this.ship.lives != 0) {
                     this.score += point_values.saucers;
+                }
             }
-            if (!this.ship_bullets[i].dead)
-                new_ship_bullets.push(this.ship_bullets[i]);    
+            if (!this.ship_bullets[i].dead) {
+                new_ship_bullets.push(this.ship_bullets[i]);
+            }    
         }
         this.ship_bullets = new_ship_bullets;
         const new_saucers = [];
         for (let i = 0; i < this.saucers.length; i++) {
-            if (!this.saucers[i].dead)
+            if (!this.saucers[i].dead) {
                 new_saucers.push(this.saucers[i]);
+            }
         }
         this.saucers = new_saucers;
         const new_saucer_bullets = [];
         for (let i = 0; i < this.saucer_bullets.length; i++) {
-            if (!this.saucer_bullets[i].dead)
+            if (!this.saucer_bullets[i].dead) {
                 new_saucer_bullets.push(this.saucer_bullets[i]);
+            }
         }
         this.saucer_bullets = new_saucer_bullets;
-        for (let i = 0; i < split_asteroids.length; i++)
+        for (let i = 0; i < split_asteroids.length; i++) {
             this.asteroids.push(split_asteroids[i]);
+        }
         const new_asteroids = [];
         for (let i = 0; i < this.asteroids.length; i++) {
-            if (!this.asteroids[i].dead)
+            if (!this.asteroids[i].dead) {
                 new_asteroids.push(this.asteroids[i]);
+            }
         }
         this.asteroids = new_asteroids;
         this.time += delay / 60;
@@ -613,33 +664,44 @@ class VirtualShip {
 class Danger {
     constructor(item) {
         let size_index;
-        if (item.entity == "b") size_index = 0;
-        else if (item.entity == "p") size_index = 1;
-        else if (item.entity == "a") size_index = 2 + item.size;
-        else size_index = 5 + item.size;
+        if (item.entity == "b") {
+            size_index = 0;
+        } else if (item.entity == "p") {
+            size_index = 1;
+        } else if (item.entity == "a") {
+            size_index = 2 + item.size;
+        } else {
+            size_index = 5 + item.size;
+        }
         this.size = AI.danger_radius[size_index];
         this.position = item.position.copy();
         this.velocity = item.velocity.copy();
         this.danger_level = ai.calculateDanger(this);
         this.entity = "d";
-        if (this.danger_level >= 1)
+        if (this.danger_level >= 1) {
             ai.in_danger = true;
-        if (size_index >= 5)
+        }
+        if (size_index >= 5) {
             ai.saucer_exists = true;
+        }
     }
 }
 class Target {
     constructor(item) {
         this.position = item.position.copy();
-        if (item.entity == "a") this.size_index = item.size;
-        else this.size_index = item.size + 3;
+        if (item.entity == "a") {
+            this.size_index = item.size;
+        } else {
+            this.size_index = item.size + 3;
+        }
         this.size = AI.target_radius[this.size_index];
         this.pessimistic_size = AI.pessimistic_radius[this.size_index];
         this.velocity = item.velocity.copy();
         this.reference = item;
         this.entity = "t";
-        if (this.size_index == 0 || this.size_index == 1)
+        if (this.size_index == 0 || this.size_index == 1) {
             ai.size_groups[this.size_index]++;
+        }
     }
 }
 class Marker {
@@ -660,12 +722,14 @@ function optimizeInWrap(func, cmp) {
     const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
     const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
     let best = null;
-    for (let i = 0; i < 3; i++)
+    for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
             const value = func(new Vector(horizontal[i], vertical[j]));
-            if (cmp(best, value))
+            if (cmp(best, value)) {
                 best = value;
+            }
         }
+    }
     return best;
 }
 class AI {
@@ -720,8 +784,9 @@ class AI {
         return result;
     }
     generateVirtualEntities() {
-        if (!game.title_screen && !game.ship.dead)
+        if (!game.title_screen && !game.ship.dead) {
             this.ship = new VirtualShip(game.ship);
+        }
         this.dangers = [];
         this.targets = [];
         this.in_danger = false;
@@ -737,15 +802,18 @@ class AI {
             this.dangers.push(new Danger(game.saucers[i]));
             this.targets.push(new Target(game.saucers[i]));
         }
-        for (let i = 0; i < game.saucer_bullets.length; i++)
+        for (let i = 0; i < game.saucer_bullets.length; i++) {
             this.dangers.push(new Danger(game.saucer_bullets[i]));
+        }
         this.getFleeAndNudgeValues();
     }
     getFleeAndNudgeValues() {
         this.flee_values = [ 0, 0, 0, 0 ];
         this.nudge_values = [ 0, 0, 0, 0 ];
         for (let i = 0; i < this.dangers.length; i++) {
-            if (this.dangers[i].danger_level < 1) continue;
+            if (this.dangers[i].danger_level < 1) {
+                continue;
+            }
             const p = optimizeInWrap((offset) => {
                 return Vector.sub(Vector.add(this.ship.position, offset), this.dangers[i].position);
             }, (best, next) => {
@@ -754,17 +822,17 @@ class AI {
             p.normalize();
             p.mul(this.dangers[i].danger_level);
             p.rotate(-this.ship.angle, new Vector());
-            if (p.y < 0)
+            if (p.y < 0) {
                 this.flee_values[0] += this.C[14] * ((-p.y) ** this.C[15]);
-            else
+            } else {
                 this.flee_values[1] += this.C[14] * (p.y ** this.C[15]);
+            }
             this.nudge_values[2] += this.C[22] * (Math.abs(p.y) ** this.C[23]);
             if (p.x > 0) {
                 this.flee_values[2] += this.C[16] * (p.x ** this.C[17]);
                 this.nudge_values[0] += this.C[24] * (p.x ** this.C[25]);
                 this.nudge_values[1] += this.C[24] * (p.x ** this.C[25]);
-            }
-            else {
+            } else {
                 this.flee_values[3] += this.C[18] * ((-p.x) ** this.C[19]);
                 this.nudge_values[0] += this.C[20] * ((-p.x) ** this.C[21]);
                 this.nudge_values[1] += this.C[20] * ((-p.x) ** this.C[21]);
@@ -773,46 +841,63 @@ class AI {
     }
     manageFleeing() {
         this.crosshair = null;
-        if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1)
+        if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1) {
             this.controls.left = true;
-        if (this.flee_values[1] + this.nudge_values[1] >= 1 && this.flee_values[0] < 1)
-            this.controls.right = true;
-        if (this.controls.left && this.controls.right) {
-            if (this.flee_values[0] >= this.flee_values[1])
-                this.controls.right = false;
-            else this.controls.left = false;
         }
-        if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1)
+        if (this.flee_values[1] + this.nudge_values[1] >= 1 && this.flee_values[0] < 1) {
+            this.controls.right = true;
+        }
+        if (this.controls.left && this.controls.right) {
+            if (this.flee_values[0] >= this.flee_values[1]) {
+                this.controls.right = false;
+            } else {
+                this.controls.left = false;
+            }
+        }
+        if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1) {
             this.controls.forward = true;
+        }
         if (this.flee_values[0] >= 1 && this.flee_values[1] >= 1 && this.flee_values[3] >= 1) {
-            if (this.flee_values[0] >= this.flee_values[1])
+            if (this.flee_values[0] >= this.flee_values[1]) {
                 this.controls.left = true;
-            else this.controls.right = true;
+            } else {
+                this.controls.right = true;
+            }
         }
     }
     findCirclePointCollision(p1, v1, r1, p2, v2) {
         return optimizeInWrap((offset) => {
             p1.add(offset);
-            if (Vector.sub(p1, p2).mag() <= r1)
+            if (Vector.sub(p1, p2).mag() <= r1) {
                 return 0;
+            }
             const a = (v1.x - v2.x) ** 2 + (v1.y - v2.y) ** 2;
             const b = 2 * ((p1.x - p2.x) * (v1.x - v2.x) + (p1.y - p2.y) * (v1.y - v2.y));
             const c = (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 - r1 ** 2;
             p1.sub(offset);
             const results = solveQuadratic(a, b, c);
-            if (results.length > 0 && results[0] > 0)
+            if (results.length > 0 && results[0] > 0) {
                 return results[0];
-            else if (results.length > 1 && results[1] > 0)
+            } else if (results.length > 1 && results[1] > 0) {
                 return results[1];
+            }
         }, (best, next) => {
             return (best == null || (next != null && best > next));
         });
     }
     predictStates(step) {
-        if (this.controls.left) this.angle += step * this.ship.rotation_speed;
-        if (this.controls.right) this.angle -= step * this.ship.rotation_speed;
-        while (this.ship.angle >= Math.PI * 2) this.ship.angle -= Math.PI * 2;
-        while (this.ship.angle < 0) this.ship.angle += Math.PI * 2;
+        if (this.controls.left) {
+            this.angle += step * this.ship.rotation_speed;
+        }
+        if (this.controls.right) {
+            this.angle -= step * this.ship.rotation_speed;
+        }
+        while (this.ship.angle >= Math.PI * 2) {
+            this.ship.angle -= Math.PI * 2;
+        }
+        while (this.ship.angle < 0) {
+            this.ship.angle += Math.PI * 2;
+        }
         const ship_direction = new Vector(Math.cos(this.ship.angle), -Math.sin(this.ship.angle));
         if (this.controls.forward) {
             ship_direction.mul(this.ship.acceleration);
@@ -828,13 +913,17 @@ class AI {
         }
     }
     targetMarked(target) {
-        for (let i = 0; i < this.markers.length; i++)
-            if (Object.is(this.markers[i].reference, target.reference))
+        for (let i = 0; i < this.markers.length; i++) {
+            if (Object.is(this.markers[i].reference, target.reference)) {
                 return true;
+            }
+        }
         let not_exists = true;
-        for (let i = 0; i < this.targets.length; i++)
-            if (Object.is(this.targets[i].reference, target.reference))
+        for (let i = 0; i < this.targets.length; i++) {
+            if (Object.is(this.targets[i].reference, target.reference)) {
                 not_exists = false;
+            }
+        }
         return not_exists;
     }
     getShortestDistance(v1, v2) {
@@ -856,10 +945,15 @@ class AI {
             v2.add(this.ship.velocity);
             const v1 = target.velocity;
             let r1;
-            if (!pessimistic_size) r1 = target.size;
-            else r1 = target.pessimistic_size;
+            if (!pessimistic_size) {
+                r1 = target.size;
+            } else {
+                r1 = target.pessimistic_size;
+            }
             const result = this.findCirclePointCollision(p1, v1, r1, p2, v2);
-            if (result >= this.ship.bullet_life - 1 || (target.size > 0 && target.size < 3 && Vector.add(p1, Vector.mul(v1, result)) - target.size < this.C[26])) return null;
+            if (result >= this.ship.bullet_life - 1 || (target.size > 0 && target.size < 3 && Vector.add(p1, Vector.mul(v1, result)) - target.size < this.C[26])) {
+                return null;
+            }
             return result;
         }, (best, next) => {
             return (best == null || (next != null && best > next));
@@ -868,23 +962,38 @@ class AI {
     checkCollateralDamage(target) {
         for (let i = 0; i < this.targets.length; i++) {
             const result = this.checkBulletCollisionTime(this.targets[i], true);
-            if (result != null && !Object.is(target, this.targets[i])) return true;
+            if (result != null && !Object.is(target, this.targets[i])) {
+                return true;
+            }
         }
         return false;
     }
     checkClutterViolation(target) {
-        if (target.size_index >= 3 || target.size_index == 0) return false;
+        if (target.size_index >= 3 || target.size_index == 0) {
+            return false;
+        }
         let extra_size_groups = [ 0, 0 ];
         for (let i = 0; i < this.markers.length; i++) {
-            if (this.markers[i].reference.entity == 'a' && this.markers[i].reference.size == 2) extra_size_groups[1] += 2;
-            else if (this.markers[i].reference.entity == 'a' && this.markers[i].reference.size == 1) extra_size_groups[0] += 2;
+            if (this.markers[i].reference.entity == 'a' && this.markers[i].reference.size == 2) {
+                extra_size_groups[1] += 2;
+            } else if (this.markers[i].reference.entity == 'a' && this.markers[i].reference.size == 1) {
+                extra_size_groups[0] += 2;
+            }
         }
         if (target.size_index == 1) {
-            if (this.size_groups[0] + extra_size_groups[0] == 0) return false;
-            if (this.size_groups[0] + extra_size_groups[0] + 2 > this.C[27]) return true;
-            if (this.size_groups[0] + extra_size_groups[0] + this.size_groups[1] + extra_size_groups[1] + 1 > this.C[28]) return true;
+            if (this.size_groups[0] + extra_size_groups[0] == 0) {
+                return false;
+            }
+            if (this.size_groups[0] + extra_size_groups[0] + 2 > this.C[27]) {
+                return true;
+            }
+            if (this.size_groups[0] + extra_size_groups[0] + this.size_groups[1] + extra_size_groups[1] + 1 > this.C[28]) {
+                return true;
+            }
         } else if (target.size_index == 2) {
-            if (this.size_groups[0] + extra_size_groups[0] + this.size_groups[1] + extra_size_groups[1] + 2 > this.C[28]) return true;
+            if (this.size_groups[0] + extra_size_groups[0] + this.size_groups[1] + extra_size_groups[1] + 2 > this.C[28]) {
+                return true;
+            }
         }
         return false;
     }
@@ -892,20 +1001,24 @@ class AI {
         let destroyed = null;
         let min_time = Infinity;
         for (let i = 0; i < this.targets.length; i++) {
-            if (this.targets[i].size_index < 3 && this.targets[i].reference.invincibility > 0) continue;
+            if (this.targets[i].size_index < 3 && this.targets[i].reference.invincibility > 0) {
+                continue;
+            }
             const result = this.checkBulletCollisionTime(this.targets[i]);
             if (result != null && result < min_time) {
                 destroyed = this.targets[i];
                 min_time = result;
             }
         }
-        if (destroyed != null && this.targetMarked(destroyed)) return [ null, Infinity ];
-        if (destroyed != null && this.checkCollateralDamage(destroyed)) return [ null, Infinity ];
-        if (destroyed != null && this.checkClutterViolation(destroyed)) return [ null, Infinity ];
+        if (destroyed != null && (this.targetMarked(destroyed) || this.checkCollateralDamage(destroyed) || this.checkClutterViolation(destroyed))) {
+            return [ null, Infinity ];
+        }
         return [ destroyed, min_time ];
     }
     manageShooting(delay) {
-        if (this.ship.bullet_cooldown < 1) return;
+        if (this.ship.bullet_cooldown < 1) {
+            return;
+        }
         this.predictStates(delay / settings.game_precision);
         const opportunity = this.checkShootingOpportunity();
         if (opportunity[0] != null) {
@@ -920,18 +1033,22 @@ class AI {
         }
         const new_markers = [];
         for (let i = 0; i < this.markers.length; i++) {
-            if (!game.paused)
+            if (!game.paused) {
                 this.markers[i].life -= delay;
-            if (this.markers[i].life > 0)
+            }
+            if (this.markers[i].life > 0) {
                 new_markers.push(this.markers[i]);
+            }
         }
         this.markers = new_markers;
     }
     manageAim(delay) {
-        if (this.crosshair != null && (this.targetMarked(this.crosshair) || this.crosshair.life <= 0))
+        if (this.crosshair != null && (this.targetMarked(this.crosshair) || this.crosshair.life <= 0)) {
             this.crosshair = null;
-        if (this.ship.velocity.mag() < this.C[29] && this.saucer_exists)
+        }
+        if (this.ship.velocity.mag() < this.C[29] && this.saucer_exists) {
             this.controls.forward = true;
+        }
         if (this.crosshair == null) {
             let angle_offset = 0;
             let target = null;
@@ -949,7 +1066,9 @@ class AI {
                     break;
                 }
                 this.ship.angle -= 2 * angle_offset;
-                while (this.ship.angle < 0) this.ship.angle += Math.PI * 2;
+                while (this.ship.angle < 0) {
+                    this.ship.angle += Math.PI * 2;
+                }
                 result = this.checkShootingOpportunity();
                 if (result[0] != null) {
                     target = result[0];
@@ -965,38 +1084,57 @@ class AI {
             this.predictStates(-(AI.rotation_precision + delay) * iterations);
             if (target != null) {
                 this.crosshair = new Crosshair(target.reference, aim_angle);
-            } else if (this.ship.velocity.mag() < 1)
+            } else if (this.ship.velocity.mag() < 1) {
                 this.controls.forward = true;
+            }
         }
-        if (this.crosshair == null) return;
+        if (this.crosshair == null) {
+            return;
+        }
         const goal_angle = this.crosshair.angle;
         let time_left;
-        if (goal_angle >= this.ship.angle) time_left = goal_angle - this.ship.angle;
-        else time_left = Math.PI * 2 - this.ship.angle + goal_angle;
+        if (goal_angle >= this.ship.angle) {
+            time_left = goal_angle - this.ship.angle;
+        } else {
+            time_left = Math.PI * 2 - this.ship.angle + goal_angle;
+        }
         let time_right;
-        if (goal_angle <= this.ship.angle) time_right = this.ship.angle - goal_angle;
-        else time_right = this.ship.angle + Math.PI * 2 - goal_angle;
-        if (time_left <= time_right) this.controls.left = true;
-        else this.controls.right = true;
+        if (goal_angle <= this.ship.angle) {
+            time_right = this.ship.angle - goal_angle;
+        } else {
+            time_right = this.ship.angle + Math.PI * 2 - goal_angle;
+        }
+        if (time_left <= time_right) {
+            this.controls.left = true;
+        } else {
+            this.controls.right = true;
+        }
         if (this.crosshair != null && !game.paused) {
             this.crosshair.life -= delay;
-            if (this.crosshair.life <= 0) this.crosshair = null;
+            if (this.crosshair.life <= 0) {
+                this.crosshair = null;
+            }
         }
     }
     update(delay) {
         this.resetControls();
-        if (game.title_screen)
+        if (game.title_screen) {
             return;
+        }
         this.generateVirtualEntities();
-        if (this.in_danger) this.manageFleeing();
-        else this.manageAim(delay);
+        if (this.in_danger) {
+            this.manageFleeing();
+        } else {
+            this.manageAim(delay);
+        }
         this.generateVirtualEntities();
         this.manageShooting(delay);
         this.updateMarkers(delay);
     }
     resetControls() {
-        for (let i in this.controls)
+        for (let i in this.controls) {
             this.controls[i] = false;
+        }
     }
     applyControls() {
         controls.left = this.controls.left;
