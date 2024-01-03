@@ -20,7 +20,9 @@ class Vector {
     //Normalizes the vector (scales it down to a magnitude of 1)
     normalize() {
         const len = this.mag();
-        if (len == 0) return;
+        if (len == 0) {
+            return;
+        }
         this.x /= len;
         this.y /= len;
     }
@@ -69,7 +71,9 @@ class Vector {
     //Gets the angle relative to +x of current vector
     angle() {
         let angle = Math.atan2(this.y, this.x);
-        while (angle < 0) angle += Math.PI * 2;
+        while (angle < 0) {
+            angle += Math.PI * 2;
+        }
         return angle;
     }
 
@@ -80,13 +84,17 @@ class Vector {
 
     //Gets the scalar component of the projection of another vector onto current vector
     comp(v) {
-        if (this.mag() == 0) return 0;
+        if (this.mag() == 0) {
+            return 0;
+        }
         return this.dot(v);
     }
 
     //Gets the projection of another vector onto current vector
     proj(v) {
-        if (this.mag() == 0) return new Vector();
+        if (this.mag() == 0) {
+            return new Vector();
+        }
         return Vector.mul(Vector.div(this, this.mag()), this.comp(v));
     }
 
@@ -99,7 +107,9 @@ class Vector {
     }
     static normalize(v) {
         const len = v.mag();
-        if (len == 0) return v.copy();
+        if (len == 0) {
+            return v.copy();
+        }
         return new Vector(v.x / len, v.y / len);
     }
     static add(u, v) {
@@ -127,18 +137,24 @@ class Vector {
     }
     static angle(v) {
         let angle = Math.atan2(v.y, v.x);
-        while (angle < 0) angle += Math.PI * 2;
+        while (angle < 0) {
+            angle += Math.PI * 2;
+        }
         return angle;
     }
     static dist(u, v) {
         return Math.sqrt((u.x - v.x) ** 2 + (u.y - v.y) ** 2);
     }
     static comp(u, v) {
-        if (u.mag() == 0) return 0;
+        if (u.mag() == 0) {
+            return 0;
+        }
         return u.dot(v);
     }
     static proj(u, v) {
-        if (u.mag() == 0) return Vector();
+        if (u.mag() == 0) {
+            return Vector();
+        }
         return Vector.mul(Vector.div(u, u.mag()), u.comp(v));
     }
 
@@ -146,12 +162,13 @@ class Vector {
     static side(u, v, w) {
         const uv = Vector.sub(v, u);
         const vw = Vector.sub(w, v);
-        if (uv.cross(vw) > 0)
+        if (uv.cross(vw) > 0) {
             return -1;
-        else if (uv.cross(vw) < 0)
+        } else if (uv.cross(vw) < 0) {
             return 1;
-        else
+        } else {
             return 0;
+        }
     }
 
 }
@@ -189,7 +206,9 @@ class LineSegment {
     //Checks if a point is on this line
     containsPoint(v) {
         const side = Vector.side(this.a, this.b, v);
-        if (side != 0) return false;
+        if (side != 0) {
+            return false;
+        }
         const min_x = Math.min(this.a.x, this.b.x);
         const max_x = Math.max(this.a.x, this.b.x);
         return (v.x >= min_x && v.x <= max_x);
@@ -197,14 +216,16 @@ class LineSegment {
 
     //Checks if another line intersects with this line
     intersects(l) {
-        if (l.containsPoint(this.a) || l.containsPoint(this.b) || this.containsPoint(l.a) || this.containsPoint(l.b))
+        if (l.containsPoint(this.a) || l.containsPoint(this.b) || this.containsPoint(l.a) || this.containsPoint(l.b)) {
             return true;
+        }
         const s1 = Vector.side(this.a, this.b, l.a);
         const s2 = Vector.side(this.a, this.b, l.b);
         const s3 = Vector.side(l.a, l.b, this.a);
         const s4 = Vector.side(l.a, l.b, this.b);
-        if (s1 == 0 || s2 == 0 || s3 == 0 || s4 == 0)
+        if (s1 == 0 || s2 == 0 || s3 == 0 || s4 == 0) {
             return false;
+        }
         return (s1 != s2 && s3 != s4);
     }
 
@@ -216,15 +237,17 @@ class Polygon {
     //Constructor
     constructor(points) {
         this.points = [];
-        for (let i = 0; i < points.length; i++)
+        for (let i = 0; i < points.length; i++) {
             this.points.push(new Vector(points[i][0], points[i][1]));
+        }
     }
 
     //Creates a full copy of this polygon
     copy() {
         const c_points = [];
-        for (let i = 0; i < this.points.length; i++)
+        for (let i = 0; i < this.points.length; i++) {
             c_points.push([this.points[i].x, this.points[i].y]);
+        }
         return new Polygon(c_points);
     }
 
@@ -244,27 +267,31 @@ class Polygon {
 
     //Scales the polygon by some factor k from the origin
     scale(k) {
-        for (let i = 0; i < this.points.length; i++)
+        for (let i = 0; i < this.points.length; i++) {
             this.points[i].mul(k);
+        }
     }
 
     //Rotates the polygon by an angle around a certain point
     rotate(a, d) {
-        for (let i = 0; i < this.points.length; i++)
+        for (let i = 0; i < this.points.length; i++) {
             this.points[i].rotate(a, d);
+        }
     }
 
     //Translates the polygon by some vector
     translate(v) {
-        for (let i = 0; i < this.points.length; i++)
+        for (let i = 0; i < this.points.length; i++) {
             this.points[i].add(v);
+        }
     }
 
     //Checks if a point is in this polygon
     containsPoint(v) {
         const rect = this.getRect();
-        if (v.x < rect.left || v.x > rect.right || v.y < rect.top || v.y > rect.bottom)
+        if (v.x < rect.left || v.x > rect.right || v.y < rect.top || v.y > rect.bottom) {
             return false;
+        }
         let result = false;
         for (let i = 0; i < this.points.length; i++) {
             const j = (i + 1) % this.points.length;
@@ -272,22 +299,26 @@ class Polygon {
             if (side == 0) {
                 const min_x = Math.min(this.points[i].x, this.points[j].x);
                 const max_x = Math.max(this.points[i].x, this.points[j].x);
-                if (v.x >= min_x && v.x <= max_x)
+                if (v.x >= min_x && v.x <= max_x) {
                     return true;
-                else
+                } else {
                     continue;    
+                }
             }
-            if (this.points[i].y == this.points[j].y)
+            if (this.points[i].y == this.points[j].y) {
                 continue;
+            }
             if (this.points[i].y < this.points[j].y) {
                 const side = Vector.side(this.points[i], this.points[j], v);
-                if (side == 1 && v.y >= this.points[i].y && v.y < this.points[j].y)
+                if (side == 1 && v.y >= this.points[i].y && v.y < this.points[j].y) {
                     result = !result;
+                }
             }
             else {
                 const side = Vector.side(this.points[j], this.points[i], v);
-                if (side == 1 && v.y > this.points[j].y && v.y <= this.points[i].y)
+                if (side == 1 && v.y > this.points[j].y && v.y <= this.points[i].y) {
                     result = !result;
+                }
             }
         }
         return result;
@@ -298,8 +329,9 @@ class Polygon {
         for (let i = 0; i < this.points.length; i++) {
             const j = (i + 1) % this.points.length;
             const segment = new LineSegment(this.points[i], this.points[j]);
-            if (segment.intersects(l))
+            if (segment.intersects(l)) {
                 return true;
+            }
         }
         return false;
     }
@@ -317,8 +349,9 @@ class Polygon {
         for (var i = 0; i < p.points.length; i++) {
             const j = (i + 1) % p.points.length;
             const segment = new LineSegment(p.points[i], p.points[j]);
-            if (this.intersectsLineSegment(segment))
+            if (this.intersectsLineSegment(segment)) {
                 return true;
+            }
         }
         return false;
     }
@@ -332,26 +365,31 @@ function randomInRange(range) {
 
 //Wraps a vector around the canvas
 function wrap(v, wrap_x = true, wrap_y = true) {
-    while (v.x >= canvas_bounds.width && wrap_x)
+    while (v.x >= canvas_bounds.width && wrap_x) {
         v.x -= canvas_bounds.width;
-    while (v.x < 0 && wrap_x)
+    }
+    while (v.x < 0 && wrap_x) {
         v.x += canvas_bounds.width;
-    while (v.y >= canvas_bounds.height && wrap_y)
+    }
+    while (v.y >= canvas_bounds.height && wrap_y) {
         v.y -= canvas_bounds.height;
-    while (v.y < 0 && wrap_y)
+    }
+    while (v.y < 0 && wrap_y) {
         v.y += canvas_bounds.height;
+    }
 }
 
 //Solves a quadratic and gives a list of solutions
 function solveQuadratic(a, b, c) {
     var dsc = b ** 2 - 4 * a * c;
     if (dsc < 0) return [];
-    else if (dsc == 0)
+    else if (dsc == 0) {
         return [-b / (2 * a)];
-    else {
+    } else {
         var result = [(-b + Math.sqrt(dsc)) / (2 * a), (-b - Math.sqrt(dsc)) / (2 * a)];
-        if (result[1] < result[0])
+        if (result[1] < result[0]) {
             [result[0], result[1]] = [result[1], result[0]];
+        }
         return result;
     }
 }

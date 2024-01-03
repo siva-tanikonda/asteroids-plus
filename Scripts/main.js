@@ -12,7 +12,7 @@ let fps_cooldown = 0;
 const fps_reset_rate = 2e-2;
 
 //This is the set of constants for the AI
-const C = [2,0,34.371130365857944,1,96.38560720051048,1,131.18241604655154,1,0,1,0,2,0,1,0.23543185560170685,2,0.28307459484224073,2,0.25907045936532913,1,1.3105685065103085,1,0.03419111370778013,2,0.689662139263561,2,0,100,86,0];
+const C = [2,1291.145791273453,32.23526585564162,1,111.09537111091456,1,94.3496383832352,1,0.14892791990652504,2,0,2,0,2,0.45032563356067007,1,0.274957150858413,2,0.21534787885974632,1,1.339729100705285,1,0.033932958332917984,2,0.90315100413843,2,0,100,79,0];
 
 //Do initial setup steps for the game/game window
 resizeCanvas();
@@ -35,7 +35,9 @@ window.addEventListener("resize", resizeCanvas);
 function update(delay) {
 
     //Deals with boundary cases for the delay
-    if (isNaN(delay) || delay == 0) return;
+    if (isNaN(delay) || delay == 0) {
+        return;
+    }
 
     //Updates the game/AI settings
     updateSettings();
@@ -56,8 +58,9 @@ function update(delay) {
         //Updates the game and creates a new game if the player chose to restart the game
         const done = game.update(delay / settings.game_precision);
         //If the game-over screen was exited, we reset the game
-        if (done)
+        if (done) {
             game = new Game();
+        }
     }
 
 }
@@ -66,11 +69,13 @@ function update(delay) {
 function draw() {
     ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
     game.drawGame();
-    if (settings.ai_settings.show_strategy)
+    if (settings.ai_settings.show_strategy) {
         ai.drawDebug();
+    }
     game.drawOverlay();
-    if (settings.ai_settings.show_strategy)
+    if (settings.ai_settings.show_strategy) {
         ai.drawDebugOverlay();
+    }
 }
 
 //The game loop is created and executed
@@ -79,8 +84,9 @@ function loop(timestamp) {
     seconds_passed = (timestamp - old_timestamp) / 1000;
     old_timestamp = timestamp;
     if (settings.debug.show_game_data) {
-        if (fps_cooldown <= 0)
+        if (fps_cooldown <= 0) {
             fps = 1 / seconds_passed, fps_cooldown = 1;
+        }
         fps_cooldown = Math.max(0, fps_cooldown - fps_reset_rate);
     }
     //Update/draw the game and AI debug

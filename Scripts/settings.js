@@ -26,13 +26,15 @@ function updateSettings() {
     
     //Update game speed setting
     const game_speed = document.getElementById("game-speed-input").value;
-    if (!isNaN(game_speed) && game_speed != 0)
+    if (!isNaN(game_speed) && game_speed != 0) {
         settings.game_speed = game_speed;
+    }
     
     //Update game lives setting
     const game_lives = document.getElementById("game-lives-input").value;
-    if (!isNaN(game_lives) && game_lives != 0)
+    if (!isNaN(game_lives) && game_lives != 0) {
         settings.game_lives = game_lives;
+    }
     
     //check if we enabled all debug settings and apply necessary actions
     const enable_all_debug = document.getElementById("game-enable-all-debug-input").checked;
@@ -71,8 +73,9 @@ function updateSettings() {
         document.getElementById("game-acceleration-input").blur();
         document.getElementById("game-data-input").blur();
     } else {
-        for (let i in settings.debug)
+        for (let i in settings.debug) {
             settings.debug[i] = true;
+        }
     }
 
     //Check if we have particles on or off
@@ -82,17 +85,19 @@ function updateSettings() {
     //Manage AI toggling
     settings.ai = document.getElementById("game-ai-input").checked;
     document.getElementById("game-ai-input").blur();
-    if (settings.ai && !previous_ai_enabled)
+    if (settings.ai && !previous_ai_enabled) {
         document.getElementById("ai-settings-container").hidden = false;
-    else if (!settings.ai && previous_ai_enabled)
+    } else if (!settings.ai && previous_ai_enabled) {
         document.getElementById("ai-settings-container").hidden = true;
+    }
     previous_ai_enabled = settings.ai;
 
     //Manage AI debug activation
     settings.ai_settings.show_strategy = document.getElementById("game-ai-strategy-input").checked;
     document.getElementById("game-ai-strategy-input").blur();
-    if (!settings.ai)
+    if (!settings.ai) {
         settings.ai_settings.show_strategy = false;
+    }
 
 }
 

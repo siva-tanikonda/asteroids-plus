@@ -6,8 +6,9 @@ class Debug {
         ctx.globalAlpha = 0.35;
         ctx.beginPath();
         ctx.moveTo(item.bounds.points[item.bounds.points.length - 1].x, item.bounds.points[item.bounds.points.length - 1].y);
-        for (let i = 0; i < item.bounds.points.length; i++)
+        for (let i = 0; i < item.bounds.points.length; i++) {
             ctx.lineTo(item.bounds.points[i].x, item.bounds.points[i].y);
+        }
         ctx.fill();
         ctx.globalAlpha = 1.0;
     }
@@ -45,7 +46,9 @@ class Debug {
     
     //Draws the velocity of an entity
     static drawAcceleration(item) {
-        if (!item.accelerating) return;
+        if (!item.accelerating) {
+            return;
+        }
         ctx.translate(item.position.x, item.position.y);
         ctx.rotate(-item.angle);
         ctx.translate(-item.position.x, -item.position.y);
@@ -75,8 +78,9 @@ class Debug {
         const saucer_size = ctx.measureText(saucer_text);
         ctx.fillText(saucer_text, canvas_bounds.width - saucer_size.width - 10, 40);
         const asteroid_counts = [ 0, 0, 0 ];
-        for (let i = 0; i < game.asteroids.length; i++)
+        for (let i = 0; i < game.asteroids.length; i++) {
             asteroid_counts[game.asteroids[i].size]++;
+        }
         let asteroid_text = "Large Asteroid Count: " + asteroid_counts[2];
         let asteroid_size = ctx.measureText(asteroid_text);
         ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 10, 60);
@@ -100,7 +104,9 @@ class AIDebug {
 
     //Draws the danger of an entity
     static drawDangerLevel(item) {
-        if (item.entity != "d") return;
+        if (item.entity != "d") {
+            return;
+        }
         ctx.font = "12px Roboto Mono Bold";
         ctx.fillStyle = "#d28cf0";
         const text = item.danger_level.toFixed(2);
@@ -110,7 +116,9 @@ class AIDebug {
 
     //Draws the danger radius of an entity
     static drawDangerRadius(item) {
-        if (item.entity != "d" && item.entity != "t") return;
+        if (item.entity != "d" && item.entity != "t") {
+            return;
+        }
         ctx.strokeStyle = "#d28cf0";
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.5;
@@ -122,7 +130,9 @@ class AIDebug {
 
     //Draws the flee values (the importance of how much we have to move in a certain direction for the AI)
     static drawFleeValues(item) {
-        if (item.entity != "s" || game.title_screen || game.ship.dead) return;
+        if (item.entity != "s" || game.title_screen || game.ship.dead) {
+            return;
+        }
         ctx.strokeStyle = "#d28cf0";
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.5;
@@ -192,7 +202,9 @@ class AIDebug {
 
     //Draws the nudge values (the nudges added by different directions onto certain directions)
     static drawNudgeValues(item) {
-        if (item.entity != "s" || game.title_screen || game.ship.dead) return;
+        if (item.entity != "s" || game.title_screen || game.ship.dead) {
+            return;
+        }
         ctx.strokeStyle = "#74f3f7";
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.5;
@@ -262,7 +274,9 @@ class AIDebug {
 
     //Draws the target radius of an entity
     static drawTargetRadius(item) {
-        if (item.entity != "t") return;
+        if (item.entity != "t") {
+            return;
+        }
         ctx.strokeStyle = "#f59445";
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.5;
@@ -274,7 +288,9 @@ class AIDebug {
 
     //Draws the minimum fire range of the ship
     static drawTargetMinDistance(item) {
-        if (item.entity != "s") return;
+        if (item.entity != "s") {
+            return;
+        }
         console.log("dfasfdasf");
         ctx.fillStyle = "#f59445";
         ctx.globalAlpha = 0.1;
@@ -286,7 +302,9 @@ class AIDebug {
 
     //Draws all markers
     static drawMarkers(item) {
-        if (item.entity != "m") return;
+        if (item.entity != "m") {
+            return;
+        }
         ctx.font = "20px Roboto Mono Bold";
         ctx.fillStyle = "#f59445";
         const size = ctx.measureText("X");
@@ -311,7 +329,9 @@ class AIDebug {
 
     //Draws the crosshair of the AI
     static drawCrosshair() {
-        if (ai.crosshair == null) return;
+        if (ai.crosshair == null) {
+            return;
+        }
         ctx.font = "20px Roboto Mono Bold";
         ctx.fillStyle = "#f59445";
         const size = ctx.measureText("@");
