@@ -291,7 +291,6 @@ class AIDebug {
         if (item.entity != "s") {
             return;
         }
-        console.log("dfasfdasf");
         ctx.fillStyle = "#f59445";
         ctx.globalAlpha = 0.1;
         ctx.beginPath();

@@ -1,3 +1,4 @@
+//Only mathematical class needed is vector class
 class Vector {
     constructor(x = 0, y = 0) {
         this.x = x;
@@ -137,6 +138,7 @@ class Vector {
     }
 }
 
+//The code here is similar to the draw function in the playable game, but with circular bodies
 function renderWrap(position, radius, action, offset_x = true, offset_y = true) {
     const horizontal = [ 0 ];
     const vertical = [ 0 ];
@@ -160,7 +162,6 @@ function renderWrap(position, radius, action, offset_x = true, offset_y = true) 
         }
     }
 }
-
 class Debug {
 
     static drawBounds(item) {
@@ -240,7 +241,6 @@ class Debug {
     }
 
 }
-
 class ShipRenderer {
 
     static drawShip(ship, offset, position, alpha = 1.0) {
@@ -301,7 +301,6 @@ class ShipRenderer {
     }
 
 }
-
 class BulletRenderer {
 
     static drawBullet(bullet, offset) {
@@ -321,7 +320,6 @@ class BulletRenderer {
     }
 
 }
-
 class AsteroidRenderer {
     
     static drawAsteroid(asteroid, offset) {
@@ -345,14 +343,12 @@ class AsteroidRenderer {
         Debug.drawPosition(asteroid);
         Debug.drawVelocity(asteroid);
     }
-
     static draw(asteroid) {
         renderWrap(asteroid.position, Math.max(asteroid.rect.width / 2, asteroid.rect.height / 2), (offset) => {
             AsteroidRenderer.drawAsteroid(asteroid, offset);
         });
     }
 }
-
 class SaucerRenderer {
 
     static drawSaucer(saucer, offset) {
@@ -380,6 +376,7 @@ class SaucerRenderer {
 
 }
 
+//Draws the game stream
 function drawGame() {
     sctx.fillStyle = "white";
     sctx.font = "20px Roboto Mono Regular";
@@ -402,6 +399,7 @@ function drawGame() {
     }
 }
 
+//Wrapper function for the stream rendering
 function drawStream() {
     sctx.clearRect(0, 0, stream.width, stream.height);
     if (data.thread != -1 && streaming) {
