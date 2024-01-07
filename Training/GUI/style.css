@@ -51,10 +51,10 @@ body {
     image-rendering: crisp-edges;
     background-color: rgb(20, 20, 20);
     border: 1.5px solid white;
-    left: 100px;
-    top: 185px;
     width: 25%;
     height: width;
+    left: 0px;
+    top: 0px;
     vertical-align: center;
 }
 

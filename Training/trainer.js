@@ -19,7 +19,7 @@ server.listen(port, () => {
 });
 
 //Create a random number generator for predictable results on the genetic algorithm
-const sd = 9999;
+const sd = Math.random();
 let random = new seedrandom(sd);
 
 //Ranges that each constant can be when training the AI ([ left_bound, right_bound, onlyInteger ])
@@ -106,8 +106,41 @@ const C_default = [
     0,
     100,
     100,
-    0,
+    0
 ];
+//Describes the shift std for each feature
+const C_mutation = [
+    [ 0.1 ],
+    [ 0.001 ],
+    [ 0.1, 0.001 ],
+    [ 0.1 ],
+    [ 0.1, 0.001 ],
+    [ 0.1 ],
+    [ 0.1, 0.001 ],
+    [ 0.1 ],
+    [ 0.1, 0.001 ],
+    [ 0.1 ],
+    [ 0.1, 0.001 ],
+    [ 0.1 ],
+    [ 0.1, 0.001 ],
+    [ 0.1 ],
+    [ 0.2, 0.002 ],
+    [ 0.1 ],
+    [ 0.2, 0.002 ],
+    [ 0.1 ],
+    [ 0.2, 0.002 ],
+    [ 0.1 ],
+    [ 0.2, 0.002 ],
+    [ 0.1 ],
+    [ 0.2, 0.002 ],
+    [ 0.1 ],
+    [ 0.2, 0.002 ],
+    [ 0.1 ],
+    [ 0.1 ],
+    [ 0.1 ],
+    [ 0.1 ],
+    [ 0.05 ]
+]
 
 //Training settings
 const thread_count = 8;
@@ -121,11 +154,9 @@ const score_goal = Infinity;
 const trial_count = 3;
 const time_weight = 0;
 const score_weight = 1;
-const flee_time_weight = 0;
-const mutation_rate = 1 / (29 * 5);
-const mutation_std = 0.001;
-const shift_rate = 1 / (29 * 10);
-const shift_std = 0.001;
+const flee_time_weight = -1 / 6;
+const mutation_rate = 1 / 30;
+const shift_rate = 1 / (30 * 3);
 const partition_exponentiator = Math.E;
 const interval_wait = 1000 / 60;
 const histogram_count = 10;
@@ -152,10 +183,15 @@ let carry_scores = false;
 let individuals_carried = 0;
 let stream_thread = -1;
 let streaming = false;
+let num_users = 0;
 
 io.on("connection", (socket) => {
+    num_users++;
     socket.on("stream", (msg) => {
         streaming = msg;
+    });
+    socket.on("disconnect", (msg) => {
+        num_users--;
     });
 });
 
@@ -421,22 +457,44 @@ function createGeneration(results, analysis) {
             //Mutate the individual multiplicatively
             if (random() < mutation_rate * mutation_multiplier) {
                 for (let k = l; k <= r; k++) {
-                    const difference = sampleNormalDistribution(0, mutation_std);
+                    const old_class = Math.floor(C[r]) - 1;
+                    let difference = 0;
+                    difference = sampleNormalDistribution(0, C_mutation[k][0]);
                     C[k] *= Math.E ** difference;
                     C[k] = Math.max(C_range[k][0], C[k]);
                     C[k] = Math.min(C_range[k][1], C[k]);
+                    const new_class = Math.floor(C[r]) - 1;
+                    if (C_mutation[l].length == 2 && old_class != new_class) {
+                        C[l] *= (C_mutation[l][new_class] / C_mutation[l][old_class]);
+                        C[l] = Math.max(C_range[l][0], C[l]);
+                        C[l] = Math.min(C_range[l][1], C[l]);
+                    }
                 }
             }
             //Mutate the individual with a shift
             if (random() < shift_rate * mutation_multiplier) {
                 for (let k = l; k <= r; k++) {
-                    const difference = sampleNormalDistribution(0, shift_std);
+                    const old_class = Math.floor(C[r]) - 1;
+                    let difference = 0;
+                    if (k == l && C_mutation[k].length > 1) {
+                        difference = sampleNormalDistribution(0, C_mutation[k][Math.floor(C[r]) - 1]);
+                    } else {
+                        difference = sampleNormalDistribution(0, C_mutation[k][0]);
+                    }
                     C[k] += (C_range[k][1] - C_range[k][0]) * difference;
                     C[k] = Math.max(C_range[k][0], C[k]);
                     C[k] = Math.min(C_range[k][1], C[k]);
+                    const new_class = Math.floor(C[r]) - 1;
+                    if (C_mutation[l].length == 2 && old_class != new_class) {
+                        C[l] *= (C_mutation[l][new_class] / C_mutation[l][old_class]);
+                        C[l] = Math.max(C_range[l][0], C[l]);
+                        C[l] = Math.min(C_range[l][1], C[l]);
+                    }
                 }
             }
         }
+        //For clutter setting, you set number of small asteroids allowed to be lower than num of small + medium asteroids
+        C[27] = Math.min(C[27], C[28] + 1);
         Cs.push(C);
     }
     return Cs;
@@ -571,11 +629,14 @@ function train() {
             clearInterval(interval);
             closeThreads();
             console.log("Training complete");
+            io.close();
         }
         packet.statistics = statistics;
         packet.histograms = histograms;
         packet.thread = stream_thread;
-        io.emit("data", packet);
+        if (num_users > 0) {
+            io.emit("data", packet);
+        }
     }, interval_wait);
 }
 

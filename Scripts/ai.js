@@ -528,6 +528,9 @@ class AI {
                 this.crosshair = new Crosshair(target.reference, aim_angle);
             } else if (this.ship.velocity.mag() < 1) {
                 this.controls.forward = true;
+                if (Math.random() >= 0.5) {
+                    this.controls.left = true;
+                }
             }
         }
         //Actually rotate towards the target
