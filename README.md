@@ -32,3 +32,6 @@ You can play the game for yourself and see the observe an AI trained by the algo
   ```
   $ node evaluator.js
   ```
+
+## AI Strategy & Training Methodology
+A complete overview of the project (including the AI strategy and training methodology) can be found in the Wiki: https://github.com/siva-tanikonda/asteroids-ai/wiki
