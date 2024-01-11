@@ -131,6 +131,7 @@ input[type="checkbox"] {
     border: 1.5px solid currentColor;
     display: inline-block;
     place-items: center;
+    box-shadow: none;
 }
 input[type="checkbox"]:hover {
     cursor: pointer;
@@ -139,7 +140,7 @@ input[type="checkbox"]::before {
     content: "";
     width: 12px;
     height: 12px;
-    margin: 2px;
+    margin: 2.25px;
     padding: 0px;
     transform: scale(0);
     transform-origin: center;
