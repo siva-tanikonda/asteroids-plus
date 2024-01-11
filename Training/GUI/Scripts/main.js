@@ -75,14 +75,14 @@ function drawHistogram() {
     ctx.fillStyle = "white";
     if (generation == data.generation) {
         const stats = "Progress: " + (data.progress * 100).toFixed(2) + "%";
-        ctx.font = "20px Roboto Mono Regular";
+        ctx.font = "400 20px Roboto Mono";
         const text_length = ctx.measureText(stats).width;
         ctx.fillText(stats, canvas.width / 2 - text_length / 2, canvas.height / 2 - 30);
     } else {
-        ctx.font = "20px Roboto Mono Regular";
+        ctx.font = "400 20px Roboto Mono";
         let text_length = ctx.measureText("Fitness Stats").width;
         ctx.fillText("Fitness Stats", canvas.width / 2 - text_length / 2, 150);
-        ctx.font = "12.5px Roboto Mono Regular";
+        ctx.font = "400 12.5px Roboto Mono";
         const median = data.statistics[generation - 1][0].toFixed(2);
         const mean = data.statistics[generation - 1][1].toFixed(2);
         const std = data.statistics[generation - 1][2].toFixed(2);
@@ -106,7 +106,7 @@ function drawHistogram() {
         for (let i = 0; i < data.histograms[generation - 1].length; i++) {
             largest_bucket = Math.max(largest_bucket, data.histograms[generation - 1][i][2]);
         }
-        ctx.font = "12px Roboto Mono Regular";
+        ctx.font = "400 12px Roboto Mono";
         ctx.moveTo(canvas.width / 2 - canvas.width / histogram_factor, canvas.height - 300);
         ctx.lineTo(canvas.width / 2 - canvas.width / histogram_factor, canvas.height - 290);
         text_length = ctx.measureText(0).width;
@@ -127,7 +127,7 @@ function drawHistogram() {
         }
         ctx.stroke();
     }
-    ctx.font = "20px Roboto Mono Regular";
+    ctx.font = "400 20px Roboto Mono";
     const text_length = ctx.measureText("Generation " + generation).width;
     ctx.fillText("Generation " + generation, canvas.width / 2 - text_length / 2, canvas.height - 227);
 }
@@ -141,11 +141,11 @@ function drawPlot(title, x, y, width, height, label_x, label_y) {
     ctx.lineTo(x, y + height + 0.5);
     ctx.lineTo(x + width, y + height + 0.5);
     ctx.stroke();
-    ctx.font = "20px Roboto Mono Regular";
+    ctx.font = "400 20px Roboto Mono";
     let text_width = ctx.measureText(title).width;
     ctx.fillStyle = "white";
     ctx.fillText(title, x + (width - text_width) / 2, y - 20);
-    ctx.font = "15px Roboto Mono Regular";
+    ctx.font = "400 15px Roboto Mono";
     text_width = ctx.measureText(label_x).width;
     ctx.fillText(label_x, x + (width - text_width) / 2, y + height + 40);
     text_width = ctx.measureText(label_y).width;
@@ -156,7 +156,7 @@ function drawPlot(title, x, y, width, height, label_x, label_y) {
         max = Math.max(max, data.statistics[i][1] + data.statistics[i][2]);
     }
     max = max.toFixed(2);
-    ctx.font = "12px Roboto Mono Regular";
+    ctx.font = "400 12px Roboto Mono";
     text_width = ctx.measureText(max).width;
     ctx.fillText(max, x - text_width / 2, y - 5);
     ctx.fillText(data.statistics.length, x + width + 5, y + height + 5);
@@ -170,7 +170,7 @@ function drawPlot(title, x, y, width, height, label_x, label_y) {
     ctx.lineTo(x + 15, y + height + 75);
     ctx.stroke();
     ctx.fillStyle = "white";
-    ctx.font = "12px Roboto Mono Regular";
+    ctx.font = "400 12px Roboto Mono";
     ctx.fillText("Mean Fitness", x + 20, y + height + 78);
     ctx.strokeStyle = "rgb(132, 179, 240)";
     ctx.beginPath();
@@ -183,7 +183,7 @@ function drawPlot(title, x, y, width, height, label_x, label_y) {
     ctx.lineTo(x + 15, y + height + 110);
     ctx.stroke();
     ctx.fillStyle = "rgb(132, 179, 240)";
-    ctx.font = "12px Roboto Mono Regular";
+    ctx.font = "400 12px Roboto Mono";
     ctx.fillText("Min Fitness", x + 20, y + height + 113);
     ctx.strokeStyle = "rgb(240, 141, 139)";
     ctx.beginPath();
@@ -196,7 +196,7 @@ function drawPlot(title, x, y, width, height, label_x, label_y) {
     ctx.lineTo(x + 165, y + height + 75);
     ctx.stroke();
     ctx.fillStyle = "rgb(240, 141, 139)";
-    ctx.font = "12px Roboto Mono Regular";
+    ctx.font = "400 12px Roboto Mono";
     ctx.fillText("Max Fitness", x + 170, y + height + 78);
     ctx.fillStyle = "white";
     ctx.globalAlpha = 0.1;
@@ -228,7 +228,7 @@ function drawPlot(title, x, y, width, height, label_x, label_y) {
     ctx.lineTo(x + 165, y + height + 110);
     ctx.stroke();
     ctx.fillStyle = "white";
-    ctx.font = "12px Roboto Mono Regular";
+    ctx.font = "400 12px Roboto Mono";
     ctx.fillText("Mean ± STD Fitness", x + 170, y + height + 113);
     ctx.setLineDash([ ]);
 }
@@ -262,7 +262,7 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas_bounds.width, canvas_bounds.height);
     ctx.fillStyle = "white";
-    ctx.font = "20px Roboto Mono Regular";
+    ctx.font = "400 20px Roboto Mono";
     const text_width = ctx.measureText("Stream").width;
     ctx.fillText("Stream", canvas.width / 20 + stream.offsetWidth / 2 - text_width / 2, canvas.height / 2 - stream.offsetHeight / 2 - 20);
     drawData();

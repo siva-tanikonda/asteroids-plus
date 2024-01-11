@@ -69,7 +69,7 @@ class Debug {
 
     //Draws the game data on the overlay
     static drawGameData(game) {
-        ctx.font = "14px Roboto Mono Bold";
+        ctx.font = "400 15px Roboto Mono";
         ctx.fillStyle = "#f2564b";
         const wave_text = "Wave: " + game.wave;
         const wave_size = ctx.measureText(wave_text);
@@ -107,7 +107,7 @@ class AIDebug {
         if (item.entity != "d") {
             return;
         }
-        ctx.font = "12px Roboto Mono Bold";
+        ctx.font = "bold 11px Roboto Mono";
         ctx.fillStyle = "#d28cf0";
         const text = item.danger_level.toFixed(2);
         const size = ctx.measureText(text);
@@ -177,7 +177,7 @@ class AIDebug {
         ctx.rotate(item.angle + 3 * Math.PI / 2);
         //Draw numbers
         ctx.fillStyle = "#d28cf0";
-        ctx.font = "10px Roboto Mono Bold";
+        ctx.font = "10px Roboto Mono";
         const text_position = new Vector(Math.cos(ai.ship.angle), -Math.sin(ai.ship.angle));
         text_position.mul(27);
         text_position.rotate(Math.PI / 180 * -25, new Vector());
@@ -249,7 +249,7 @@ class AIDebug {
         ctx.rotate(item.angle + 3 * Math.PI / 2);
         //Draw numbers
         ctx.fillStyle = "#74f3f7";
-        ctx.font = "10px Roboto Mono Bold";
+        ctx.font = "10px Roboto Mono";
         const text_position = new Vector(Math.cos(ai.ship.angle), -Math.sin(ai.ship.angle));
         text_position.mul(27);
         text_position.rotate(Math.PI / 180 * 25, new Vector());
@@ -304,7 +304,7 @@ class AIDebug {
         if (item.entity != "m") {
             return;
         }
-        ctx.font = "20px Roboto Mono Bold";
+        ctx.font = "bold 16px Roboto Mono";
         ctx.fillStyle = "#f59445";
         const size = ctx.measureText("X");
         ctx.fillText("X", item.reference.position.x - size.width / 2, item.reference.position.y + 8);
@@ -321,7 +321,7 @@ class AIDebug {
             status = "Aiming";
             ctx.fillStyle = "#f59445";
         }
-        ctx.font = "14px Roboto Mono Bold";
+        ctx.font = "400 15px Roboto Mono";
         const text = "AI Mode: " + status;
         ctx.fillText(text, 90, 20);
     }
@@ -331,7 +331,7 @@ class AIDebug {
         if (ai.crosshair == null) {
             return;
         }
-        ctx.font = "20px Roboto Mono Bold";
+        ctx.font = "20px Roboto Mono";
         ctx.fillStyle = "#f59445";
         const size = ctx.measureText("@");
         ctx.fillText("@", ai.crosshair.reference.position.x - size.width / 2, ai.crosshair.reference.position.y + 8);

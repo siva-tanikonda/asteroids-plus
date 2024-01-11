@@ -2,6 +2,7 @@
 <html>
     <head>
         <title>Asteroids AI</title>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100;0,200;0,300;0,400;1,200&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
@@ -11,69 +12,69 @@
         <!-- Settings Interface -->
         <div id="side-bar" width="400">
             <div id="title-container">
-                <h1 id="title">Asteroids AI</h1>
+                <p id="title">Asteroids AI</p>
             </div>
             <div id="settings-container">
-                <h2 class="setting-title"><u>General Settings</u></h2>
+                <p class="setting-title"><u>General Settings</u></p>
                 <!-- Game Speed Input -->
                 <div class="setting-container">
-                    <h3 class="setting">Game Speed: </h3>
+                    <p class="setting">Game Speed: </p>
                     <input type="number" id="game-speed-input" class="game-text-input" value="1" maxlength="2" min="1" max="10">
                 </div>
                 <!-- Lives Input -->
                 <div class="setting-container">
-                    <h3 class="setting">Lives: </h3>
+                    <p class="setting">Lives: </p>
                     <input type="number" id="game-lives-input" class="game-text-input" value="3" maxlength="2" min="1" max="10">
                 </div>
                 <!-- Game Particles Input -->
                 <div class="setting-container">
                     <input type="checkbox" id="game-particles-input">
-                    <h3 class="setting">Disable Particles</h3>
+                    <p class="setting">Disable Particles</p>
                 </div>
-                <h2 class="setting-title"><u>Debug Settings</u></h2>
+                <p class="setting-title"><u>Debug Settings</u></p>
                 <!-- Enable All Debug Visuals -->
                 <div class="setting-container">
                     <input type="checkbox" id="game-enable-all-debug-input">
-                    <h3 class="setting">Enable All</h3>
+                    <p class="setting">Enable All</p>
                 </div>
                 <div class="setting-indent" id="debug-settings-container">
                     <!-- Show Hitboxes Input -->
                     <div class="setting-container">
                         <input type="checkbox" id="game-hitbox-input">
-                        <h3 class="setting">Show Hitboxes</h3>
+                        <p class="setting">Show Hitboxes</p>
                     </div>
                     <!-- Show Positions Input -->
                     <div class="setting-container">
                         <input type="checkbox" id="game-position-input">
-                        <h3 class="setting">Show Positions</h3>
+                        <p class="setting">Show Positions</p>
                     </div>
                     <!-- Show Velocities Input -->
                     <div class="setting-container">
                         <input type="checkbox" id="game-velocity-input">
-                        <h3 class="setting">Show Velocities</h3>
+                        <p class="setting">Show Velocities</p>
                     </div>
                     <!-- Show Accelerations Input -->
                     <div class="setting-container">
                         <input type="checkbox" id="game-acceleration-input">
-                        <h3 class="setting">Show Accelerations</h3>
+                        <p class="setting">Show Accelerations</p>
                     </div>
                     <!-- Show Game Data Input -->
                     <div class="setting-container">
                         <input type="checkbox" id="game-data-input">
-                        <h3 class="setting">Show Game Data</h3>
+                        <p class="setting">Show Game Data</p>
                     </div>
                 </div>
-                <h2 class="setting-title"><u>AI Settings</u></h2>
+                <p class="setting-title"><u>AI Settings</u></p>
                 <!-- Enable AI Input -->
                 <div class="setting-container">
                     <input type="checkbox" id="game-ai-input">
-                    <h3 class="setting">Enable AI</h3>
+                    <p class="setting">Enable AI</p>
                 </div>
                 <!-- Show AI Strategy Input -->
                 <div class="setting-indent" id="ai-settings-container" hidden>
                     <div class="setting-container">
                         <input type="checkbox" id="game-ai-strategy-input">
-                        <h3 class="setting">Show AI Strategy</h3>
+                        <p class="setting">Show AI Strategy</p>
                     </div>
                 </div>
             </div>
