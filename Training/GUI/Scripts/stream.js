@@ -379,7 +379,7 @@ class SaucerRenderer {
 //Draws the game stream
 function drawGame() {
     sctx.fillStyle = "white";
-    sctx.font = "20px Roboto Mono Regular";
+    sctx.font = "400 20px Roboto Mono";
     sctx.fillText(stream_data[0], 15, 25);
     if (stream_data[1] == undefined) {
         return;
@@ -404,13 +404,13 @@ function drawStream() {
     sctx.clearRect(0, 0, stream.width, stream.height);
     if (data.thread != -1 && streaming) {
         sctx.fillStyle = "yellow";
-        sctx.font = "20px Roboto Mono Regular";
+        sctx.font = "400 20px Roboto Mono";
         const text_width = sctx.measureText("Thread " + (data.thread + 1)).width;
         sctx.fillText("Thread " + (data.thread + 1), stream.width - text_width - 10, 25);
         drawGame();
     } else {
         sctx.fillStyle = "yellow";
-        sctx.font = "30px Roboto Mono Regular";
+        sctx.font = "400 30px Roboto Mono";
         const text_width = sctx.measureText("Stream Inactive").width;
         sctx.fillText("Stream Inactive", stream.width / 2 - text_width / 2, stream.height / 2 - 15);
     }

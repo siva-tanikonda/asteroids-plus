@@ -1,29 +1,3 @@
-/*Font Loading*/
-@font-face {
-    font-family: 'Roboto Mono Thin';
-    src: url('Fonts/Roboto Mono.ttf') format('truetype');
-    font-style: normal;
-    font-weight: 100;
-}
-@font-face {
-    font-family: 'Roboto Mono Light';
-    src: url('Fonts/Roboto Mono.ttf') format('truetype');
-    font-style: normal;
-    font-weight: 300;
-}
-@font-face {
-    font-family: 'Roboto Mono Regular';
-    src: url('Fonts/Roboto Mono.ttf') format('truetype');
-    font-style: normal;
-    font-weight: 400;
-}
-@font-face {
-    font-family: 'Roboto Mono Bold';
-    src: url('Fonts/Roboto Mono.ttf') format('truetype');
-    font-style: normal;
-    font-weight: 700;
-}
-
 /*HTML Body Styling*/
 html {
     margin: 0px;
@@ -69,7 +43,8 @@ body {
     margin-bottom: -20px;
 }
 .setting {
-    font-family: 'Roboto Mono Thin';
+    font-family: 'Roboto Mono';
+    font-weight: 400;
     color: white;
     display: inline-block;
     vertical-align: center;
@@ -86,7 +61,9 @@ body {
 }
 .setting-title {
     position: relative;
-    font-family: 'Roboto Mono Thin';
+    font-family: 'Roboto Mono';
+    font-weight: 400;
+    font-size: 20px;
     color: white;
     margin-bottom: 0px;
 }
@@ -108,8 +85,10 @@ body {
 }
 #title {
     position: relative;
-    top: -5px;
-    font-family: 'Roboto Mono Thin';
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 300;
+    top: -14px;
+    font-size: 30px;
     color: white;
 }
 
@@ -168,12 +147,14 @@ input[type="checkbox"]:disabled {
     font-size: 19px;
     border-bottom: 1px solid white;
     padding-bottom: 0px;
-    font-family: 'Roboto Mono Light';
+    font-family: 'Roboto Mono';
+    font-weight: 300;
 }
 
 /*Small Info Box Styling*/
 #info-button {
-    font-family: 'Roboto Mono Light';
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 300;
     font-size: 25px;
     border: 1px solid white;
     position: absolute;
@@ -199,7 +180,8 @@ input[type="checkbox"]:disabled {
     border: 1px solid white;
 }
 #exit-info-button {
-    font-family: 'Roboto Mono Light';
+    font-family: 'Roboto Mono';
+    font-weight: 300;
     font-size: 25px;
     border: 1px solid white;
     position: absolute;
@@ -221,16 +203,18 @@ input[type="checkbox"]:disabled {
     margin-left: 10px;
     font-size: 17.5px;
     position: relative;
-    font-family: 'Roboto Mono Thin';
+    font-family: 'Roboto Mono';
+    font-weight: 400;
     color: white;
     line-height:15px;
     padding-right: 50px;
 }
 .info-note {
     margin-left: 10px;
-    font-size: 12.5px;
+    font-size: 13px;
     position: relative;
-    font-family: 'Roboto Mono Thin';
+    font-family: 'Roboto Mono';
+    font-weight: 300;
     line-height: 10px;
     color: white;
     padding-right: 50px;

@@ -1199,7 +1199,7 @@ class Game {
 
     //Draws the current player's score on the corner of the screen during the game
     drawScore() {
-        ctx.font = "20px Roboto Mono Light";
+        ctx.font = "300 20px Roboto Mono";
         ctx.fillStyle = "white";
         const text_size = ctx.measureText(this.score);
         ctx.fillText(this.score, 15, 15 + text_size.actualBoundingBoxAscent);
@@ -1212,7 +1212,7 @@ class Game {
         ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
         ctx.globalAlpha = 1;
         ctx.fillStyle = "white";
-        ctx.font = "25px Roboto Mono Light";
+        ctx.font = "300 25px Roboto Mono";
         if (this.title_flash <= 0.5) {
             const textSize = ctx.measureText("Press Enter to Start");
             ctx.fillText("Press Enter to Start", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2);
@@ -1226,10 +1226,10 @@ class Game {
         ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
         ctx.globalAlpha = 1;
         ctx.fillStyle = "white";
-        ctx.font = "35px Roboto Mono Light";
+        ctx.font = "300 35px Roboto Mono";
         let textSize = ctx.measureText("Score: " + this.score);
         ctx.fillText("Score: " + this.score, canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 - 30);
-        ctx.font = "25px Roboto Mono Light";
+        ctx.font = "300 25px Roboto Mono";
         if (this.title_flash <= 0.5) {
             textSize = ctx.measureText("Press Enter to Try Again");
             ctx.fillText("Press Enter to Try Again", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 + 30);
@@ -1243,10 +1243,10 @@ class Game {
         ctx.fillRect(0, 0, canvas_bounds.width, canvas_bounds.height);
         ctx.globalAlpha = 1;
         ctx.fillStyle = "white";
-        ctx.font = "35px Roboto Mono Light";
+        ctx.font = "300 35px Roboto Mono";
         let textSize = ctx.measureText("Paused");
         ctx.fillText("Paused", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 - 30);
-        ctx.font = "25px Roboto Mono Light";
+        ctx.font = "300 25px Roboto Mono";
         if (this.title_flash <= 0.5) {
             textSize = ctx.measureText("Press Escape to Resume");
             ctx.fillText("Press Escape to Resume", canvas_bounds.width / 2 - textSize.width / 2, canvas_bounds.height / 2 + 30);
