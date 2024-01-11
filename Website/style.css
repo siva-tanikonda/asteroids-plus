@@ -57,7 +57,7 @@ body {
     width: 400px;
     height: 100%;
     background-color: rgb(22, 22, 22);
-    border-right: 1.5px solid white;
+    border-right: 1px solid white;
     overflow-y: auto;
 }
 
@@ -104,7 +104,7 @@ body {
     height: 75px;
     text-align: center;
     vertical-align: center;
-    border: 1.5px solid white;
+    border: 1px solid white;
 }
 #title {
     position: relative;
@@ -129,7 +129,7 @@ input[type="checkbox"] {
     color: white;
     width: 18px;
     height: 18px;
-    border: 1.5px solid currentColor;
+    border: 1px solid currentColor;
     display: inline-block;
     place-items: center;
     box-shadow: none;
@@ -141,7 +141,7 @@ input[type="checkbox"]::before {
     content: "";
     width: 12px;
     height: 12px;
-    margin: 2.25px;
+    margin: 2px;
     padding: 0px;
     transform: scale(0);
     transform-origin: center;
@@ -166,7 +166,7 @@ input[type="checkbox"]:disabled {
     color: white;
     border: None;
     font-size: 19px;
-    border-bottom: 1.5px solid white;
+    border-bottom: 1px solid white;
     padding-bottom: 0px;
     font-family: 'Roboto Mono Light';
 }
@@ -175,7 +175,7 @@ input[type="checkbox"]:disabled {
 #info-button {
     font-family: 'Roboto Mono Light';
     font-size: 25px;
-    border: 1.5px solid white;
+    border: 1px solid white;
     position: absolute;
     bottom: 15px;
     right: 15px;
@@ -196,12 +196,12 @@ input[type="checkbox"]:disabled {
     bottom: 15px;
     background-color: rgb(22, 22, 22);
     text-align: left;
-    border: 1.5px solid white;
+    border: 1px solid white;
 }
 #exit-info-button {
     font-family: 'Roboto Mono Light';
     font-size: 25px;
-    border: 1.5px solid white;
+    border: 1px solid white;
     position: absolute;
     top: 10px;
     right: 10px;
