@@ -121,7 +121,7 @@ input[type="checkbox"]:disabled {
     display: flex;
     font-family: 'Roboto Mono Light';
     font-size: 25px;
-    border: 1.5px solid white;
+    border: 1px solid white;
     position: absolute;
     background: transparent;
     color: white;
