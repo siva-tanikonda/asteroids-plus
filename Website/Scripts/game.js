@@ -155,7 +155,7 @@ const point_values = {
     //Score given for an asteroid kill/split by the player
     asteroids: 50,
     //Score given for a saucer kill by the player
-    saucers: 0,
+    saucers: 100,
     //The number of points needed to get an extra life
     extra_life: 10000
 };
