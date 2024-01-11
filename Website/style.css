@@ -45,6 +45,7 @@ body {
 .setting {
     font-family: 'Roboto Mono';
     font-weight: 400;
+    font-size: 18px;
     color: white;
     display: inline-block;
     vertical-align: center;
@@ -85,7 +86,7 @@ body {
 }
 #title {
     position: relative;
-    font-family: 'Roboto Mono', monospace;
+    font-family: 'Roboto Mono';
     font-weight: 300;
     top: -14px;
     font-size: 30px;
