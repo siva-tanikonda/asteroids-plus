@@ -16,7 +16,8 @@ let data = {
     generation: 1,
     statistics: [ ],
     histograms: [ ],
-    thread: -1
+    thread: -1,
+    seeds: [ ]
 };
 let stream_data = [];
 let previous_packet_generation = -1;
@@ -87,7 +88,8 @@ function drawHistogram() {
         const std = data.statistics[generation - 1][2].toFixed(2);
         const min = data.statistics[generation - 1][3].toFixed(2);
         const max = data.statistics[generation - 1][4].toFixed(2); 
-        const stats = "Median: " + median + ", Mean: " + mean + ", STD: " + std + ", Min: " + min + ", Max: " + max;
+        const seed = data.seeds[generation - 1];
+        const stats = "Median: " + median + ", Mean: " + mean + ", STD: " + std + ", Min: " + min + ", Max: " + max + " (Seed " + seed + ")";
         text_length = ctx.measureText(stats).width;
         ctx.fillText(stats, canvas.width / 2 - text_length / 2, 200);
         ctx.lineWidth = 1.5;

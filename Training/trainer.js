@@ -19,7 +19,7 @@ server.listen(port, () => {
 });
 
 //Create a random number generator for predictable results on the genetic algorithm
-const sd = Math.random();
+const sd = 1;
 let random = new seedrandom(sd);
 
 //Ranges that each constant can be when training the AI ([ left_bound, right_bound, onlyInteger ])
@@ -112,58 +112,57 @@ const C_default = [
 const C_mutation = [
     [ 0.1 ],
     [ 0.001 ],
-    [ 0.1, 0.001 ],
+    [ 0.1, 0.01 ],
     [ 0.1 ],
-    [ 0.1, 0.001 ],
+    [ 0.1, 0.01 ],
     [ 0.1 ],
-    [ 0.1, 0.001 ],
+    [ 0.1, 0.01 ],
     [ 0.1 ],
-    [ 0.1, 0.001 ],
+    [ 0.1, 0.01 ],
     [ 0.1 ],
-    [ 0.1, 0.001 ],
+    [ 0.1, 0.01 ],
     [ 0.1 ],
-    [ 0.1, 0.001 ],
+    [ 0.1, 0.01 ],
     [ 0.1 ],
-    [ 0.2, 0.002 ],
+    [ 0.1, 0.01 ],
     [ 0.1 ],
-    [ 0.2, 0.002 ],
+    [ 0.1, 0.01 ],
     [ 0.1 ],
-    [ 0.2, 0.002 ],
+    [ 0.1, 0.01 ],
     [ 0.1 ],
-    [ 0.2, 0.002 ],
+    [ 0.1, 0.01 ],
     [ 0.1 ],
-    [ 0.2, 0.002 ],
+    [ 0.1, 0.01 ],
     [ 0.1 ],
-    [ 0.2, 0.002 ],
-    [ 0.1 ],
-    [ 0.1 ],
+    [ 0.1, 0.01 ],
     [ 0.1 ],
     [ 0.1 ],
-    [ 0.05 ]
+    [ 0.1 ],
+    [ 0.1 ],
+    [ 0.1 ]
 ]
 
 //Training settings
 const thread_count = 8;
 const generation_size = 1000;
 const individuals_carry_size = 500;
-const inclusion_threshold = 0;
 const inclusion_limit = 3;
 const progression_leeway = 3;
-const max_generations = 300;
+const max_generations = 100;
 const score_goal = Infinity;
 const trial_count = 3;
 const time_weight = 0;
 const score_weight = 1;
 const flee_time_weight = -1 / 6;
-const mutation_rate = 1 / 30;
-const shift_rate = 1 / (30 * 3);
+const mutation_rate = 1 / 29;
+const shift_rate = 1 / (29 * 3);
 const partition_exponentiator = Math.E;
 const interval_wait = 1000 / 60;
 const histogram_count = 10;
 const exploration_multiplier = 3;
 const exploration_threshold = 3;
 const save_index = 1;
-const start_from_save = true;
+const start_from_save = false;
 
 //Multithreading/testing info
 let Cs = [];
@@ -177,6 +176,7 @@ let used_threads = [];
 let fitness = [];
 let statistics = [];
 let histograms = [];
+let seeds = [];
 const threads = [];
 let max_fitness_mean = 0;
 let carry_scores = false;
@@ -250,8 +250,10 @@ function createFirstGeneration() {
         for (let i = 1; i < max_previous_generation; i++) {
             const generation_data = eval(fs.readFileSync("./Saves/Save" + save_index + "/Generations/generation" + i + ".json", "utf-8"));
             const generation_results = generation_data[2];
+            const generation_seed = generation_data[0];
             statistics.push(analyzeGenerationResults(generation_results));
             histograms.push(createGenerationHistogram(generation_results));
+            seeds.push(generation_seed);
         }
         if (max_previous_generation > 0) {
             fitness = new Array(generation_size).fill(0);
@@ -381,8 +383,9 @@ function createGeneration(results, analysis) {
     partition.sort((a, b) => { return b[0] - a[0] });
     //Carry-over some of the C-values
     const Cs = [];
+    const median_partition = (analysis[2] == 0) ? 0 : (analysis[0] - analysis[1]) / analysis[2];
     for (let i = 0; i < individuals_carry_size; i++) {
-        if (partition[i][0] < inclusion_threshold) {
+        if (partition[i][0] < median_partition) {
             break;
         }
         if (carry_scores) {
@@ -400,14 +403,14 @@ function createGeneration(results, analysis) {
     //Normalize the inputs
     let partition_sum = 0;
     for (let i = 0; i < partition.length; i++) {
-        if (partition[i][0] < inclusion_threshold) {
+        if (partition[i][0] < median_partition) {
             break;
         }
         partition_sum += exponentiator ** Math.min(partition[i][0], inclusion_limit);
     }
     if (partition_sum == 0) {
         for (let i = 0; i < partition.length; i++) {
-            if (partition[i][0] < inclusion_threshold) {
+            if (partition[i][0] < median_partition) {
                 partition[i][0] = 0;
                 continue;
             }
@@ -415,7 +418,7 @@ function createGeneration(results, analysis) {
         }
     } else {
         for (let i = 0; i < partition.length; i++) {
-            if (partition[i][0] < inclusion_threshold) {
+            if (partition[i][0] < median_partition) {
                 partition[i][0] = 0;
                 continue;
             }
@@ -572,6 +575,7 @@ function train() {
             generation: generation,
             statistics: statistics,
             histograms: histograms,
+            seeds: seeds,
             thread: stream_thread
         };
         if (generation <= max_generations && individual <= generation_size) {
@@ -607,6 +611,7 @@ function train() {
             analysis = analyzeGenerationResults(results);
             statistics.push(analysis);
             histograms.push(createGenerationHistogram(results));
+            seeds.push(seed);
             fitness = new Array(generation_size).fill(0);
             testing_progress = 0;
             individual = 1;
@@ -634,6 +639,7 @@ function train() {
         packet.statistics = statistics;
         packet.histograms = histograms;
         packet.thread = stream_thread;
+        packet.seeds = seeds;
         if (num_users > 0) {
             io.emit("data", packet);
         }
