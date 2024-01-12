@@ -12,7 +12,7 @@ To install the packages necessary for the trainer, run:
 ```
 $ npm install
 ```
-*You need to install Node.js first and make sure to execute this command in the asteroids-ai/Training directory*
+*You need to install Node.js first and make sure to execute this command in the project directory*
 #### Run Trainer
 * First, you should alter any parameters you want to in *asteroids-ai/Training/trainer.js*
 * Then, to run the trainer, execute the following command (in the *Training* directory):
