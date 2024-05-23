@@ -187,7 +187,7 @@ class AI {
 
     //Generates all virtual entities to use for the game
     generateVirtualEntities() {
-        if (!game.title_screen && !game.ship.dead) {
+        if (!game.title_screen) {
             this.ship = new VirtualShip(game.ship);
         }
         this.dangers = [];
