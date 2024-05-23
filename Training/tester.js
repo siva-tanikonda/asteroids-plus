@@ -784,7 +784,7 @@ class AI {
         return result;
     }
     generateVirtualEntities() {
-        if (!game.title_screen && !game.ship.dead) {
+        if (!game.title_screen) {
             this.ship = new VirtualShip(game.ship);
         }
         this.dangers = [];
