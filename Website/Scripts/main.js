@@ -19,7 +19,7 @@ resizeCanvas();
 Asteroid.analyzeAsteroidConfigurations();
 Saucer.analyzeSaucerConfigurations();
 
-//Objects for the game and the ai
+//Create the game and AI
 let game = new Game(true);
 let ai = new AI(C);
 
@@ -85,7 +85,8 @@ function loop(timestamp) {
     old_timestamp = timestamp;
     if (settings.debug.show_game_data) {
         if (fps_cooldown <= 0) {
-            fps = 1 / seconds_passed, fps_cooldown = 1;
+            fps = 1 / seconds_passed;
+            fps_cooldown = 1;
         }
         fps_cooldown = Math.max(0, fps_cooldown - fps_reset_rate);
     }
