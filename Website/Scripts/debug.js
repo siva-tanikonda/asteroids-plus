@@ -68,32 +68,28 @@ class Debug {
     }
 
     //Draws the game data on the overlay
-    static drawGameData(game) {
+    static drawGameData(wave, saucers_length, asteroid_lengths, time) {
         ctx.font = "400 15px Roboto Mono";
         ctx.fillStyle = "#f2564b";
-        const wave_text = "Wave: " + game.wave;
+        const wave_text = "Wave: " + wave;
         const wave_size = ctx.measureText(wave_text);
         ctx.fillText(wave_text, canvas_bounds.width - wave_size.width - 10, 20);
-        const saucer_text = "Saucer Count: " + game.saucers.length;
+        const saucer_text = "Saucer Count: " + saucers_length;
         const saucer_size = ctx.measureText(saucer_text);
         ctx.fillText(saucer_text, canvas_bounds.width - saucer_size.width - 10, 40);
-        const asteroid_counts = [ 0, 0, 0 ];
-        for (let i = 0; i < game.asteroids.length; i++) {
-            asteroid_counts[game.asteroids[i].size]++;
-        }
-        let asteroid_text = "Large Asteroid Count: " + asteroid_counts[2];
+        let asteroid_text = "Large Asteroid Count: " + asteroid_lengths[2];
         let asteroid_size = ctx.measureText(asteroid_text);
         ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 10, 60);
-        asteroid_text = "Medium Asteroid Count: " + asteroid_counts[1];
+        asteroid_text = "Medium Asteroid Count: " + asteroid_lengths[1];
         asteroid_size = ctx.measureText(asteroid_text);
         ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 10, 80);
-        asteroid_text = "Small Asteroid Count: " + asteroid_counts[0];
+        asteroid_text = "Small Asteroid Count: " + asteroid_lengths[0];
         asteroid_size = ctx.measureText(asteroid_text);
         ctx.fillText(asteroid_text, canvas_bounds.width - asteroid_size.width - 10, 100);
         const fps_text = "FPS: " + fps.toFixed(2);
         const fps_size = ctx.measureText(fps_text);
         ctx.fillText(fps_text, canvas_bounds.width - fps_size.width - 10, 120);
-        const time_text = "Time Elapsed: " + game.time.toFixed(2);
+        const time_text = "Time Elapsed: " + time.toFixed(2);
         const time_size = ctx.measureText(time_text);
         ctx.fillText(time_text, canvas_bounds.width - time_size.width - 10, 140);
     }

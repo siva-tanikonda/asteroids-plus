@@ -1,5 +1,3 @@
 .DS_Store
 .vscode
-Training/Saves
-package-lock.json
-node_modules
+Training/Build

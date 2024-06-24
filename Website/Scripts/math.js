@@ -12,21 +12,6 @@ class Vector {
         return new Vector(this.x, this.y);
     }
 
-    //Gets the magnitude of the vector
-    mag() {
-        return Math.sqrt(this.x ** 2 + this.y ** 2);
-    }
-
-    //Normalizes the vector (scales it down to a magnitude of 1)
-    normalize() {
-        const len = this.mag();
-        if (len == 0) {
-            return;
-        }
-        this.x /= len;
-        this.y /= len;
-    }
-
     //Adds another vector onto current vector
     add(v) {
         this.x += v.x;
@@ -49,6 +34,21 @@ class Vector {
     div(k) {
         this.x /= k;
         this.y /= k;
+    }
+
+    //Gets the magnitude of the vector
+    mag() {
+        return Math.sqrt(this.x ** 2 + this.y ** 2);
+    }
+
+    //Normalizes the vector (scales it down to a magnitude of 1)
+    normalize() {
+        const len = this.mag();
+        if (len == 0) {
+            return;
+        }
+        this.x /= len;
+        this.y /= len;
     }
 
     //Rotates a vector by an angle while centered at a certain vector
@@ -102,16 +102,6 @@ class Vector {
     static copy(v) {
         return new Vector(v.x, v.y);
     }
-    static mag(v) {
-        return Math.sqrt(v.x ** 2 + v.y ** 2);
-    }
-    static normalize(v) {
-        const len = v.mag();
-        if (len == 0) {
-            return v.copy();
-        }
-        return new Vector(v.x / len, v.y / len);
-    }
     static add(u, v) {
         return new Vector(u.x + v.x, u.y + v.y);
     }
@@ -124,9 +114,19 @@ class Vector {
     static div(v, k) {
         return new Vector(v.x / k, v.y / k);
     }
+    static mag(v) {
+        return Math.sqrt(v.x ** 2 + v.y ** 2);
+    }
+    static normalize(v) {
+        const len = v.mag();
+        if (len == 0) {
+            return v.copy();
+        }
+        return new Vector(v.x / len, v.y / len);
+    }
     static rotate(v, a, d) {
-        const nx = ((v.x - d.x) * Math.cos(a), (v.y - d.y) * Math.sin(a)) + d.x;
-        const ny = ((v.x - d.x) * Math.sin(a), (v.y - d.y) * Math.cos(a)) + d.y;
+        const nx = ((v.x - d.x) * Math.cos(a) + (v.y - d.y) * Math.sin(a)) + d.x;
+        const ny = ((d.x - v.x) * Math.sin(a) + (v.y - d.y) * Math.cos(a)) + d.y;
         return new Vector(nx, ny);
     }
     static dot(u, v) {
@@ -162,9 +162,10 @@ class Vector {
     static side(u, v, w) {
         const uv = Vector.sub(v, u);
         const vw = Vector.sub(w, v);
-        if (uv.cross(vw) > 0) {
+        const crs = uv.cross(vw);
+        if (crs > 0) {
             return -1;
-        } else if (uv.cross(vw) < 0) {
+        } else if (crs < 0) {
             return 1;
         } else {
             return 0;
@@ -244,11 +245,25 @@ class Polygon {
 
     //Creates a full copy of this polygon
     copy() {
-        const c_points = [];
+        const c_points = [ ];
         for (let i = 0; i < this.points.length; i++) {
-            c_points.push([this.points[i].x, this.points[i].y]);
+            c_points.push([ this.points[i].x, this.points[i].y ]);
         }
         return new Polygon(c_points);
+    }
+
+    //Translates the polygon by some vector
+    translate(v) {
+        for (let i = 0; i < this.points.length; i++) {
+            this.points[i].add(v);
+        }
+    }
+
+    //Scales the polygon by some factor k from the origin
+    scale(k) {
+        for (let i = 0; i < this.points.length; i++) {
+            this.points[i].mul(k);
+        }
     }
 
     //Gets the rectangular bound of this polygon
@@ -265,24 +280,10 @@ class Polygon {
         return new Rect(min_x, min_y, max_x, max_y);
     }
 
-    //Scales the polygon by some factor k from the origin
-    scale(k) {
-        for (let i = 0; i < this.points.length; i++) {
-            this.points[i].mul(k);
-        }
-    }
-
     //Rotates the polygon by an angle around a certain point
     rotate(a, d) {
         for (let i = 0; i < this.points.length; i++) {
             this.points[i].rotate(a, d);
-        }
-    }
-
-    //Translates the polygon by some vector
-    translate(v) {
-        for (let i = 0; i < this.points.length; i++) {
-            this.points[i].add(v);
         }
     }
 
@@ -313,8 +314,7 @@ class Polygon {
                 if (side == 1 && v.y >= this.points[i].y && v.y < this.points[j].y) {
                     result = !result;
                 }
-            }
-            else {
+            } else {
                 const side = Vector.side(this.points[j], this.points[i], v);
                 if (side == 1 && v.y > this.points[j].y && v.y <= this.points[i].y) {
                     result = !result;
@@ -340,7 +340,9 @@ class Polygon {
     intersectsPolygon(p) {
         const rect1 = p.getRect();
         const rect2 = this.getRect();
-        if (!rect1.intersects(rect2)) return false;
+        if (!rect1.intersects(rect2)) {
+            return false;
+        }
         for (var i = 0; i < p.points.length; i++) {
             if (this.containsPoint(p.points[i])) {
                 return true;
@@ -381,14 +383,14 @@ function wrap(v, wrap_x = true, wrap_y = true) {
 
 //Solves a quadratic and gives a list of solutions
 function solveQuadratic(a, b, c) {
-    var dsc = b ** 2 - 4 * a * c;
-    if (dsc < 0) return [];
-    else if (dsc == 0) {
+    var discriminant = b ** 2 - 4 * a * c;
+    if (discriminant < 0) return [ ];
+    else if (discriminant == 0) {
         return [-b / (2 * a)];
     } else {
-        var result = [(-b + Math.sqrt(dsc)) / (2 * a), (-b - Math.sqrt(dsc)) / (2 * a)];
+        var result = [ (-b + Math.sqrt(discriminant)) / (2 * a), (-b - Math.sqrt(discriminant)) / (2 * a) ];
         if (result[1] < result[0]) {
-            [result[0], result[1]] = [result[1], result[0]];
+            [ result[0], result[1] ] = [ result[1], result[0] ];
         }
         return result;
     }
