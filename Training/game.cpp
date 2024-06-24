@@ -104,6 +104,7 @@ void renderText(SDL_Renderer *renderer, TTF_Font *font, const string &text, int 
             break;
     }
     SDL_RenderCopy(renderer, texture, NULL, &rect);
+    SDL_DestroyTexture(texture);
 }
 
 Bullet::Bullet(const Json::Value &config, Vector position, Vector velocity, double life) : position(position), velocity(velocity), life(life), dead(false) { }
