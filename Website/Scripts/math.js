@@ -43,7 +43,7 @@ class Vector {
 
     //Normalizes the vector (scales it down to a magnitude of 1)
     normalize() {
-        const len = this.mag();
+        let len = this.mag();
         if (len == 0) {
             return;
         }
@@ -53,7 +53,7 @@ class Vector {
 
     //Rotates a vector by an angle while centered at a certain vector
     rotate(a, d) {
-        const nx = ((this.x - d.x) * Math.cos(a) + (this.y - d.y) * Math.sin(a)) + d.x;
+        let nx = ((this.x - d.x) * Math.cos(a) + (this.y - d.y) * Math.sin(a)) + d.x;
         this.y = ((d.x - this.x) * Math.sin(a) + (this.y - d.y) * Math.cos(a)) + d.y;
         this.x = nx;
     }
@@ -118,15 +118,15 @@ class Vector {
         return Math.sqrt(v.x ** 2 + v.y ** 2);
     }
     static normalize(v) {
-        const len = v.mag();
+        let len = v.mag();
         if (len == 0) {
             return v.copy();
         }
         return new Vector(v.x / len, v.y / len);
     }
     static rotate(v, a, d) {
-        const nx = ((v.x - d.x) * Math.cos(a) + (v.y - d.y) * Math.sin(a)) + d.x;
-        const ny = ((d.x - v.x) * Math.sin(a) + (v.y - d.y) * Math.cos(a)) + d.y;
+        let nx = ((v.x - d.x) * Math.cos(a) + (v.y - d.y) * Math.sin(a)) + d.x;
+        let ny = ((d.x - v.x) * Math.sin(a) + (v.y - d.y) * Math.cos(a)) + d.y;
         return new Vector(nx, ny);
     }
     static dot(u, v) {
@@ -160,9 +160,9 @@ class Vector {
 
     //Gets the direction of a turn described by three vectors (left is -1, straight is 0, and right is 1)
     static side(u, v, w) {
-        const uv = Vector.sub(v, u);
-        const vw = Vector.sub(w, v);
-        const crs = uv.cross(vw);
+        let uv = Vector.sub(v, u);
+        let vw = Vector.sub(w, v);
+        let crs = uv.cross(vw);
         if (crs > 0) {
             return -1;
         } else if (crs < 0) {
@@ -206,12 +206,12 @@ class LineSegment {
 
     //Checks if a point is on this line
     containsPoint(v) {
-        const side = Vector.side(this.a, this.b, v);
+        let side = Vector.side(this.a, this.b, v);
         if (side != 0) {
             return false;
         }
-        const min_x = Math.min(this.a.x, this.b.x);
-        const max_x = Math.max(this.a.x, this.b.x);
+        let min_x = Math.min(this.a.x, this.b.x);
+        let max_x = Math.max(this.a.x, this.b.x);
         return (v.x >= min_x && v.x <= max_x);
     }
 
@@ -220,10 +220,10 @@ class LineSegment {
         if (l.containsPoint(this.a) || l.containsPoint(this.b) || this.containsPoint(l.a) || this.containsPoint(l.b)) {
             return true;
         }
-        const s1 = Vector.side(this.a, this.b, l.a);
-        const s2 = Vector.side(this.a, this.b, l.b);
-        const s3 = Vector.side(l.a, l.b, this.a);
-        const s4 = Vector.side(l.a, l.b, this.b);
+        let s1 = Vector.side(this.a, this.b, l.a);
+        let s2 = Vector.side(this.a, this.b, l.b);
+        let s3 = Vector.side(l.a, l.b, this.a);
+        let s4 = Vector.side(l.a, l.b, this.b);
         if (s1 == 0 || s2 == 0 || s3 == 0 || s4 == 0) {
             return false;
         }
@@ -245,7 +245,7 @@ class Polygon {
 
     //Creates a full copy of this polygon
     copy() {
-        const c_points = [ ];
+        let c_points = [ ];
         for (let i = 0; i < this.points.length; i++) {
             c_points.push([ this.points[i].x, this.points[i].y ]);
         }
@@ -289,17 +289,17 @@ class Polygon {
 
     //Checks if a point is in this polygon
     containsPoint(v) {
-        const rect = this.getRect();
+        let rect = this.getRect();
         if (v.x < rect.left || v.x > rect.right || v.y < rect.top || v.y > rect.bottom) {
             return false;
         }
         let result = false;
         for (let i = 0; i < this.points.length; i++) {
-            const j = (i + 1) % this.points.length;
-            const side = Vector.side(this.points[i], this.points[j], v);
+            let j = (i + 1) % this.points.length;
+            let side = Vector.side(this.points[i], this.points[j], v);
             if (side == 0) {
-                const min_x = Math.min(this.points[i].x, this.points[j].x);
-                const max_x = Math.max(this.points[i].x, this.points[j].x);
+                let min_x = Math.min(this.points[i].x, this.points[j].x);
+                let max_x = Math.max(this.points[i].x, this.points[j].x);
                 if (v.x >= min_x && v.x <= max_x) {
                     return true;
                 } else {
@@ -310,12 +310,11 @@ class Polygon {
                 continue;
             }
             if (this.points[i].y < this.points[j].y) {
-                const side = Vector.side(this.points[i], this.points[j], v);
                 if (side == 1 && v.y >= this.points[i].y && v.y < this.points[j].y) {
                     result = !result;
                 }
             } else {
-                const side = Vector.side(this.points[j], this.points[i], v);
+                side = Vector.side(this.points[j], this.points[i], v);
                 if (side == 1 && v.y > this.points[j].y && v.y <= this.points[i].y) {
                     result = !result;
                 }
@@ -327,8 +326,8 @@ class Polygon {
     //Checks if a line segment intersects this polygon
     intersectsLineSegment(l) {
         for (let i = 0; i < this.points.length; i++) {
-            const j = (i + 1) % this.points.length;
-            const segment = new LineSegment(this.points[i], this.points[j]);
+            let j = (i + 1) % this.points.length;
+            let segment = new LineSegment(this.points[i], this.points[j]);
             if (segment.intersects(l)) {
                 return true;
             }
@@ -338,19 +337,19 @@ class Polygon {
 
     //Checks if another polygon intersects this polygon
     intersectsPolygon(p) {
-        const rect1 = p.getRect();
-        const rect2 = this.getRect();
+        let rect1 = p.getRect();
+        let rect2 = this.getRect();
         if (!rect1.intersects(rect2)) {
             return false;
         }
-        for (var i = 0; i < p.points.length; i++) {
+        for (let i = 0; i < p.points.length; i++) {
             if (this.containsPoint(p.points[i])) {
                 return true;
             }
         }
-        for (var i = 0; i < p.points.length; i++) {
-            const j = (i + 1) % p.points.length;
-            const segment = new LineSegment(p.points[i], p.points[j]);
+        for (let i = 0; i < p.points.length; i++) {
+            let j = (i + 1) % p.points.length;
+            let segment = new LineSegment(p.points[i], p.points[j]);
             if (this.intersectsLineSegment(segment)) {
                 return true;
             }
@@ -383,12 +382,13 @@ function wrap(v, wrap_x = true, wrap_y = true) {
 
 //Solves a quadratic and gives a list of solutions
 function solveQuadratic(a, b, c) {
-    var discriminant = b ** 2 - 4 * a * c;
-    if (discriminant < 0) return [ ];
-    else if (discriminant == 0) {
-        return [-b / (2 * a)];
+    let discriminant = b ** 2 - 4 * a * c;
+    if (discriminant < 0) {
+        return [ ];
+    } else if (discriminant == 0) {
+        return [ -b / (2 * a) ];
     } else {
-        var result = [ (-b + Math.sqrt(discriminant)) / (2 * a), (-b - Math.sqrt(discriminant)) / (2 * a) ];
+        let result = [ (-b + Math.sqrt(discriminant)) / (2 * a), (-b - Math.sqrt(discriminant)) / (2 * a) ];
         if (result[1] < result[0]) {
             [ result[0], result[1] ] = [ result[1], result[0] ];
         }

@@ -22,7 +22,6 @@ let config = JSON.parse(`{
     "ship_bullet_life": 60,
     "ship_teleport_speed": 0.025,
     "ship_teleport_recharge_rate": 0.01,
-    "game_lives": 3,
     "game_extra_life_point_value": 10000,
     "game_asteroid_point_value": 50,
     "game_saucer_point_value": 0,
@@ -67,7 +66,7 @@ class Particle {
 
     //Updates the position of the particle
     #move(delay) {
-        const initial_velocity = this.velocity.copy();
+        let initial_velocity = this.velocity.copy();
         this.velocity.mul(1 / (Math.E ** (this.drag_coefficient * delay))); //Differential Equation to deal with accelerated movement over a short time
         this.position = Vector.div(Vector.add(Vector.mul(this.position, this.drag_coefficient), Vector.sub(initial_velocity, this.velocity)), this.drag_coefficient);
         wrap(this.position);
@@ -125,11 +124,11 @@ class Explosion {
         if (settings.remove_particles) {
             return;
         }
-        const speed = randomInRange([ 0, 8 ]);
-        const angle = Math.random() * Math.PI * 2;
-        const life = randomInRange([ 30, 60 ]);
-        const unit_vector = new Vector(Math.cos(angle), -Math.sin(angle));
-        const radius = randomInRange([ 1, 2 ]);
+        let speed = randomInRange([ 0, 8 ]);
+        let angle = Math.random() * Math.PI * 2;
+        let life = randomInRange([ 30, 60 ]);
+        let unit_vector = new Vector(Math.cos(angle), -Math.sin(angle));
+        let radius = randomInRange([ 1, 2 ]);
         this.particles.push(new Particle(position, Vector.mul(unit_vector, speed), 0.05, radius, life));
     }
 
@@ -139,7 +138,7 @@ class Explosion {
             this.dead = true;
             return;
         }
-        const new_particles = [];
+        let new_particles = [];
         for (let i = 0; i < this.particles.length; i++) {
             this.particles[i].update(delay);
             if (!this.particles[i].dead) {
@@ -206,11 +205,11 @@ class Bullet {
         if (asteroid.invincibility > 0 || asteroid.dead || this.dead) {
             return false;
         }
-        const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
-        const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
+        let horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
+        let vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
-                const hit = asteroid.bounds.containsPoint(Vector.add(this.position, new Vector(horizontal[i], vertical[j])));
+                let hit = asteroid.bounds.containsPoint(Vector.add(this.position, new Vector(horizontal[i], vertical[j])));
                 if (hit) {
                     this.dead = asteroid.dead = true;
                     explosions.push(new Explosion(asteroid.position));
@@ -227,11 +226,11 @@ class Bullet {
         if (saucer.dead || this.dead) {
             return false;
         }
-        const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
-        const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
+        let horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
+        let vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
-                const hit = saucer.bounds.containsPoint(Vector.add(this.position, new Vector(horizontal[i], vertical[j])));
+                let hit = saucer.bounds.containsPoint(Vector.add(this.position, new Vector(horizontal[i], vertical[j])));
                 if (hit) {
                     this.dead = saucer.dead = true;
                     explosions.push(new Explosion(saucer.position));
@@ -251,7 +250,7 @@ class Asteroid {
     static analyzeAsteroidConfigurations() {
         for (let i = 0; i < config.asteroid_shapes.length; i++) {
             let shape = new Polygon(config.asteroid_shapes[i]);
-            const rect = shape.getRect();
+            let rect = shape.getRect();
             shape.translate(new Vector(-rect.left, -rect.top));
             for (let j = 0; j < config.asteroid_shapes[i].length; j++) {
                 config.asteroid_shapes[i][j][0] = shape.points[j].x;
@@ -262,8 +261,8 @@ class Asteroid {
 
     //Constructor
     constructor(position, size, wave, title_screen) {
-        const max_size = config.asteroid_sizes.length - 1;
-        const type = Math.floor(randomInRange([0, config.asteroid_shapes.length]));
+        let max_size = config.asteroid_sizes.length - 1;
+        let type = Math.floor(randomInRange([0, config.asteroid_shapes.length]));
         this.size = size;
         if (!title_screen && size == max_size) {
             this.invincibility = config.asteroid_invincibility_time;
@@ -272,25 +271,26 @@ class Asteroid {
         }
         this.bounds = new Polygon(config.asteroid_shapes[type]);
         this.bounds.scale(config.asteroid_sizes[size]);
-        const rect = this.bounds.getRect();
+        let rect = this.bounds.getRect();
         this.bounds.translate(new Vector(-rect.width / 2, -rect.height / 2));
         this.position = position;
         this.bounds.translate(this.position);
         this.angle = randomInRange([0, Math.PI * 2]);
         this.bounds.rotate(this.angle, this.position);
         this.rotation_speed = randomInRange(config.asteroid_rotation_speed_range);
-        if (Math.floor(Math.random() * 2) == 1)
+        if (Math.floor(Math.random() * 2) == 1) {
             this.rotation_speed *= -1;
-        const velocity_angle = Math.random() * Math.PI * 2;
+        }
+        let velocity_angle = Math.random() * Math.PI * 2;
         this.velocity = new Vector(Math.cos(velocity_angle), Math.sin(velocity_angle));
-        const speed = randomInRange([ Asteroid.#generateAsteroidSpeed(wave - 1), Asteroid.#generateAsteroidSpeed(wave) ]);
+        let speed = randomInRange([ Asteroid.#generateAsteroidSpeed(wave - 1), Asteroid.#generateAsteroidSpeed(wave) ]);
         this.velocity.mul(config.asteroid_size_speed_scaling[size] * speed);
         this.dead = false;
     }
 
     //Rotates the asteroid
     #rotate(delay) {
-        const old_angle = this.angle;
+        let old_angle = this.angle;
         this.angle += this.rotation_speed * delay;
         this.bounds.rotate(this.angle - old_angle, this.position);
         while (this.angle < 0) {
@@ -303,7 +303,7 @@ class Asteroid {
 
     //Updates the position of the asteroid
     #move(delay) {
-        const old_position = this.position.copy();
+        let old_position = this.position.copy();
         this.position.add(Vector.mul(this.velocity, delay));
         wrap(this.position);
         this.bounds.translate(Vector.sub(this.position, old_position));
@@ -347,7 +347,7 @@ class Asteroid {
 
     //Draws the asteroid with the application of the wrap effect
     draw() {
-        const rect = this.bounds.getRect();
+        let rect = this.bounds.getRect();
         renderWrap(this.position, Math.max(rect.width / 2, rect.height / 2), (offset) => {
             this.#drawAsteroid(offset);
         });
@@ -359,10 +359,8 @@ class Asteroid {
         if (this.size == 0) {
             return;
         }
-        const asteroid_1 = new Asteroid(this.position.copy(), this.size - 1, wave, false);
-        const asteroid_2 = new Asteroid(this.position.copy(), this.size - 1, wave, false);
-        split_asteroids.push(asteroid_1);
-        split_asteroids.push(asteroid_2);
+        split_asteroids.push(new Asteroid(this.position.copy(), this.size - 1, wave, false));
+        split_asteroids.push(new Asteroid(this.position.copy(), this.size - 1, wave, false));
     }
 
     static #generateAsteroidSpeed(wave) {
@@ -377,7 +375,7 @@ class Saucer {
     //Tweaks the saucer bounds a little bit to allow for proper scaling
     static analyzeSaucerConfigurations() {
         let shape = new Polygon(config.saucer_shape);
-        const rect = shape.getRect();
+        let rect = shape.getRect();
         shape.translate(new Vector(-rect.left, -rect.top));
         for (let i = 0; i < config.saucer_shape.length; i++) {
             config.saucer_shape[i][0] = shape.points[i].x;
@@ -390,7 +388,7 @@ class Saucer {
         this.bounds = new Polygon(config.saucer_shape);
         this.size = size;
         this.bounds.scale(config.saucer_sizes[this.size]);
-        const rect = this.bounds.getRect();
+        let rect = this.bounds.getRect();
         this.bounds.translate(new Vector(-rect.width / 2, -rect.height / 2));
         this.position = new Vector();
         this.position.y = randomInRange([rect.height / 2, canvas_bounds.height - rect.height / 2]);
@@ -425,7 +423,7 @@ class Saucer {
             if (Math.floor(randomInRange([0, 2])) == 0) {
                 let direction = this.velocity.x / Math.abs(this.velocity.x);
                 if (this.velocity.y == 0) {
-                    const new_velocity = new Vector(direction, this.vertical_movement);
+                    let new_velocity = new Vector(direction, this.vertical_movement);
                     new_velocity.normalize();
                     new_velocity.mul(this.velocity.mag());
                     this.velocity = new_velocity;
@@ -439,28 +437,28 @@ class Saucer {
         }
         this.direction_change_cooldown = Math.max(0, this.direction_change_cooldown - this.direction_change_rate * delay);
         //Actually changes the position of the saucer
-        const old_position = this.position.copy();
+        let old_position = this.position.copy();
         this.position.add(Vector.mul(this.velocity, delay));
         wrap(this.position, this.entered_x, this.entered_y);
         this.bounds.translate(Vector.sub(this.position, old_position));
         //Checks if the wrap effect should be applied on each axis for the saucer (only if the saucer has fully entered the map on one direction)
-        const rect = this.bounds.getRect();
+        let rect = this.bounds.getRect();
         this.entered_x |= (this.position.x <= canvas_bounds.width - rect.width / 2 && this.position.x >= rect.width / 2);
         this.entered_y |= (this.position.y >= rect.height / 2 && this.position.y <= canvas_bounds.height - rect.height / 2);
     }
 
     //Calculates the best direction to fire for the saucer
     #bestFireDirection(ship) {
-        const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
-        const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
+        let horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
+        let vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         let best = Vector.sub(ship.position, this.position);
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
                 if (i == 0 && j == 0) {
                     continue;
                 }
-                const shifted_position = Vector.add(this.position, new Vector(horizontal[i], vertical[j]));
-                const choice = Vector.sub(ship.position, shifted_position);
+                let shifted_position = Vector.add(this.position, new Vector(horizontal[i], vertical[j]));
+                let choice = Vector.sub(ship.position, shifted_position);
                 if (choice.mag() < best.mag()) {
                     best = choice;
                 }
@@ -472,10 +470,10 @@ class Saucer {
     //Manages the saucer's shooting system
     #fire(delay, ship, saucer_bullets) {
         if (this.bullet_cooldown >= 1) {
-            const bullet_velocity = this.#bestFireDirection(ship);
+            let bullet_velocity = this.#bestFireDirection(ship);
             bullet_velocity.normalize();
             bullet_velocity.mul(this.bullet_speed);
-            const bullet_position = this.position.copy();
+            let bullet_position = this.position.copy();
             bullet_position.add(bullet_velocity);
             saucer_bullets.push(new Bullet(bullet_position, bullet_velocity, this.bullet_life));
             this.bullet_cooldown = 0;
@@ -519,7 +517,7 @@ class Saucer {
 
     //Draws the saucer with the border wrap effect
     draw() {
-        const rect = this.bounds.getRect();
+        let rect = this.bounds.getRect();
         renderWrap(this.position, Math.max(rect.width / 2, rect.height / 2), (offset) => {
             this.#drawSaucer(offset);
         }, this.entered_x, this.entered_y);
@@ -587,10 +585,10 @@ class Ship {
         if (this.lives > 0) {
             this.invincibility = this.invincibility_time;
             this.dead = false;
-            const old_position = this.position.copy();
+            let old_position = this.position.copy();
             this.position = new Vector(canvas_bounds.width / 2, canvas_bounds.height / 2);
             this.bounds.translate(Vector.sub(this.position, old_position));
-            const old_angle = this.angle;
+            let old_angle = this.angle;
             this.angle = Math.PI / 2;
             this.bounds.rotate(this.angle - old_angle, this.position);
             this.velocity = new Vector();
@@ -602,7 +600,7 @@ class Ship {
 
     //Rotates the ship based on user input
     #rotate(delay) {
-        const old_angle = this.angle;
+        let old_angle = this.angle;
         if (controls.left) {
             this.angle += delay * this.rotation_speed;
         }
@@ -620,7 +618,7 @@ class Ship {
 
     //Moves the ship based on the thruster activation
     #move(delay) {
-        const direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
+        let direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
         if (this.teleport_buffer == 0 && controls.forward) {
             direction.mul(this.acceleration);
             this.velocity.add(Vector.mul(direction, delay));
@@ -633,7 +631,7 @@ class Ship {
             this.thruster_status = 0;
             this.accelerating = false;
         }
-        const initial_velocity = this.velocity.copy();
+        let initial_velocity = this.velocity.copy();
         this.velocity.mul(1 / (Math.E ** (this.drag_coefficient * delay))); //Differential equation to get accelerated velocity over a short period of time
         this.position = Vector.div(Vector.add(Vector.mul(this.position, this.drag_coefficient), Vector.sub(initial_velocity, this.velocity)), this.drag_coefficient);
     }
@@ -643,9 +641,9 @@ class Ship {
         if (controls.fire && this.bullet_cooldown >= 1 && this.teleport_buffer <= 0) {
             const direction = new Vector(Math.cos(this.angle), -Math.sin(this.angle));
             direction.mul(this.width / 2 + 5);
-            const bullet_position = Vector.add(direction, this.position);
+            let bullet_position = Vector.add(direction, this.position);
             direction.normalize();
-            const bullet_velocity = Vector.mul(direction, this.bullet_speed);
+            let bullet_velocity = Vector.mul(direction, this.bullet_speed);
             bullet_velocity.add(this.velocity);
             ship_bullets.push(new Bullet(bullet_position, bullet_velocity, this.bullet_life));
             this.bullet_cooldown = 0;
@@ -694,7 +692,7 @@ class Ship {
 
         //Sequence to update position (including moving and teleporting)
         this.#rotate(delay);
-        const old_position = this.position.copy();
+        let old_position = this.position.copy();
         this.#move(delay);
         this.#updateTeleportation(delay);
         wrap(this.position);
@@ -814,11 +812,11 @@ class Ship {
         if (bullet.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0) {
             return false;
         }
-        const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
-        const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
+        let horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
+        let vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
-                const hit = this.bounds.containsPoint(Vector.add(bullet.position, new Vector(horizontal[i], vertical[j])));
+                let hit = this.bounds.containsPoint(Vector.add(bullet.position, new Vector(horizontal[i], vertical[j])));
                 if (hit) {
                     this.dead = bullet.dead = true;
                     explosions.push(new Explosion(this.position));
@@ -834,15 +832,15 @@ class Ship {
         if (asteroid.invincibility > 0 || asteroid.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0) {
             return false;
         }
-        const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
-        const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
+        let horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
+        let vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         let old_offset = new Vector();
         const shifted_bounds = this.bounds.copy();
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
                 shifted_bounds.translate(Vector.sub(new Vector(horizontal[i], vertical[j]), old_offset));
                 old_offset = new Vector(horizontal[i], vertical[j]);
-                const hit = asteroid.bounds.intersectsPolygon(shifted_bounds);
+                let hit = asteroid.bounds.intersectsPolygon(shifted_bounds);
                 if (hit) {
                     this.dead = asteroid.dead = true;
                     explosions.push(new Explosion(asteroid.position));
@@ -860,8 +858,8 @@ class Ship {
         if (saucer.dead || this.dead || this.invincibility > 0 || this.teleport_buffer != 0) {
             return false;
         }
-        const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
-        const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
+        let horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
+        let vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         let old_offset = new Vector();
         const shifted_bounds = this.bounds.copy();
         for (let i = 0; i < 3; i++) {
@@ -871,7 +869,7 @@ class Ship {
                 }
                 shifted_bounds.translate(Vector.sub(new Vector(horizontal[i], vertical[j]), old_offset));
                 old_offset = new Vector(horizontal[i], vertical[j]);
-                const hit = saucer.bounds.intersectsPolygon(shifted_bounds);
+                let hit = saucer.bounds.intersectsPolygon(shifted_bounds);
                 if (hit) {
                     this.dead = saucer.dead = true;
                     explosions.push(new Explosion(saucer.position));
@@ -908,6 +906,11 @@ class Game {
     #asteroid_point_value;
     #saucer_point_value;
 
+    static analyzeGameConfiguration() {
+        Asteroid.analyzeAsteroidConfigurations();
+        Saucer.analyzeSaucerConfigurations();
+    }
+
     //Constructor
     constructor (title_screen = false) {
         this.#ship = new Ship();
@@ -933,7 +936,7 @@ class Game {
 
     //Make asteroids from scratch
     #makeAsteroids() {
-        const count = Game.#generateAsteroidSpawnCount(this.#wave);
+        let count = Game.#generateAsteroidSpawnCount(this.#wave);
         for (let i = 0; i < count; i++) {
             let position = new Vector(randomInRange([0, canvas_bounds.width]), randomInRange([0, canvas_bounds.height]));
             this.#asteroids.push(new Asteroid(position, 2, this.#wave, this.#title_screen));
@@ -1016,7 +1019,7 @@ class Game {
         }
 
         //Stores the asteroids created from hits
-        const split_asteroids = [];
+        let split_asteroids = [];
 
         //Check if an asteroid, saucer bullet, or saucer hit the ship
         if (!this.#title_screen) {
@@ -1032,16 +1035,16 @@ class Game {
         }
 
         //Check if a player bullet hit an asteroid or saucer
-        const new_ship_bullets = [];
+        let new_ship_bullets = [];
         for (let i = 0; i < this.#ship_bullets.length; i++) {
             for (let j = 0; j < this.#asteroids.length; j++) {
-                const hit = this.#ship_bullets[i].checkAsteroidCollision(split_asteroids, this.#wave, this.#asteroids[j], this.#explosions);
+                let hit = this.#ship_bullets[i].checkAsteroidCollision(split_asteroids, this.#wave, this.#asteroids[j], this.#explosions);
                 if (hit && this.#ship.lives != 0) {
                     this.#score += this.#asteroid_point_value;
                 }
             }
             for (let j = 0; j < this.#saucers.length; j++) {
-                const hit = this.#ship_bullets[i].checkSaucerCollision(this.#saucers[j], this.#explosions);
+                let hit = this.#ship_bullets[i].checkSaucerCollision(this.#saucers[j], this.#explosions);
                 if (hit && this.#ship.lives != 0) {
                     this.#score += this.#saucer_point_value;
                 }
@@ -1053,7 +1056,7 @@ class Game {
         this.#ship_bullets = new_ship_bullets;
 
         //Check if a saucer is dead
-        const new_saucers = [];
+        let new_saucers = [];
         for (let i = 0; i < this.#saucers.length; i++) {
             if (!this.#saucers[i].dead) {
                 new_saucers.push(this.#saucers[i]);
@@ -1062,7 +1065,7 @@ class Game {
         this.#saucers = new_saucers;
 
         //Check if a saucer bullet hit an asteroid
-        const new_saucer_bullets = [];
+        let new_saucer_bullets = [];
         for (let i = 0; i < this.#saucer_bullets.length; i++) {
             if (!this.#saucer_bullets[i].dead) {
                 new_saucer_bullets.push(this.#saucer_bullets[i]);
@@ -1076,7 +1079,7 @@ class Game {
         }
 
         //Check if the asteroid is dead, and if so, remove it from the list of asteroids
-        const new_asteroids = [];
+        let new_asteroids = [];
         for (let i = 0; i < this.#asteroids.length; i++) {
             if (!this.#asteroids[i].dead) {
                 new_asteroids.push(this.#asteroids[i]);
@@ -1085,7 +1088,7 @@ class Game {
         this.#asteroids = new_asteroids;
 
         //Update the explosions from collisions/death
-        const new_explosions = [];
+        let new_explosions = [];
         for (let i = 0; i < this.#explosions.length; i++) {
             this.#explosions[i].update(delay);
             if (!this.#explosions[i].dead) {

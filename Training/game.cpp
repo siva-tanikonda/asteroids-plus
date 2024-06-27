@@ -29,8 +29,6 @@ template <class T> void renderWrap(SDL_Renderer *renderer, const Vector &positio
 void renderFilledPolygon(SDL_Renderer *renderer, Polygon shape, const Vector &offset, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
     shape.translate(offset);
     Rect rect = shape.getRect();
-    rect.left = ceil(rect.left);
-    rect.right = floor(rect.right);
     rect.top = ceil(rect.top);
     rect.bottom = floor(rect.bottom);
     for (int y = rect.top; y <= rect.bottom; y++) {
@@ -116,13 +114,13 @@ void Bullet::update(double delay) {
     this->dead |= (this->life <= 0);
 }
 
-void Bullet::render(SDL_Renderer *renderer) const {
-    renderWrap<Bullet>(renderer, this->position, 1, this, &(this->renderBullet));
-}
-
 void Bullet::renderBullet(SDL_Renderer *renderer, Vector offset) const {
     Vector new_position = this->position + offset;
     filledCircleRGBA(renderer, new_position.x, new_position.y, 1, 255, 255, 255, 255);
+}
+
+void Bullet::render(SDL_Renderer *renderer) const {
+    renderWrap<Bullet>(renderer, this->position, 1, this, &(this->renderBullet));
 }
 
 bool Bullet::checkAsteroidCollision(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid, mt19937 &gen) {
@@ -716,6 +714,8 @@ Game::~Game() {
     for (Bullet *bullet : this->saucer_bullets) {
         delete bullet;
     }
+    TTF_CloseFont(this->font);
+    TTF_CloseFont(this->debug_font);
 }
 
 void Game::makeAsteroids(const Json::Value &config) {
