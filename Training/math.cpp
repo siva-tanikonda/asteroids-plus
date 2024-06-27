@@ -92,7 +92,7 @@ Vector Vector::proj(const Vector &v) const {
     if (this->mag() == 0) {
         return Vector();
     }
-    return ((*this) / (this->mag())) * (this->comp(v));
+    return ((*this) / this->mag()) * this->comp(v);
 }
 
 double Vector::mag(const Vector &v) {
@@ -250,12 +250,11 @@ bool Polygon::containsPoint(const Vector &v) const {
             continue;
         }
         if (this->points[i].y < this->points[j].y) {
-            int side = Vector::side(this->points[i], this->points[j], v);
             if (side == 1 && v.y >= this->points[i].y && v.y < this->points[j].y) {
                 result = !result;
             }
         } else {
-            int side = Vector::side(this->points[j], this->points[i], v);
+            side = Vector::side(this->points[j], this->points[i], v);
             if (side == 1 && v.y > this->points[j].y && v.y <= this->points[i].y) {
                 result = !result;
             }

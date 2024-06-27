@@ -1,6 +1,5 @@
 //Settings, including debug settings, ai settings, and game speed settings
 const settings = {
-    game_precision: 25,
     game_speed: 1,
     game_lives: 3,
     remove_particles: false,
@@ -25,33 +24,33 @@ let previous_ai_enabled = false;
 function updateSettings() {
     
     //Update game speed setting
-    const game_speed = document.getElementById("game-speed-input").value;
+    let game_speed = document.getElementById("game-speed-input").value;
     if (!isNaN(game_speed) && game_speed != 0) {
         settings.game_speed = game_speed;
     }
     
     //Update game lives setting
-    const game_lives = document.getElementById("game-lives-input").value;
+    let game_lives = document.getElementById("game-lives-input").value;
     if (!isNaN(game_lives) && game_lives != 0) {
         settings.game_lives = game_lives;
     }
     
     //check if we enabled all debug settings and apply necessary actions
-    const enable_all_debug = document.getElementById("game-enable-all-debug-input").checked;
+    let enable_all_debug = document.getElementById("game-enable-all-debug-input").checked;
     document.getElementById("game-enable-all-debug-input").blur();
     if (enable_all_debug && !previous_enable_all_debug) {
-        const elements = document.getElementById("debug-settings-container").children;
+        let elements = document.getElementById("debug-settings-container").children;
         for (let i = 0; i < elements.length; i++) {
-            const items = elements[i].children;
+            let items = elements[i].children;
             for (let j = 0; j < items.length; j++) {
                 items[j].disabled = true;
                 items[j].style.opacity = "0.5";
             }
         }
     } else if (!enable_all_debug && previous_enable_all_debug) {
-        const elements = document.getElementById("debug-settings-container").children;
+        let elements = document.getElementById("debug-settings-container").children;
         for (let i = 0; i < elements.length; i++) {
-            const items = elements[i].children;
+            let items = elements[i].children;
             for (let j = 0; j < items.length; j++) {
                 items[j].disabled = false;
                 items[j].style.opacity = "1";
@@ -103,8 +102,8 @@ function updateSettings() {
 
 //Toggles the information box on or off
 function toggleInfoBox() {
-    const box = document.getElementById("info-box");
-    const box_toggle = document.getElementById("info-button");
+    let box = document.getElementById("info-box");
+    let box_toggle = document.getElementById("info-button");
     box.hidden = !box.hidden;
     box_toggle.hidden = !box_toggle.hidden;
 }

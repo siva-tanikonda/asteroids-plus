@@ -16,8 +16,7 @@ const C = [2,1291.145791273453,32.23526585564162,1,111.09537111091456,1,94.34963
 
 //Do initial setup steps for the game/game window
 resizeCanvas();
-Asteroid.analyzeAsteroidConfigurations();
-Saucer.analyzeSaucerConfigurations();
+Game.analyzeGameConfiguration();
 
 //Create the game and AI
 let game = new Game(true);
@@ -53,10 +52,10 @@ function update(delay) {
     }
 
     //Based on settings.game_speed, we update to allow for precise collision code and simultaneously whatever speed the player wants the game to run
-    const iteration_updates = settings.game_precision * settings.game_speed;
+    let iteration_updates = config.game_precision * settings.game_speed;
     for (let i = 0; i < iteration_updates; i++) {
         //Updates the game and creates a new game if the player chose to restart the game
-        const done = game.update(delay / settings.game_precision);
+        let done = game.update(delay / config.game_precision);
         //If the game-over screen was exited, we reset the game
         if (done) {
             game = new Game();
