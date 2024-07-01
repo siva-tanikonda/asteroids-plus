@@ -51,6 +51,20 @@ function renderWrap(position, radius, action, offset_x = true, offset_y = true) 
     }
 }
 
+//Manages an object ID counter to get a unique ID for each object
+class ObjectId {
+    constructor() {
+        this.id = 0;
+    }
+    get(item) {
+        if (item.id == -1) {
+            item.id = this.id++;
+            this.id %= 1000000;
+        }
+        return item.id;
+    }
+}
+
 //Class for the particle
 class Particle {
     
@@ -172,6 +186,7 @@ class Bullet {
         this.velocity = velocity;
         this.life = life;
         this.dead = false;
+        this.id = -1;
     }
 
     //Updates the bullet
@@ -286,6 +301,7 @@ class Asteroid {
         let speed = randomInRange([ Asteroid.#generateAsteroidSpeed(wave - 1), Asteroid.#generateAsteroidSpeed(wave) ]);
         this.velocity.mul(config.asteroid_size_speed_scaling[size] * speed);
         this.dead = false;
+        this.id = -1;
     }
 
     //Rotates the asteroid
@@ -414,6 +430,7 @@ class Saucer {
         this.bullet_cooldown = 0;
         this.bullet_speed = randomInRange([ Saucer.#generateBulletSpeed(Math.max(1, wave - 1)), Saucer.#generateBulletSpeed(wave) ]);
         this.dead = false;
+        this.id = -1;
     }
 
     //Updates the position of the saucer
@@ -905,6 +922,7 @@ class Game {
     #extra_life_point_value;
     #asteroid_point_value;
     #saucer_point_value;
+    #object_id;
 
     static analyzeGameConfiguration() {
         Asteroid.analyzeAsteroidConfigurations();
@@ -932,6 +950,7 @@ class Game {
         this.#extra_life_point_value = config.game_extra_life_point_value;
         this.#asteroid_point_value = config.game_asteroid_point_value;
         this.#saucer_point_value = config.game_saucer_point_value;
+        this.#object_id = new ObjectId();
     }
 
     //Make asteroids from scratch
@@ -1203,6 +1222,76 @@ class Game {
             }
             Debug.drawGameData(this.#wave, this.#saucers.length, asteroid_lengths, this.#time);
         }
+    }
+
+    getShip() {
+        return {
+            position: this.#ship.position.copy(),
+            velocity: this.#ship.velocity.copy(),
+            width: this.#ship.width,
+            acceleration: this.#ship.acceleration,
+            bullet_cooldown: this.#ship.bullet_cooldown,
+            bullet_speed: this.#ship.bullet_speed,
+            bullet_life: this.#ship.bullet_life,
+            drag_coefficient: this.#ship.drag_coefficient,
+            angle: this.#ship.angle,
+            rotation_speed: this.#ship.rotation_speed
+        };
+    }
+
+    getAsteroids() {
+        let asteroids = [];
+        for (let i = 0; i < this.#asteroids.length; i++) {
+            asteroids.push({
+                position: this.#asteroids[i].position.copy(),
+                velocity: this.#asteroids[i].velocity.copy(),
+                size: this.#asteroids[i].size,
+                invincibility: this.#asteroids[i].invincibility,
+                id: this.#object_id.get(this.#asteroids[i])
+            });
+        }
+        return asteroids;
+    }
+
+    getSaucers() {
+        let saucers = [];
+        for (let i = 0; i < this.#saucers.length; i++) {
+            saucers.push({
+                position: this.#saucers[i].position.copy(),
+                velocity: this.#saucers[i].velocity.copy(),
+                size: this.#saucers[i].size,
+                invincibility: 100,
+                id: this.#object_id.get(this.#saucers[i])
+            });
+        }
+        return saucers;
+    }
+
+    getSaucerBullets() {
+        let saucer_bullets = [];
+        for (let i = 0; i < this.#saucer_bullets.length; i++) {
+            saucer_bullets.push({
+                position: this.#saucer_bullets[i].position.copy(),
+                velocity: this.#saucer_bullets[i].velocity.copy()
+            });
+        }
+        return saucer_bullets;
+    }
+
+    getTitleScreen() {
+        return this.#title_screen;
+    }
+
+    getShipDead() {
+        return this.#ship.dead;
+    }
+
+    getPaused() {
+        return this.#paused;
+    }
+
+    getShipLives() {
+        return this.#ship.lives;
     }
 
     static #generateAsteroidSpawnCount(wave) {

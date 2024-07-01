@@ -99,43 +99,37 @@ class Debug {
 class AIDebug {
 
     //Draws the danger of an entity
-    static drawDangerLevel(item) {
-        if (item.entity != "d") {
-            return;
-        }
+    static drawDangerLevel(danger) {
         ctx.font = "bold 11px Roboto Mono";
         ctx.fillStyle = "#d28cf0";
-        const text = item.danger_level.toFixed(2);
+        const text = danger.danger_level.toFixed(2);
         const size = ctx.measureText(text);
-        ctx.fillText(text, item.position.x - size.width / 2, item.position.y - 10);
+        ctx.fillText(text, danger.position.x - size.width / 2, danger.position.y - 10);
     }
 
     //Draws the danger radius of an entity
-    static drawDangerRadius(item) {
-        if (item.entity != "d" && item.entity != "t") {
-            return;
-        }
+    static drawDangerRadius(danger) {
         ctx.strokeStyle = "#d28cf0";
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.5;
         ctx.beginPath();
-        ctx.arc(item.position.x, item.position.y, item.size, 0, 2 * Math.PI);
+        ctx.arc(danger.position.x, danger.position.y, danger.size, 0, 2 * Math.PI);
         ctx.stroke();
         ctx.globalAlpha = 1.0;
     }
 
     //Draws the flee values (the importance of how much we have to move in a certain direction for the AI)
-    static drawFleeValues(item) {
-        if (item.entity != "s" || game.title_screen || game.ship.dead) {
+    static drawFleeValues(ship) {
+        if (game.getTitleScreen() || game.getShipDead()) {
             return;
         }
         ctx.strokeStyle = "#d28cf0";
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.5;
-        ctx.translate(item.position.x, item.position.y);
+        ctx.translate(ship.position.x, ship.position.y);
         //Draw arrows
         let scale_flee = Math.min(ai.flee_values[2] * 75, 75);
-        ctx.rotate(-item.angle);
+        ctx.rotate(-ship.angle);
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(scale_flee, 0);
@@ -170,7 +164,7 @@ class AIDebug {
         ctx.moveTo(scale_flee, 0);
         ctx.lineTo(scale_flee - 5, 0 + 5);
         ctx.stroke();
-        ctx.rotate(item.angle + 3 * Math.PI / 2);
+        ctx.rotate(ship.angle + 3 * Math.PI / 2);
         //Draw numbers
         ctx.fillStyle = "#d28cf0";
         ctx.font = "10px Roboto Mono";
@@ -192,22 +186,22 @@ class AIDebug {
         text = ai.flee_values[1].toFixed(1);
         text_size = ctx.measureText(text);
         ctx.fillText(text, text_position.x - text_size.width / 2, text_position.y);
-        ctx.translate(-item.position.x, -item.position.y);
+        ctx.translate(-ship.position.x, -ship.position.y);
         ctx.globalAlpha = 1.0;
     }
 
     //Draws the nudge values (the nudges added by different directions onto certain directions)
-    static drawNudgeValues(item) {
-        if (item.entity != "s" || game.title_screen || game.ship.dead) {
+    static drawNudgeValues(ship) {
+        if (game.getTitleScreen() || game.getShipDead()) {
             return;
         }
         ctx.strokeStyle = "#74f3f7";
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.5;
-        ctx.translate(item.position.x, item.position.y);
+        ctx.translate(ship.position.x, ship.position.y);
         //Draw arrows
         let scale_flee = Math.min(ai.nudge_values[2] * 75, 75);
-        ctx.rotate(-item.angle);
+        ctx.rotate(-ship.angle);
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(scale_flee, 0);
@@ -242,7 +236,7 @@ class AIDebug {
         ctx.moveTo(scale_flee, 0);
         ctx.lineTo(scale_flee - 5, 0 + 5);
         ctx.stroke();
-        ctx.rotate(item.angle + 3 * Math.PI / 2);
+        ctx.rotate(ship.angle + 3 * Math.PI / 2);
         //Draw numbers
         ctx.fillStyle = "#74f3f7";
         ctx.font = "10px Roboto Mono";
@@ -264,46 +258,40 @@ class AIDebug {
         text = ai.nudge_values[1].toFixed(1);
         text_size = ctx.measureText(text);
         ctx.fillText(text, text_position.x - text_size.width / 2, text_position.y);
-        ctx.translate(-item.position.x, -item.position.y);
+        ctx.translate(-ship.position.x, -ship.position.y);
         ctx.globalAlpha = 1.0;
     }
 
     //Draws the target radius of an entity
-    static drawTargetRadius(item) {
-        if (item.entity != "t") {
-            return;
-        }
+    static drawTargetRadius(target) {
         ctx.strokeStyle = "#f59445";
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 0.5;
         ctx.beginPath();
-        ctx.arc(item.position.x, item.position.y, item.size, 0, 2 * Math.PI);
+        ctx.arc(target.position.x, target.position.y, target.size, 0, 2 * Math.PI);
         ctx.stroke();
         ctx.globalAlpha = 1.0;
     }
 
     //Draws the minimum fire range of the ship
-    static drawTargetMinDistance(item) {
-        if (item.entity != "s") {
+    static drawTargetMinDistance(ship) {
+        if (game.getTitleScreen() || game.getShipDead()) {
             return;
         }
         ctx.fillStyle = "#f59445";
         ctx.globalAlpha = 0.1;
         ctx.beginPath();
-        ctx.arc(item.position.x, item.position.y, ai.C[26], 0, 2 * Math.PI);
+        ctx.arc(ship.position.x, ship.position.y, ai.C[26], 0, 2 * Math.PI);
         ctx.fill();
         ctx.globalAlpha = 1.0;
     }
 
-    //Draws all markers
-    static drawMarkers(item) {
-        if (item.entity != "m") {
-            return;
-        }
+    //Draws a marker
+    static drawMarker(marker) {
         ctx.font = "bold 16px Roboto Mono";
         ctx.fillStyle = "#f59445";
         const size = ctx.measureText("X");
-        ctx.fillText("X", item.reference.position.x - size.width / 2, item.reference.position.y + 8);
+        ctx.fillText("X", marker.position.x - size.width / 2, marker.position.y + 8);
     }
 
     //Draws status of the AI
@@ -323,14 +311,39 @@ class AIDebug {
     }
 
     //Draws the crosshair of the AI
-    static drawCrosshair() {
-        if (ai.crosshair == null) {
-            return;
-        }
+    static drawCrosshair(crosshair) {
         ctx.font = "20px Roboto Mono";
         ctx.fillStyle = "#f59445";
         const size = ctx.measureText("@");
-        ctx.fillText("@", ai.crosshair.reference.position.x - size.width / 2, ai.crosshair.reference.position.y + 8);
+        ctx.fillText("@", crosshair.position.x - size.width / 2, crosshair.position.y + 8);
+    }
+
+    //Draws the goal position STD
+    static drawRepositionDistribution(ship) {
+        if (game.getTitleScreen() || game.getShipDead()) {
+            return;
+        }
+        ctx.fillStyle = "#74f3f7";
+        ctx.globalAlpha = 0.1;
+        ctx.beginPath();
+        ctx.moveTo(ship.position.x, ship.position.y);
+        ctx.arc(ship.position.x, ship.position.y, ai.C[35], -ship.angle - ai.C[36], -ship.angle + ai.C[36]);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+
+    //Draws the goal position
+    static drawGoalPosition(goal_position) {
+        ctx.font = "bold 16px Roboto Mono";
+        ctx.fillStyle = "#74f3f7";
+        let size = ctx.measureText("+");
+        ctx.fillText("+", goal_position.x - size.width / 2, goal_position.y + 8);
+        ctx.globalAlpha = 0.2;
+        ctx.beginPath();
+        ctx.moveTo(goal_position.x, goal_position.y);
+        ctx.arc(goal_position.x, goal_position.y, ai.C[37], 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
     }
 
 }

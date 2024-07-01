@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <json/json.h>
-#include "game.h"
+#include "ai.h"
 using namespace std;
 
 SDL_Window* window;
