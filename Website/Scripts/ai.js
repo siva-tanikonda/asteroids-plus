@@ -8,14 +8,11 @@ class VirtualShip {
         this.bullet_cooldown = ship.bullet_cooldown;
         this.bullet_speed = ship.bullet_speed;
         this.bullet_life = ship.bullet_life;
-        this.teleport_buffer = ship.teleport_buffer;
         this.drag_coefficient = ship.drag_coefficient;
         this.velocity = ship.velocity.copy();
-        this.teleport_cooldown = ship.teleport_cooldown;
         this.rotation_speed = ship.rotation_speed;
         this.acceleration = ship.acceleration;
         this.size = AI.danger_radius[1];
-        this.entity = "s";
     }
     
 }
@@ -23,25 +20,12 @@ class VirtualShip {
 //Danger class for AI to analyze dangers
 class Danger {
 
-    constructor(item) {
-        let size_index;
-        if (item.entity == "b") {
-            size_index = 0;
-        } else if (item.entity == "p") {
-            size_index = 1;
-        } else if (item.entity == "a") {
-            size_index = 2 + item.size;
-        } else {
-            size_index = 5 + item.size;
-        }
+    constructor(item, size_index) {
         this.size = AI.danger_radius[size_index];
         this.position = item.position.copy();
         this.velocity = item.velocity.copy();
         this.danger_level = ai.calculateDanger(this);
-        this.entity = "d";
-        if (this.danger_level >= 1) {
-            ai.in_danger = true;
-        }
+        ai.max_danger = Math.max(ai.max_danger, this.danger_level);
         if (size_index >= 5) {
             ai.saucer_exists = true;
         }
@@ -52,21 +36,17 @@ class Danger {
 //Target class for AI to use for targeting
 class Target {
 
-    constructor(item) {
+    constructor(item, size_index) {
         this.position = item.position.copy();
-        if (item.entity == "a") {
-            this.size_index = item.size;
-        } else {
-            this.size_index = item.size + 3;
-        }
-        this.size = AI.target_radius[this.size_index];
+        this.size_index = size_index;
+        this.size = ai.C[29 + this.size_index];
         this.pessimistic_size = AI.pessimistic_radius[this.size_index];
         this.velocity = item.velocity.copy();
-        this.reference = item;
-        this.entity = "t";
+        this.invincibility = item.invincibility;
         if (this.size_index == 0 || this.size_index == 1) {
             ai.size_groups[this.size_index]++;
         }
+        this.id = item.id;
     }
 
 }
@@ -76,8 +56,9 @@ class Marker {
 
     constructor(min_time, target) {
         this.life = min_time;
-        this.reference = target.reference;
-        this.entity = "m";
+        this.id = target.id;
+        this.position = target.position.copy();
+        this.size_index = target.size_index;
     }
 
 }
@@ -86,9 +67,10 @@ class Marker {
 class Crosshair {
 
     constructor(item, angle) {
-        this.reference = item;
+        this.id = item.id;
         this.angle = angle;
         this.life = Math.PI / ai.ship.rotation_speed;
+        this.position = item.position.copy();
     }
 
 }
@@ -125,8 +107,9 @@ class AI {
     //AI constants (unrelated to C)
     static danger_radius = [ 0, 18, 14, 34, 53, 60, 70 ];
     static pessimistic_radius = [ 14, 34, 53, 27, 32 ];
-    static target_radius = [ 5, 17.5, 25, 10, 12 ];
     static rotation_precision = 1;
+    static reposition_sample_count = 20;
+    static target_chasing_speed_limit = 6;
 
     //Constructor
     constructor(C) {
@@ -140,7 +123,7 @@ class AI {
         //These are constants (that are meant to be optimized through machine learning)
         this.C = C;
         //Variables for the AI
-        this.in_danger = false;
+        this.max_danger = 0;
         this.dangers = [];
         this.targets = [];
         this.markers = [];
@@ -150,10 +133,39 @@ class AI {
         this.nudge_values = [ 0, 0, 0, 0 ];
         this.size_groups = [ 0, 0 ];
         this.saucer_exists = false;
+        this.goal_position = null;
     }
 
     //Calculates the danger value of a danger
     calculateDanger(danger) {
+        /*const p = optimizeInWrap((offset) => {
+            return Vector.sub(Vector.add(danger.position, offset), this.ship.position);
+        }, (best, next) => {
+            return (best == null || next.mag() < best.mag());
+        });
+        let result = 0;
+        //Add danger velocity term
+        let danger_velocity_term = Math.max(0, -p.comp(danger.velocity));
+        result += this.C[2] * (Math.E ** (danger_velocity_term * this.C[3]));
+        danger_velocity_term = Math.max(0, p.comp(danger.velocity));
+        result -= this.C[4] * (Math.E ** (danger_velocity_term * this.C[5]));
+        //Add ship velocity term
+        let ship_velocity_term = Math.max(0, p.comp(this.ship.velocity));
+        result += this.C[6] * (Math.E ** (ship_velocity_term * this.C[7]));
+        ship_velocity_term = Math.max(0, -p.comp(this.ship.velocity));
+        result -= this.C[8] * (Math.E ** (ship_velocity_term * this.C[9]));
+        //Add ship direction term
+        let ship_direction_term = new Vector(Math.cos(this.ship.angle), Math.sin(-this.ship.angle));
+        ship_direction_term = Math.max(0, p.comp(ship_direction_term)); 
+        result += this.C[10] * (Math.E ** (ship_direction_term * this.C[11]));
+        ship_direction_term = new Vector(Math.cos(this.ship.angle), Math.sin(-this.ship.angle));
+        ship_direction_term = Math.max(0, -p.comp(ship_direction_term)); 
+        result -= this.C[12] * (Math.E ** (ship_direction_term * this.C[13]));
+        //Add distance term
+        result += this.C[1];
+        result *= Math.E ** (-this.C[0] * Math.max(0, p.mag() - this.ship.size - danger.size));
+        result = Math.max(0, result);
+        return result;*/
         const p = optimizeInWrap((offset) => {
             return Vector.sub(Vector.add(danger.position, offset), this.ship.position);
         }, (best, next) => {
@@ -180,33 +192,62 @@ class AI {
         //Add distance term
         let distance_term = 1 / Math.max(1, p.mag() - this.ship.size - danger.size);
         result += this.C[1];
-        result *= (distance_term ** this.C[0]);
+        result *= distance_term ** this.C[0];
         result = Math.max(0, result);
         return result;
     }
 
+    //Predicts if position is dangerous
+    predictDanger(position) {
+        for (let i = 0; i < this.dangers.length; i++) {
+            const p = optimizeInWrap((offset) => {
+                return Vector.sub(Vector.add(this.dangers[i].position, offset), position);
+            }, (best, next) => {
+                return (best == null || next.mag() < best.mag());
+            });
+            let result = 0;
+            //Add danger velocity term
+            let danger_velocity_term = Math.max(0, -p.comp(this.dangers[i].velocity));
+            result += this.C[2] * (danger_velocity_term ** this.C[3]);
+            danger_velocity_term = Math.max(0, p.comp(this.dangers[i].velocity));
+            result -= this.C[4] * (danger_velocity_term ** this.C[5]);
+            //Add distance term
+            let distance_term = 1 / Math.max(1, p.mag() - this.ship.size - this.dangers[i].size);
+            result += this.C[1];
+            result *= distance_term ** this.C[0];
+            result = Math.max(0, result);
+            if (result >= 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     //Generates all virtual entities to use for the game
     generateVirtualEntities() {
-        if (!game.title_screen) {
-            this.ship = new VirtualShip(game.ship);
+        if (!game.getTitleScreen()) {
+            this.ship = new VirtualShip(game.getShip());
         }
         this.dangers = [];
         this.targets = [];
-        this.in_danger = false;
+        this.max_danger = 0;
         this.saucer_exists = false;
         this.flee_values = [ 0, 0, 0, 0 ];
         this.nudge_values = [ 0, 0, 0, 0 ];
         this.size_groups = [ 0, 0 ];
-        for (let i = 0; i < game.asteroids.length; i++) {
-            this.dangers.push(new Danger(game.asteroids[i]));
-            this.targets.push(new Target(game.asteroids[i]));
+        let asteroids = game.getAsteroids();
+        for (let i = 0; i < asteroids.length; i++) {
+            this.dangers.push(new Danger(asteroids[i], 2 + asteroids[i].size));
+            this.targets.push(new Target(asteroids[i], asteroids[i].size));
         }
-        for (let i = 0; i < game.saucers.length; i++) {
-            this.dangers.push(new Danger(game.saucers[i]));
-            this.targets.push(new Target(game.saucers[i]));
+        let saucers = game.getSaucers();
+        for (let i = 0; i < saucers.length; i++) {
+            this.dangers.push(new Danger(saucers[i], 5 + saucers[i].size));
+            this.targets.push(new Target(saucers[i], 3 + saucers[i].size));
         }
-        for (let i = 0; i < game.saucer_bullets.length; i++) {
-            this.dangers.push(new Danger(game.saucer_bullets[i]));
+        let saucer_bullets = game.getSaucerBullets();
+        for (let i = 0; i < saucer_bullets.length; i++) {
+            this.dangers.push(new Danger(saucer_bullets[i], 0));
         }
         this.getFleeAndNudgeValues();
     }
@@ -228,42 +269,107 @@ class AI {
             p.mul(this.dangers[i].danger_level);
             p.rotate(-this.ship.angle, new Vector());
             if (p.y < 0) {
-                this.flee_values[0] += this.C[14] * ((-p.y) ** this.C[15]);
+                this.flee_values[0] = Math.max(this.flee_values[0], this.C[14] * ((-p.y) ** this.C[15]));
             } else {
-                this.flee_values[1] += this.C[14] * (p.y ** this.C[15]);
+                this.flee_values[1] = Math.max(this.flee_values[1], this.C[14] * (p.y ** this.C[15]));
             }
-            this.nudge_values[2] += this.C[22] * (Math.abs(p.y) ** this.C[23]);
+            this.nudge_values[2] = Math.max(this.nudge_values[2], this.C[22] * (Math.abs(p.y) ** this.C[23]));
             if (p.x > 0) {
-                this.flee_values[2] += this.C[16] * (p.x ** this.C[17]);
-                this.nudge_values[0] += this.C[24] * (p.x ** this.C[25]);
-                this.nudge_values[1] += this.C[24] * (p.x ** this.C[25]);
+                this.flee_values[2] = Math.max(this.flee_values[2], this.C[16] * (p.x ** this.C[17]));
+                this.nudge_values[0] = Math.max(this.nudge_values[0], this.C[24] * (p.x ** this.C[25]));
+                this.nudge_values[1] = Math.max(this.nudge_values[1], this.C[24] * (p.x ** this.C[25]));
             }
             else {
-                this.flee_values[3] += this.C[18] * ((-p.x) ** this.C[19]);
-                this.nudge_values[0] += this.C[20] * ((-p.x) ** this.C[21]);
-                this.nudge_values[1] += this.C[20] * ((-p.x) ** this.C[21]);
+                this.flee_values[3] = Math.max(this.flee_values[3], this.C[18] * ((-p.x) ** this.C[19]));
+                this.nudge_values[0] = Math.max(this.nudge_values[0], this.C[20] * ((-p.x) ** this.C[21]));
+                this.nudge_values[1] = Math.max(this.nudge_values[1], this.C[20] * ((-p.x) ** this.C[21]));
             }
         }
+    }
+
+    //Calculates an ideal location for our ship to be (we will try to go here)
+    calculateGoalPosition() {
+        for (let i = 0; i < AI.reposition_sample_count; i++) {
+            //Calculate the potential goal position
+            let distance = this.C[35] + sampleExponentialDistribution(this.C[35]);
+            let angle = sampleNormalDistribution(0, this.C[36]);
+            let position = Vector.add(this.ship.position, Vector.mul(new Vector(Math.cos(this.ship.angle + angle), Math.sin(-this.ship.angle - angle)), distance));
+            wrap(position);
+            //Do rough check if this position is dangerous
+            if (!this.predictDanger(position)) {
+                return position;
+            }
+        }
+    }
+
+    //Get relocation strategy
+    getRelocationStrategy(target_relocation = false) {
+        if (!target_relocation && this.max_danger < this.C[34]) {
+            return [ false, false, false ];
+        }
+        if (!target_relocation) {
+            if (this.goal_position == null || this.getShortestDistance(this.ship.position, this.goal_position)[0] <= this.C[37] || this.predictDanger(this.goal_position)) {
+                this.goal_position = this.calculateGoalPosition();
+            }
+        } else {
+            let min_distance = Infinity;
+            let new_goal_position = null;
+            for (let i = 0; i < this.targets.length; i++) {
+                let distance = this.getShortestDistance(this.targets[i].position, this.ship.position)[0];
+                if (distance < min_distance) {
+                    min_distance = distance;
+                    new_goal_position = this.targets[i].position.copy();
+                }
+            }
+            this.goal_position = new_goal_position;
+        }
+        if (this.goal_position == null) {
+            return [ false, false, false ];
+        }
+        let wrapped_ship_position = this.getShortestDistance(this.ship.position, this.goal_position)[1];
+        let goal_angle = -Vector.sub(this.goal_position, wrapped_ship_position).angle();
+        while (goal_angle < 0) {
+            goal_angle += Math.PI * 2;
+        }
+        let goal_movements = [ false, false, false ];
+        if (goal_angle > this.ship.angle) {
+            if (goal_angle - this.ship.angle < this.ship.angle + Math.PI * 2 - goal_angle) {
+                goal_movements[0] = true;
+            } else {
+                goal_movements[1] = true;
+            }
+        } else if (goal_angle < this.ship.angle) {
+            if (Math.PI * 2 - this.ship.angle + goal_angle < this.ship.angle - goal_angle) {
+                goal_movements[0] = true;
+            } else {
+                goal_movements[1] = true;
+            }
+        }
+        if ((target_relocation && this.ship.velocity.mag() < AI.target_chasing_speed_limit) || this.ship.velocity.mag() < this.C[38]) {
+            goal_movements[2] = true;
+        }
+        return goal_movements;
     }
 
     //Fleeing strategy
     manageFleeing() {
         this.crosshair = null;
-        if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1) {
+        let goal_movement = this.getRelocationStrategy();
+        if ((goal_movement[0] || this.flee_values[0] + this.nudge_values[0] >= 1) && this.flee_values[1] < 1) {
             this.controls.left = true;
         }
-        if (this.flee_values[1] + this.nudge_values[1] >= 1 && this.flee_values[0] < 1) {
+        if ((goal_movement[1] || this.flee_values[1] + this.nudge_values[1] >= 1) && this.flee_values[0] < 1) {
             this.controls.right = true;
         }
         if (this.controls.left && this.controls.right) {
-            if (this.flee_values[0] >= this.flee_values[1]) {
+            if (goal_movement[0] || this.flee_values[0] >= this.flee_values[1]) {
                 this.controls.right = false;
             }
             else {
                 this.controls.left = false;
             }
         }
-        if (this.flee_values[2] + this.nudge_values[2] >= 1 && this.flee_values[3] < 1) {
+        if ((goal_movement[2] || this.flee_values[2] + this.nudge_values[2] >= 1) && this.flee_values[3] < 1) {
             this.controls.forward = true;
         }
         if (this.flee_values[0] >= 1 && this.flee_values[1] >= 1 && this.flee_values[3] >= 1) {
@@ -331,13 +437,13 @@ class AI {
     //Checks if a target has already been marked
     targetMarked(target) {
         for (let i = 0; i < this.markers.length; i++) {
-            if (Object.is(this.markers[i].reference, target.reference)) {
+            if (this.markers[i].id == target.id) {
                 return true;
             }
         }
         let not_exists = true;
         for (let i = 0; i < this.targets.length; i++) {
-            if (Object.is(this.targets[i].reference, target.reference)) {
+            if (this.targets[i].id == target.id) {
                 not_exists = false;
             }
         }
@@ -347,9 +453,10 @@ class AI {
     //Finds shortest distance (while considering wrapping) between two vectors
     getShortestDistance(v1, v2) {
         return optimizeInWrap((offset) => {
-            return Vector.sub(Vector.add(v1, offset), v2).mag();
+            let new_v1 = Vector.add(v1, offset);
+            return [ Vector.sub(new_v1, v2).mag(), new_v1 ];
         }, (best, next) => {
-            return (best == null || next < best);
+            return (best == null || next[0] < best[0]);
         });
     }
 
@@ -400,9 +507,9 @@ class AI {
         }
         let extra_size_groups = [ 0, 0 ];
         for (let i = 0; i < this.markers.length; i++) {
-            if (this.markers[i].reference.entity == 'a' && this.markers[i].reference.size == 2) {
+            if (this.markers[i].size == 2) {
                 extra_size_groups[1] += 2;
-            } else if (this.markers[i].reference.entity == 'a' && this.markers[i].reference.size == 1) {
+            } else if (this.markers[i].size == 1) {
                 extra_size_groups[0] += 2;
             }
         }
@@ -429,7 +536,7 @@ class AI {
         let destroyed = null;
         let min_time = Infinity;
         for (let i = 0; i < this.targets.length; i++) {
-            if (this.targets[i].size_index < 3 && this.targets[i].reference.invincibility > 0) {
+            if (this.targets[i].size_index < 3 && this.targets[i].invincibility > 0) {
                 continue;
             }
             const result = this.checkBulletCollisionTime(this.targets[i]);
@@ -449,30 +556,50 @@ class AI {
         if (this.ship.bullet_cooldown < 1) {
             return;
         }
-        this.predictStates(delay / settings.game_precision);
+        this.predictStates(delay / config.game_precision);
         const opportunity = this.checkShootingOpportunity();
         if (opportunity[0] != null) {
             this.controls.fire = true;
-            this.markers.push(new Marker(opportunity[1] + 1, opportunity[0]));
+            this.markers.push(new Marker(opportunity[1] + 5, opportunity[0]));
         }
     }
 
     //Updates target markers
     updateMarkers(delay) {
-        if (game.ship.dead && game.ship.lives <= 0) {
+        if (game.getShipDead() && game.getShipLives() <= 0) {
             this.markers = [];
             return;
         }
         const new_markers = [];
         for (let i = 0; i < this.markers.length; i++) {
-            if (!game.paused) {
+            if (!game.getPaused()) {
                 this.markers[i].life -= delay;
             }
-            if (this.markers[i].life > 0) {
+            let found_target = false;
+            for (let j = 0; j < this.targets.length; j++) {
+                if (this.targets[j].id == this.markers[i].id) {
+                    this.markers[i].position = this.targets[j].position.copy();
+                    found_target = true;
+                    break;
+                }
+            }
+            if (this.markers[i].life > 0 && found_target) {
                 new_markers.push(this.markers[i]);
             }
         }
         this.markers = new_markers;
+    }
+
+    //Updates the crosshair
+    updateCrosshair() {
+        if (this.crosshair != null) {
+            for (let i = 0; i < this.targets.length; i++) {
+                if (this.targets[i].id == this.crosshair.id) {
+                    this.crosshair.position = this.targets[i].position.copy();
+                    break;
+                }
+            }
+        }
     }
 
     //Aiming strategy
@@ -480,10 +607,6 @@ class AI {
         //Iterate through different angles off from our current angle
         if (this.crosshair != null && (this.targetMarked(this.crosshair) || this.crosshair.life <= 0)) {
             this.crosshair = null;
-        }
-
-        if (this.ship.velocity.mag() < this.C[29] && this.saucer_exists) {
-            this.controls.forward = true;
         }
         
         //Pick a new target if no current target
@@ -525,18 +648,25 @@ class AI {
             }
             this.predictStates(-(AI.rotation_precision + delay) * iterations);
             if (target != null) {
-                this.crosshair = new Crosshair(target.reference, aim_angle);
-            } else if (this.ship.velocity.mag() < 1) {
-                this.controls.forward = true;
-                if (Math.random() >= 0.5) {
+                this.crosshair = new Crosshair(target, aim_angle);
+            } else {
+                this.goal_movements = this.getRelocationStrategy(true);
+                if (this.goal_movements[0]) {
                     this.controls.left = true;
+                } else if (this.goal_movements[1]) {
+                    this.controls.right = true;
                 }
+                if (this.goal_movements[2]) {
+                    this.controls.forward = true;
+                }
+                this.goal_position = null;
             }
         }
         //Actually rotate towards the target
         if (this.crosshair == null) {
             return;
         }
+        this.updateCrosshair();
         const goal_angle = this.crosshair.angle;
         let time_left;
         if (goal_angle >= this.ship.angle) {
@@ -550,13 +680,15 @@ class AI {
         } else {
             time_right = this.ship.angle + Math.PI * 2 - goal_angle;
         }
-        if (time_left <= time_right) {
-            this.controls.left = true;
-        } else {
-            this.controls.right = true;
+        if (Math.min(time_left, time_right) > 0) {
+            if (time_left <= time_right) {
+                this.controls.left = true;
+            } else {
+                this.controls.right = true;
+            }
         }
         //Update the crosshair
-        if (this.crosshair != null && !game.paused) {
+        if (this.crosshair != null && !game.getPaused()) {
             this.crosshair.life -= delay;
             if (this.crosshair.life <= 0) {
                 this.crosshair = null;
@@ -567,13 +699,17 @@ class AI {
     //AI makes decision and applies controls
     update(delay) {
         this.resetControls();
-        if (game.title_screen) {
+        if (game.getTitleScreen()) {
             return;
         }
         this.generateVirtualEntities();
-        if (this.in_danger) {
+        if (this.ship.teleport_buffer > 0) {
+            return;
+        }
+        if (this.max_danger >= 1) {
             this.manageFleeing();
         } else {
+            this.goal_position = null;
             this.manageAim(delay);
         }
         this.generateVirtualEntities();
@@ -581,45 +717,46 @@ class AI {
         this.updateMarkers(delay);
     }
 
-    //Draws debug info for a specific item
-    drawDebugForItem(item) {
-        AIDebug.drawDangerRadius(item);
-        AIDebug.drawDangerLevel(item);
-        if (ai.in_danger) {
-            AIDebug.drawFleeValues(item);
-            AIDebug.drawNudgeValues(item);
-        }
-        AIDebug.drawTargetRadius(item);
-        AIDebug.drawTargetMinDistance(item);
-        AIDebug.drawMarkers(item);
-    }
-
     //AI draws debug info if it wants to
     drawDebug() {
-        if (game.title_screen || game.ship.dead) {
+        if (game.getTitleScreen() || game.getShipDead()) {
             return;
         }
         this.generateVirtualEntities();
+        this.updateMarkers(0);
+        this.updateCrosshair();
         runInWrap((offset) => {
             ctx.translate(offset.x, offset.y);
-            this.drawDebugForItem(this.ship);
+            AIDebug.drawDangerRadius(this.ship);
+            AIDebug.drawTargetMinDistance(this.ship);
+            AIDebug.drawRepositionDistribution(this.ship);
+            if (this.max_danger >= 1) {
+                AIDebug.drawNudgeValues(this.ship);
+                AIDebug.drawFleeValues(this.ship);
+            }
             for (let i = 0; i < this.dangers.length; i++) {
-                this.drawDebugForItem(this.dangers[i]);
+                AIDebug.drawDangerRadius(this.dangers[i]);
+                AIDebug.drawDangerLevel(this.dangers[i]);
             }
             for (let i = 0; i < this.targets.length; i++) {
-                this.drawDebugForItem(this.targets[i]);
+                AIDebug.drawTargetRadius(this.targets[i]);
             }
             for (let i = 0; i < this.markers.length; i++) {
-                this.drawDebugForItem(this.markers[i]);
+                AIDebug.drawMarker(this.markers[i]);
             }
-            AIDebug.drawCrosshair();
+            if (this.crosshair != null) {
+                AIDebug.drawCrosshair(this.crosshair);
+            }
+            if (this.goal_position != null) {
+                AIDebug.drawGoalPosition(this.goal_position);
+            }
             ctx.translate(-offset.x, -offset.y);
         });
     }
 
     //AI draws overlay info for debugging
     drawDebugOverlay() {
-        if (game.title_screen || game.ship.dead) {
+        if (game.getTitleScreen() || game.getShipDead()) {
             return;
         }
         AIDebug.drawAIData();

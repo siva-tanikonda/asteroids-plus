@@ -9,10 +9,93 @@ let old_timestamp = 0;
 //FPS tracking information
 let fps = 0;
 let fps_cooldown = 0;
+let mouse_position = new Vector();
 const fps_reset_rate = 2e-2;
 
 //This is the set of constants for the AI
-const C = [2,1291.145791273453,32.23526585564162,1,111.09537111091456,1,94.3496383832352,1,0.14892791990652504,2,0.1,2,0,2,0.45032563356067007,1,0.574957150858413,2,0.21534787885974632,1,1.339729100705285,1,0.033932958332917984,2,0.90315100413843,2,100,5,10,1];
+const C = [ 
+    2, 
+    1291.145791273453, 
+    32.23526585564162, 
+    1, 
+    111.09537111091456, 
+    1, 
+    94.3496383832352, 
+    1, 
+    0.14892791990652504, 
+    2, 
+    0.1, 
+    2, 
+    0, 
+    2, 
+    0.45032563356067007, 
+    1, 
+    0.574957150858413, 
+    2, 
+    0.21534787885974632, 
+    1, 
+    1.339729100705285, 
+    1, 
+    0.033932958332917984, 
+    2, 
+    0.90315100413843, 
+    2, 
+    100, 
+    100, 
+    100, 
+    5, 
+    17.5, 
+    25, 
+    10, 
+    12, 
+    2, 
+    400, 
+    Math.PI / 4, 
+    50, 
+    2 
+];
+
+/*const C = [ 
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+];*/
 
 //Do initial setup steps for the game/game window
 resizeCanvas();
@@ -40,6 +123,9 @@ function update(delay) {
 
     //Updates the game/AI settings
     updateSettings();
+
+    //For the tab-out glitch where it freezes the webpage, we will have the following quick fix
+    delay = Math.min(delay, 60);
 
     //Applies user controls
     user_input.applyControls();
@@ -95,3 +181,7 @@ function loop(timestamp) {
     window.requestAnimationFrame(loop);
 }
 loop();
+
+canvas.addEventListener("mousemove", (evt) => {
+    mouse_position = new Vector(evt.clientX - canvas_bounds.left, evt.clientY - canvas_bounds.top);
+});

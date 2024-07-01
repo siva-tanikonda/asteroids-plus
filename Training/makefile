@@ -15,11 +15,14 @@ Build/math.o: math.h math.cpp
 Build/game.o: game.h game.cpp
 	g++ -c game.cpp -O2 -o Build/game.o
 
+Build/ai.o: ai.h ai.cpp
+	g++ -c ai.cpp -O2 -o Build/ai.o
+
 Build/main.o: main.cpp
 	g++ -c main.cpp -O2 -o Build/main.o
 
-Build/trainer.exe: Build Build/event_manager.o Build/main.o Build/math.o Build/game.o
-	g++ Build/main.o Build/event_manager.o Build/math.o Build/game.o -O2 -w -lmingw32 -ljsoncpp -lSDL2main -lSDL2 -lSDL2_gfx -lSDL2_ttf -o Build/trainer.exe
+Build/trainer.exe: Build Build/event_manager.o Build/main.o Build/math.o Build/game.o Build/ai.o
+	g++ Build/main.o Build/event_manager.o Build/math.o Build/game.o Build/ai.o -O2 -w -lmingw32 -ljsoncpp -lSDL2main -lSDL2 -lSDL2_gfx -lSDL2_ttf -o Build/trainer.exe
 
 .PHONY: clean
 clean:
