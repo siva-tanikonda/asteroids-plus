@@ -146,7 +146,7 @@ void Bullet::render(SDL_Renderer *renderer) const {
     renderWrap<Bullet>(renderer, this->position, 1, this, &(this->renderBullet));
 }
 
-bool Bullet::checkAsteroidCollision(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid, mt19937 &gen) {
+bool Bullet::checkAsteroidCollision(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid) {
     if (asteroid->invincibility > 0 || asteroid->dead || this->dead) {
         return false;
     }
@@ -158,7 +158,7 @@ bool Bullet::checkAsteroidCollision(const Json::Value &config, vector<Asteroid*>
             bool hit = asteroid->bounds.containsPoint(this->position + offset);
             if (hit) {
                 this->dead = asteroid->dead = true;
-                asteroid->destroy(config, split_asteroids, wave, gen);
+                asteroid->destroy(config, split_asteroids, wave);
                 return true;
             }
         }
@@ -201,9 +201,9 @@ void Asteroid::analyzeAsteroidConfigurations(Json::Value &config) {
     }
 }
 
-Asteroid::Asteroid(const Json::Value &config, Vector position, int size, int wave, mt19937 &gen) : ObjectWithId(), position(position), size(size), bounds(vector<Vector>()) {
+Asteroid::Asteroid(const Json::Value &config, Vector position, int size, int wave, mt19937 &gen) : ObjectWithId(), position(position), size(size), bounds(vector<Vector>()), gen(gen()) {
     int max_size = config["asteroid_sizes"].size() - 1;
-    int type = floor(randomInRange(gen, 0, config["asteroid_shapes"].size()));
+    int type = floor(randomInRange(this->gen, 0, config["asteroid_shapes"].size()));
     if (size == max_size) {
         this->invincibility = config["asteroid_invincibility_time"].asDouble();
     } else {
@@ -217,16 +217,16 @@ Asteroid::Asteroid(const Json::Value &config, Vector position, int size, int wav
     Vector offset(-rect.width / 2, -rect.height / 2);
     this->bounds.translate(offset);
     this->bounds.translate(position);
-    this->angle = randomInRange(gen, 0, M_PI * 2);
+    this->angle = randomInRange(this->gen, 0, M_PI * 2);
     this->bounds.rotate(this->angle, this->position);
-    this->rotation_speed = randomInRange(gen, config["asteroid_rotation_speed_range"][0].asDouble(), config["asteroid_rotation_speed_range"][1].asDouble());
-    if (floor(randomDouble(gen) * 2) == 1) {
+    this->rotation_speed = randomInRange(this->gen, config["asteroid_rotation_speed_range"][0].asDouble(), config["asteroid_rotation_speed_range"][1].asDouble());
+    if (floor(randomDouble(this->gen) * 2) == 1) {
         this->rotation_speed *= -1;
     }
-    double velocity_angle = randomDouble(gen) * M_PI * 2;
+    double velocity_angle = randomDouble(this->gen) * M_PI * 2;
     this->velocity.x = cos(velocity_angle);
     this->velocity.y = sin(velocity_angle);
-    double speed = randomInRange(gen, Asteroid::generateAsteroidSpeed(wave - 1), Asteroid::generateAsteroidSpeed(wave));
+    double speed = randomInRange(this->gen, Asteroid::generateAsteroidSpeed(wave - 1), Asteroid::generateAsteroidSpeed(wave));
     this->velocity *= config["asteroid_size_speed_scaling"][size].asDouble() * speed;
     this->dead = false;
 }
@@ -280,13 +280,13 @@ void Asteroid::render(SDL_Renderer *renderer) const {
     renderWrap<Asteroid>(renderer, this->position, max(rect.width, rect.height) / 2, this, &(this->renderAsteroid));
 }
 
-void Asteroid::destroy(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, mt19937 &gen) {
+void Asteroid::destroy(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave) {
     this->dead = true;
     if (this->size == 0) {
         return;
     }
-    split_asteroids->emplace_back(new Asteroid(config, this->position, this->size - 1, wave, gen));
-    split_asteroids->emplace_back(new Asteroid(config, this->position, this->size - 1, wave, gen));
+    split_asteroids->emplace_back(new Asteroid(config, this->position, this->size - 1, wave, this->gen));
+    split_asteroids->emplace_back(new Asteroid(config, this->position, this->size - 1, wave, this->gen));
 }
 
 double Asteroid::generateAsteroidSpeed(int wave) {
@@ -307,7 +307,7 @@ void Saucer::analyzeSaucerConfigurations(Json::Value &config) {
     }
 }
 
-Saucer::Saucer(const Json::Value &config, int size, int wave, mt19937 &gen) : ObjectWithId(), size(size), bounds(vector<Vector>()) {
+Saucer::Saucer(const Json::Value &config, int size, int wave, mt19937 &gen) : ObjectWithId(), size(size), bounds(vector<Vector>()), gen(gen()) {
     for (int i = 0; i < config["saucer_shape"].size(); i++) {
         this->bounds.points.emplace_back(config["saucer_shape"][i][0].asDouble(), config["saucer_shape"][i][1].asDouble());
     }
@@ -315,36 +315,36 @@ Saucer::Saucer(const Json::Value &config, int size, int wave, mt19937 &gen) : Ob
     Rect rect = this->bounds.getRect();
     Vector offset(-rect.width / 2, -rect.height / 2);
     this->bounds.translate(offset);
-    double py = randomInRange(gen, rect.height / 2, Game::getHeight() - rect.height / 2);
+    double py = randomInRange(this->gen, rect.height / 2, Game::getHeight() - rect.height / 2);
     double px;
-    if (floor(randomInRange(gen, 0, 2)) == 0) {
+    if (floor(randomInRange(this->gen, 0, 2)) == 0) {
         px = -rect.width / 2;
     } else {
         px = Game::getWidth() + rect.width / 2;
     }
     this->position = Vector(px, py);
     this->bounds.translate(this->position);
-    this->velocity = Vector(randomInRange(gen, Saucer::generateSaucerSpeed(max(1, wave - 1)), Saucer::generateSaucerSpeed(wave)), 0);
+    this->velocity = Vector(randomInRange(this->gen, Saucer::generateSaucerSpeed(max(1, wave - 1)), Saucer::generateSaucerSpeed(wave)), 0);
     if (this->position.x > Game::getWidth()) {
         this->velocity *= -1;
     }
     this->direction_change_rate = Saucer::generateDirectionChangeRate(wave);
     this->direction_change_cooldown = 1;
     this->vertical_movement = 1;
-    if (floor(randomInRange(gen, 0, 2)) == 0) {
+    if (floor(randomInRange(this->gen, 0, 2)) == 0) {
         this->vertical_movement = -1;
     }
     this->entered_x = this->entered_y = false;
     this->bullet_life = config["saucer_bullet_life"].asDouble();
-    this->fire_rate = randomInRange(gen, Saucer::generateFireRate(max(1, wave - 1)), Saucer::generateFireRate(wave));
+    this->fire_rate = randomInRange(this->gen, Saucer::generateFireRate(max(1, wave - 1)), Saucer::generateFireRate(wave));
     this->bullet_cooldown = 0;
-    this->bullet_speed = randomInRange(gen, Saucer::generateBulletSpeed(max(1, wave - 1)), Saucer::generateBulletSpeed(wave));
+    this->bullet_speed = randomInRange(this->gen, Saucer::generateBulletSpeed(max(1, wave - 1)), Saucer::generateBulletSpeed(wave));
     this->dead = false;
 }
 
-void Saucer::move(double delay, mt19937 &gen) {
+void Saucer::move(double delay) {
     if (this->direction_change_cooldown <= 0) {
-        if (floor(randomInRange(gen, 0, 2)) == 0) {
+        if (floor(randomInRange(this->gen, 0, 2)) == 0) {
             double direction = this->velocity.x / abs(this->velocity.x);
             if (this->velocity.y == 0) {
                 Vector new_velocity(direction, this->vertical_movement);
@@ -401,8 +401,8 @@ void Saucer::fire(double delay, const Json::Value &config, const Ship &ship, vec
     this->bullet_cooldown = min(1.0, this->bullet_cooldown + this->fire_rate * delay);
 }
 
-void Saucer::update(double delay, const Json::Value &config, const Ship &ship, vector<Bullet*> *saucer_bullets, mt19937 &gen) {
-    this->move(delay, gen);
+void Saucer::update(double delay, const Json::Value &config, const Ship &ship, vector<Bullet*> *saucer_bullets) {
+    this->move(delay);
     this->fire(delay, config, ship, saucer_bullets);
 }
 
@@ -659,7 +659,7 @@ bool Ship::checkBulletCollision(Bullet *bullet) {
     return false;
 }
 
-bool Ship::checkAsteroidCollision(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid, mt19937 &gen) {
+bool Ship::checkAsteroidCollision(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid) {
     if (asteroid->invincibility > 0 || asteroid->dead || this->dead || this->invincibility > 0) {
         return false;
     }
@@ -675,7 +675,7 @@ bool Ship::checkAsteroidCollision(const Json::Value &config, vector<Asteroid*> *
             bool hit = asteroid->bounds.intersectsPolygon(shifted_bounds);
             if (hit) {
                 this->dead = asteroid->dead = true;
-                asteroid->destroy(config, split_asteroids, wave, gen);
+                asteroid->destroy(config, split_asteroids, wave);
             }
         }
     }
@@ -715,7 +715,7 @@ void Game::analyzeGameConfiguration(Json::Value &config) {
     Saucer::analyzeSaucerConfigurations(config);
 }
 
-Game::Game(const Json::Value &config, int seed) : ship(config), wave(0), score(0), extra_lives(0), saucer_cooldown(0), gen(seed), time(0) {
+Game::Game(const Json::Value &config, int seed) : ship(config), wave(0), score(0), extra_lives(0), saucer_cooldown(0), gen1(seed), gen2(-seed), time(0) {
     this->font = TTF_OpenFont("font.ttf", 20);
     this->debug_font = TTF_OpenFont("font.ttf", 15);
     this->extra_life_point_value = config["game_extra_life_point_value"].asInt();
@@ -743,14 +743,14 @@ Game::~Game() {
 void Game::makeAsteroids(const Json::Value &config) {
     int count = Game::generateAsteroidSpawnCount(this->wave);
     for (int i = 0; i < count; i++) {
-        Vector position(randomInRange(this->gen, 0, Game::getWidth()), randomInRange(this->gen, 0, Game::getHeight()));
-        this->asteroids.push_back(new Asteroid(config, position, 2, this->wave, this->gen));
+        Vector position(randomInRange(this->gen1, 0, Game::getWidth()), randomInRange(this->gen1, 0, Game::getHeight()));
+        this->asteroids.push_back(new Asteroid(config, position, 2, this->wave, this->gen1));
     }
 }
 
 void Game::makeSaucer(double delay, const Json::Value &config) {
     if (this->saucer_cooldown >= 1) {
-        this->saucers.push_back(new Saucer(config, floor(randomInRange(this->gen, 0, config["saucer_sizes"].size())), this->wave, this->gen));
+        this->saucers.push_back(new Saucer(config, floor(randomInRange(this->gen2, 0, config["saucer_sizes"].size())), this->wave, this->gen2));
         this->saucer_cooldown = 0;
     }
     this->saucer_cooldown = min(1.0, this->saucer_cooldown + Game::generateSaucerSpawnRate(this->wave) * delay);
@@ -776,7 +776,7 @@ void Game::update(double delay, const Json::Value &config) {
         asteroid->update(delay);
     }
     for (Saucer *saucer : this->saucers) {
-        saucer->update(delay, config, this->ship, &(this->saucer_bullets), this->gen);
+        saucer->update(delay, config, this->ship, &(this->saucer_bullets));
     }
     for (Bullet *bullet : this->saucer_bullets) {
         bullet->update(delay);
@@ -789,12 +789,12 @@ void Game::update(double delay, const Json::Value &config) {
         this->ship.checkSaucerCollision(saucer);
     }
     for (Asteroid *asteroid : this->asteroids) {
-        this->ship.checkAsteroidCollision(config, &split_asteroids, this->wave, asteroid, this->gen);
+        this->ship.checkAsteroidCollision(config, &split_asteroids, this->wave, asteroid);
     }
     vector<Bullet*> new_ship_bullets;
     for (Bullet *bullet : this->ship_bullets) {
         for (Asteroid *asteroid : this->asteroids) {
-            bool hit = bullet->checkAsteroidCollision(config, &split_asteroids, this->wave, asteroid, this->gen);
+            bool hit = bullet->checkAsteroidCollision(config, &split_asteroids, this->wave, asteroid);
             if (hit && this->ship.lives > 0) {
                 this->score += this->asteroid_point_value;
             }
@@ -898,7 +898,7 @@ AIShipData Game::getAIShipData() const {
 vector<AIDangerData> Game::getAIAsteroidsData() {
     vector<AIDangerData> asteroids;
     for (Asteroid *asteroid : this->asteroids) {
-        asteroids.push_back({ asteroid->position, asteroid->velocity, asteroid->size, this->object_id.get(asteroid), asteroid->invincibility });
+        asteroids.push_back({ asteroid->position, asteroid->velocity, asteroid->size, this->object_id.get(asteroid), asteroid->invincibility, true, true });
     }
     return asteroids;
 }
@@ -906,7 +906,7 @@ vector<AIDangerData> Game::getAIAsteroidsData() {
 vector<AIDangerData> Game::getAISaucersData() {
     vector<AIDangerData> saucers;
     for (Saucer *saucer : this->saucers) {
-        saucers.push_back({ saucer->position, saucer->velocity, saucer->size, this->object_id.get(saucer), 0 });
+        saucers.push_back({ saucer->position, saucer->velocity, saucer->size, this->object_id.get(saucer), 0, saucer->entered_x, saucer->entered_y });
     }
     return saucers;
 }
@@ -914,7 +914,7 @@ vector<AIDangerData> Game::getAISaucersData() {
 vector<AIDangerData> Game::getAISaucerBulletsData() {
     vector<AIDangerData> saucer_bullets;
     for (Bullet *bullet : this->saucer_bullets) {
-        saucer_bullets.push_back({ bullet->position, bullet->velocity, 0, -1, 0 });
+        saucer_bullets.push_back({ bullet->position, bullet->velocity, 0, -1, 0, true, true });
     }
     return saucer_bullets;
 }
