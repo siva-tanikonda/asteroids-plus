@@ -1260,7 +1260,7 @@ class Game {
                 position: this.#saucers[i].position.copy(),
                 velocity: this.#saucers[i].velocity.copy(),
                 size: this.#saucers[i].size,
-                invincibility: 100,
+                invincibility: 0,
                 id: this.#object_id.get(this.#saucers[i])
             });
         }

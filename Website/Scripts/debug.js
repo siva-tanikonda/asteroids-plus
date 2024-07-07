@@ -102,7 +102,11 @@ class AIDebug {
     static drawDangerLevel(danger) {
         ctx.font = "bold 11px Roboto Mono";
         ctx.fillStyle = "#d28cf0";
-        const text = danger.danger_level.toFixed(2);
+        let max_danger = 0;
+        for (let i = 0; i < 9; i++) {
+            max_danger = Math.max(max_danger, danger.danger_levels[i]);
+        }
+        const text = max_danger.toFixed(2);
         const size = ctx.measureText(text);
         ctx.fillText(text, danger.position.x - size.width / 2, danger.position.y - 10);
     }
@@ -299,7 +303,7 @@ class AIDebug {
         let status;
         if (ai.in_danger) {
             status = "Fleeing";
-            ctx.fillStyle = "#d28cf0"
+            ctx.fillStyle = "#d28cf0";
         }
         else {
             status = "Aiming";
@@ -307,43 +311,22 @@ class AIDebug {
         }
         ctx.font = "400 15px Roboto Mono";
         const text = "AI Mode: " + status;
-        ctx.fillText(text, 90, 20);
+        const text_size = ctx.measureText(text);
+        if (settings.debug.show_game_data) {
+            ctx.fillText(text, canvas_bounds.width - text_size.width - 10, 160);
+        } else {
+            ctx.fillText(text, canvas_bounds.width - text_size.width - 10, 20);
+        }
     }
 
     //Draws the crosshair of the AI
     static drawCrosshair(crosshair) {
+        let wrap_position = crosshair.position.copy();
+        wrap(wrap_position);
         ctx.font = "20px Roboto Mono";
         ctx.fillStyle = "#f59445";
         const size = ctx.measureText("@");
-        ctx.fillText("@", crosshair.position.x - size.width / 2, crosshair.position.y + 8);
-    }
-
-    //Draws the goal position STD
-    static drawRepositionDistribution(ship) {
-        if (game.getTitleScreen() || game.getShipDead()) {
-            return;
-        }
-        ctx.fillStyle = "#74f3f7";
-        ctx.globalAlpha = 0.1;
-        ctx.beginPath();
-        ctx.moveTo(ship.position.x, ship.position.y);
-        ctx.arc(ship.position.x, ship.position.y, ai.C[35], -ship.angle - ai.C[36], -ship.angle + ai.C[36]);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-    }
-
-    //Draws the goal position
-    static drawGoalPosition(goal_position) {
-        ctx.font = "bold 16px Roboto Mono";
-        ctx.fillStyle = "#74f3f7";
-        let size = ctx.measureText("+");
-        ctx.fillText("+", goal_position.x - size.width / 2, goal_position.y + 8);
-        ctx.globalAlpha = 0.2;
-        ctx.beginPath();
-        ctx.moveTo(goal_position.x, goal_position.y);
-        ctx.arc(goal_position.x, goal_position.y, ai.C[37], 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
+        ctx.fillText("@", wrap_position.x - size.width / 2, wrap_position.y + 8);
     }
 
 }
