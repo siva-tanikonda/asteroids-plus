@@ -49,23 +49,3 @@ void EventManager::update() {
         }
     }
 }
-
-bool EventManager::getQuit() {
-    return EventManager::quit;
-}
-
-bool EventManager::getLeft() {
-    return EventManager::left;
-}
-
-bool EventManager::getRight() {
-    return EventManager::right;
-}
-
-bool EventManager::getForward() {
-    return EventManager::forward;
-}
-
-bool EventManager::getFire() {
-    return EventManager::fire;
-}

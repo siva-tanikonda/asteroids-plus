@@ -1,8 +1,6 @@
-#include <vector>
-#include <iostream>
 #include <algorithm>
+#include <iostream>
 #include <json/json.h>
-#include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL2_gfxPrimitives.h>
 #include "math.h"
@@ -24,6 +22,20 @@ void renderArrow(SDL_Renderer *renderer, const Vector &u, const Vector &v, Uint8
 
 void renderText(SDL_Renderer *renderer, TTF_Font *font, const string &text, int x, int y, TextRenderType type, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 
+string trimDouble(double num);
+
+struct AIShipData {
+    Vector position, velocity;
+    double width, acceleration, bullet_cooldown, bullet_speed, bullet_life, drag_coefficient, angle, rotation_speed;
+    int lives;
+};
+
+struct AIDangerData {
+    Vector position, velocity;
+    int size, id;
+    double invincibility;
+};
+
 class Bullet {
     public:
         Vector position, velocity;
@@ -38,7 +50,21 @@ class Bullet {
         void renderBullet(SDL_Renderer *renderer, Vector offset) const;
 };
 
-class Asteroid {
+class ObjectWithId {
+    public:
+        int id;
+        ObjectWithId();
+};
+
+class ObjectId {
+    public:
+        static const int MAX_ID;
+        int id;
+        ObjectId();
+        int get(ObjectWithId *obj);
+};
+
+class Asteroid : public ObjectWithId {
     public:
         Vector position, velocity;
         double invincibility, angle, rotation_speed;
@@ -57,7 +83,7 @@ class Asteroid {
         void renderAsteroid(SDL_Renderer *renderer, Vector offset) const;
 };
 
-class Saucer {
+class Saucer : public ObjectWithId {
     public:
         Vector position, velocity;
         Polygon bounds;
@@ -109,7 +135,12 @@ class Game {
         Game(const Json::Value &config, int seed);
         ~Game();
         void update(double delay, const Json::Value &config);
-        void render(SDL_Renderer *renderer, double fps) const;
+        void renderOverlay(SDL_Renderer *renderer, double fps) const;
+        void renderGame(SDL_Renderer *renderer) const;
+        AIShipData getAIShipData() const;
+        vector<AIDangerData> getAIAsteroidsData();
+        vector<AIDangerData> getAISaucersData();
+        vector<AIDangerData> getAISaucerBulletsData();
         static int getWidth();
         static int getHeight();
     private:
@@ -121,10 +152,9 @@ class Game {
         double saucer_cooldown, time;
         mt19937 gen;
         TTF_Font *font, *debug_font;
+        ObjectId object_id;
         void makeAsteroids(const Json::Value &config);
         void makeSaucer(double delay, const Json::Value &config);
-        void renderOverlay(SDL_Renderer *renderer, double fps) const;
-        void renderGame(SDL_Renderer *renderer) const;
         static int width, height;
         static int generateAsteroidSpawnCount(int wave);
         static double generateSaucerSpawnRate(int wave);

@@ -1,13 +1,14 @@
-#include <iostream>
+#pragma once
 #include <fstream>
-#include <json/json.h>
 #include "ai.h"
 using namespace std;
 
+double c[C_LENGTH];
 SDL_Window* window;
 SDL_Renderer* renderer;
 Json::Value config;
 Game *game;
+AI *ai;
 int game_precision;
 double fps;
 
@@ -25,6 +26,8 @@ void loadConfig() {
 }
 
 void update(double delay) {
+    ai->update(delay, config, game);
+    ai->applyControls();
     for (int i = 0; i < game_precision; i++) {
         game->update(delay / game_precision, config);
     }
@@ -33,17 +36,24 @@ void update(double delay) {
 void draw() {
     SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
     SDL_RenderClear(renderer);
-    game->render(renderer, fps);
+    game->renderGame(renderer);
+    ai->renderGame(renderer, game);
+    game->renderOverlay(renderer, fps);
+    ai->renderOverlay(renderer);
     SDL_RenderPresent(renderer);
 }
 
-int main(int argv, char** args) {
+void test() {
     loadConfig();
+    for (int i = 0; i < C_LENGTH; i++) {
+        c[i] = config["c"][i].asDouble();
+    }
     window = SDL_CreateWindow("Asteroids+ Trainer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, config["window_width"].asInt(), config["window_height"].asInt(), SDL_WINDOW_SHOWN);
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
     TTF_Init();
     Game::analyzeGameConfiguration(config);
     game = new Game(config, 0);
+    ai = new AI(c, game->getAIShipData());
     game_precision = config["game_precision"].asInt();
     Uint64 timestamp = SDL_GetPerformanceCounter();
     Uint64 old_timestamp = 0;
@@ -61,13 +71,22 @@ int main(int argv, char** args) {
         }
         fps_cooldown = max(0.0, fps_cooldown - fps_reset_rate);
         EventManager::update();
-        if (EventManager::getQuit()) {
+        if (EventManager::quit) {
             break;
         }
         update(seconds_passed * 60);
         draw();
     }
+    delete ai;
     delete game;
     closeProgram();
+}
+
+int main(int argv, char** args) {
+    if (strcmp(args[1], "--test") == 0) {
+        test();
+    } else if (strcmp(args[1], "--train") == 0) {
+        cout << "Training not supported yet" << endl;
+    }
     return 0;
 }
