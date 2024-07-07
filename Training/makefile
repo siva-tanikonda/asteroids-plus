@@ -1,37 +1,26 @@
 SHELL=cmd
 
-.PHONY: test
-test: Build/trainer.exe
-	Build/trainer.exe --test
-
 .PHONY: play
-play: Build/trainer.exe
-	Build/trainer.exe --play
+play: Build/application.exe
+	Build/application.exe --play
 
-.PHONY: train
-train: Build/trainer.exe
-	Build/trainer.exe --train
+Build/application.exe: Build Build/main.o Build/renderer.o Build/renderer_helper.o Build/event_manager.o
+	g++ Build/main.o Build/renderer.o Build/renderer_helper.o Build/event_manager.o -O3 -w -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf -ljsoncpp -o Build/application.exe
 
 Build:
 	mkdir Build
 
-Build/event_manager.o: event_manager.h event_manager.cpp
-	g++ -c event_manager.cpp -O3 -w -o Build/event_manager.o
-
-Build/math.o: math.h math.cpp
-	g++ -c math.cpp -O3 -w -o Build/math.o
-
-Build/game.o: game.h game.cpp math.h event_manager.h
-	g++ -c game.cpp -O3 -w -o Build/game.o
-
-Build/ai.o: ai.h ai.cpp game.h
-	g++ -c ai.cpp -O3 -w -o Build/ai.o
-
-Build/main.o: main.cpp ai.h
+Build/main.o: main.cpp Renderer/renderer.h
 	g++ -c main.cpp -O3 -w -o Build/main.o
 
-Build/trainer.exe: Build Build/event_manager.o Build/math.o Build/game.o Build/ai.o Build/main.o
-	g++ Build/event_manager.o Build/math.o Build/game.o Build/ai.o Build/main.o -O3 -w -lmingw32 -lSDL2main -lSDL2 -lSDL2_gfx -lSDL2_ttf -ljsoncpp -o Build/trainer.exe
+Build/renderer.o: Renderer/renderer.cpp Renderer/renderer.h Renderer/renderer_helper.h
+	g++ -c Renderer/renderer.cpp -O3 -w -o Build/renderer.o
+
+Build/renderer_helper.o: Renderer/renderer_helper.cpp Renderer/renderer_helper.h
+	g++ -c Renderer/renderer_helper.cpp -O3 -w -o Build/renderer_helper.o
+
+Build/event_manager.o: event_manager.cpp event_manager.h
+	g++ -c event_manager.cpp -O3 -w -o Build/event_manager.o
 
 .PHONY: clean
 clean:
