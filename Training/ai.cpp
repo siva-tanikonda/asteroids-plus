@@ -7,12 +7,24 @@ const double AI::FLOATING_POINT_COMPENSATION = 2.5;
 const double AI::RANDOM_WALK_SPEED_LIMIT = 1;
 const double AI::RANDOM_WALK_ROTATION_PROBABILITY = 0.1;
 
-template <class T> void renderWrap(SDL_Renderer *renderer, AI *ai, const Vector &position, const T *object, void (T::*func)(SDL_Renderer*, AI*, Vector) const) {
-    int horizontal[] = { 0, Game::getWidth(), -Game::getWidth() };
-    int vertical[] = { 0, Game::getHeight(), -Game::getHeight() };
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            Vector offset(horizontal[i], vertical[j]);
+template <class T> void renderWrap(SDL_Renderer *renderer, AI *ai, const Vector &position, double radius, const T *object, void (T::*func)(SDL_Renderer*, AI*, Vector) const, bool offset_x, bool offset_y) {
+    vector<int> horizontal = { 0 };
+    vector<int> vertical = { 0 };
+    if (position.x + radius >= Game::getWidth() && offset_x) {
+        horizontal.push_back(-Game::getWidth());
+    }
+    if (position.x - radius <= 0 && offset_x) {
+        horizontal.push_back(Game::getWidth());
+    }
+    if (position.y + radius >= Game::getHeight() && offset_y) {
+        vertical.push_back(-Game::getHeight());
+    }
+    if (position.y - radius <= 0 && offset_y) {
+        vertical.push_back(Game::getHeight());
+    }
+    for (int x : horizontal) {
+        for (int y : vertical) {
+            Vector offset(x, y);
             (object->*func)(renderer, ai, offset);
         }
     }
@@ -56,7 +68,7 @@ void AIShip::render(SDL_Renderer *renderer, AI *ai, Vector offset) const {
     }
 }
 
-AIDanger::AIDanger(const AIDangerData &danger, int size_index, vector<double> danger_levels) : size(AI::DANGER_RADIUS[size_index]), position(danger.position), velocity(danger.velocity), danger_levels(danger_levels) { }
+AIDanger::AIDanger(const AIDangerData &danger, int size_index, vector<double> danger_levels) : size(AI::DANGER_RADIUS[size_index]), position(danger.position), velocity(danger.velocity), danger_levels(danger_levels), entered_x(danger.entered_x), entered_y(danger.entered_y) { }
 
 void AIDanger::render(SDL_Renderer *renderer, AI *ai, Vector offset) const {
     Vector p = this->position + offset;
@@ -68,7 +80,7 @@ void AIDanger::render(SDL_Renderer *renderer, AI *ai, Vector offset) const {
     renderText(renderer, ai->getSmallFont(), trimDouble(max_danger), this->position.x, this->position.y - 15, TEXT_CENTERED, 210, 140, 240, 255);
 }
 
-AITarget::AITarget(const AIDangerData &target, int size_index, double size) : position(target.position), size_index(size_index), size(size), pessimistic_size(AI::PESSIMISTIC_RADIUS[size_index]), velocity(target.velocity), invincibility(target.invincibility), id(target.id) { }
+AITarget::AITarget(const AIDangerData &target, int size_index, double size) : position(target.position), size_index(size_index), size(size), pessimistic_size(AI::PESSIMISTIC_RADIUS[size_index]), velocity(target.velocity), invincibility(target.invincibility), id(target.id), entered_x(target.entered_x), entered_y(target.entered_y) { }
 
 void AITarget::render(SDL_Renderer *renderer, AI *ai, Vector offset) const {
     Vector p = this->position + offset;
@@ -327,7 +339,7 @@ pair<double, Vector> AI::calculateBulletCollisionTime(const AITarget &target, bo
             }
         }
     }
-    Vector collision_location = p1 + v1 * result;
+    Vector collision_location = p2 + v2 * result;
     return { result, collision_location };
 }
 
@@ -597,19 +609,19 @@ void AI::renderGame(SDL_Renderer *renderer, Game *game) {
     }
     this->updateMarkers(0);
     if (this->ship.lives > 0) {
-        renderWrap<AIShip>(renderer, this, ship.position, &(this->ship), &(this->ship.render));
+        renderWrap<AIShip>(renderer, this, ship.position, max(75.0, ship.target_safety_radius), &(this->ship), &(this->ship.render));
     }
     for (const AIDanger &danger : this->dangers) {
-        renderWrap<AIDanger>(renderer, this, danger.position, &danger, &(danger.render));
+        renderWrap<AIDanger>(renderer, this, danger.position, danger.size, &danger, &(danger.render), danger.entered_x, danger.entered_y);
     }
     for (const AITarget &target : this->targets) {
-        renderWrap<AITarget>(renderer, this, target.position, &target, &(target.render));
+        renderWrap<AITarget>(renderer, this, target.position, target.size, &target, &(target.render), target.entered_x, target.entered_y);
     }
     for (const AIMarker *marker : this->markers) {
-        renderWrap<AIMarker>(renderer, this, marker->position, marker, &(marker->render));
+        renderWrap<AIMarker>(renderer, this, marker->position, 32, marker, &(marker->render));
     }
     if (this->crosshair != nullptr) {
-        renderWrap<AICrosshair>(renderer, this, this->crosshair->position, this->crosshair, &(this->crosshair->render));
+        renderWrap<AICrosshair>(renderer, this, this->crosshair->position, 40, this->crosshair, &(this->crosshair->render));
     }
 }
 

@@ -4,7 +4,7 @@ class AI;
 
 const int C_LENGTH = 34;
 
-template <class T> void renderWrap(SDL_Renderer *renderer, AI *ai, const Vector &position, const T *object, void (T::*func)(SDL_Renderer*, AI*, Vector) const);
+template <class T> void renderWrap(SDL_Renderer *renderer, AI *ai, const Vector &position, double radius, const T *object, void (T::*func)(SDL_Renderer*, AI*, Vector) const, bool offset_x = true, bool offset_y = true);
 
 void renderFilledCircle(SDL_Renderer *renderer, const Vector &position, double radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 
@@ -24,6 +24,7 @@ class AIDanger {
         Vector position, velocity;
         double size;
         vector<double> danger_levels;
+        bool entered_x, entered_y;
         AIDanger(const AIDangerData &danger, int size_index, vector<double> danger_levels);
         void render(SDL_Renderer* renderer, AI *ai, Vector offset) const;
 };
@@ -33,6 +34,7 @@ class AITarget {
         Vector position, velocity;
         int size_index, id;
         double size, pessimistic_size, invincibility;
+        bool entered_x, entered_y;
         AITarget(const AIDangerData &target, int size_index, double size);
         void render(SDL_Renderer* renderer, AI *ai, Vector offset) const;
 };

@@ -4,6 +4,10 @@ SHELL=cmd
 test: Build/trainer.exe
 	Build/trainer.exe --test
 
+.PHONY: play
+play: Build/trainer.exe
+	Build/trainer.exe --play
+
 .PHONY: train
 train: Build/trainer.exe
 	Build/trainer.exe --train
@@ -17,13 +21,13 @@ Build/event_manager.o: event_manager.h event_manager.cpp
 Build/math.o: math.h math.cpp
 	g++ -c math.cpp -O3 -w -o Build/math.o
 
-Build/game.o: game.h game.cpp
+Build/game.o: game.h game.cpp math.h event_manager.h
 	g++ -c game.cpp -O3 -w -o Build/game.o
 
-Build/ai.o: ai.h ai.cpp
+Build/ai.o: ai.h ai.cpp game.h
 	g++ -c ai.cpp -O3 -w -o Build/ai.o
 
-Build/main.o: main.cpp
+Build/main.o: main.cpp ai.h
 	g++ -c main.cpp -O3 -w -o Build/main.o
 
 Build/trainer.exe: Build Build/event_manager.o Build/math.o Build/game.o Build/ai.o Build/main.o

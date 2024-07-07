@@ -34,6 +34,7 @@ struct AIDangerData {
     Vector position, velocity;
     int size, id;
     double invincibility;
+    bool entered_x, entered_y;
 };
 
 class Bullet {
@@ -44,7 +45,7 @@ class Bullet {
         Bullet(const Json::Value &config, Vector position, Vector velocity, double life);
         void update(double delay);
         void render(SDL_Renderer *renderer) const;
-        bool checkAsteroidCollision(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid, mt19937 &gen);
+        bool checkAsteroidCollision(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid);
         bool checkSaucerCollision(Saucer *saucer);
     private:
         void renderBullet(SDL_Renderer *renderer, Vector offset) const;
@@ -71,11 +72,12 @@ class Asteroid : public ObjectWithId {
         int size;
         bool dead;
         Polygon bounds;
+        mt19937 gen;
         static void analyzeAsteroidConfigurations(Json::Value &config);
         Asteroid(const Json::Value &config, Vector position, int size, int wave, mt19937 &gen);
         void update(double delay);
         void render(SDL_Renderer *renderer) const;
-        void destroy(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, mt19937 &gen);
+        void destroy(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave);
     private:
         static double generateAsteroidSpeed(int wave);
         void rotate(double delay);
@@ -90,9 +92,10 @@ class Saucer : public ObjectWithId {
         int size, vertical_movement;
         double direction_change_rate, direction_change_cooldown, bullet_life, fire_rate, bullet_cooldown, bullet_speed;
         bool entered_x, entered_y, dead;
+        mt19937 gen;
         static void analyzeSaucerConfigurations(Json::Value &config);
         Saucer(const Json::Value &config, int size, int wave, mt19937 &gen);
-        void update(double delay, const Json::Value &config, const Ship &ship, vector<Bullet*> *saucer_bullets, mt19937 &gen);
+        void update(double delay, const Json::Value &config, const Ship &ship, vector<Bullet*> *saucer_bullets);
         void render(SDL_Renderer *renderer) const;
     private:
         static double generateSaucerSpeed(int wave);
@@ -101,7 +104,7 @@ class Saucer : public ObjectWithId {
         static double generateBulletSpeed(int wave);
         Vector bestFireDirection(const Ship &ship) const;
         void fire(double delay, const Json::Value &config, const Ship &ship, vector<Bullet*> *saucer_bullets);
-        void move(double delay, mt19937 &gen);
+        void move(double delay);
         void renderSaucer(SDL_Renderer *renderer, Vector offset) const;
 };
 
@@ -118,7 +121,7 @@ class Ship {
         void render(SDL_Renderer *renderer) const;
         void renderLives(SDL_Renderer *renderer) const;
         bool checkBulletCollision(Bullet *bullet);
-        bool checkAsteroidCollision(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid, mt19937 &gen);
+        bool checkAsteroidCollision(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid);
         bool checkSaucerCollision(Saucer *saucer);
     private:
         void reviveShip();
@@ -150,7 +153,7 @@ class Game {
         vector<Bullet*> ship_bullets, saucer_bullets;
         int wave, score, extra_lives, extra_life_point_value, asteroid_point_value, saucer_point_value;
         double saucer_cooldown, time;
-        mt19937 gen;
+        mt19937 gen1, gen2;
         TTF_Font *font, *debug_font;
         ObjectId object_id;
         void makeAsteroids(const Json::Value &config);
