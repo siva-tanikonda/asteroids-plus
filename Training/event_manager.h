@@ -1,7 +1,19 @@
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
 #include <SDL2/SDL.h>
+
+constexpr const char *EVENT_MANAGER_SHARED_MEMORY_NAME = "/event_manager_shared_memory";
+
+struct EventManagerEvents {
+    bool left, right, forward, fire, quit;
+};
 
 class EventManager {
     public:
-        static bool quit, left, right, forward, fire;
-        static void update();
+        bool manager;
+        EventManagerEvents *events;
+        EventManager(bool manager);
+        ~EventManager();
+        void update();
 };

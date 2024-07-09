@@ -4,7 +4,7 @@ int Game::width = 1000;
 int Game::height = 1000;
 const int ObjectId::MAX_ID = 1e9;
 
-template <class T> void renderWrap(SDL_Renderer *renderer, const Vector &position, double radius, const T *object, void (T::*func)(SDL_Renderer*, Vector) const, bool offset_x, bool offset_y) {
+template <class T> void renderWrap(Renderer *renderer, const Vector &position, double radius, const T *object, void (T::*func)(Renderer*, Vector) const, bool offset_x, bool offset_y) {
     vector<int> horizontal = { 0 };
     vector<int> vertical = { 0 };
     if (position.x + radius >= Game::getWidth() && offset_x) {
@@ -27,7 +27,7 @@ template <class T> void renderWrap(SDL_Renderer *renderer, const Vector &positio
     }
 }
 
-void renderFilledPolygon(SDL_Renderer *renderer, Polygon shape, const Vector &offset, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void renderFilledPolygon(Renderer *renderer, Polygon shape, const Vector &offset, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
     shape.translate(offset);
     Rect rect = shape.getRect();
     rect.top = ceil(rect.top);
@@ -61,7 +61,7 @@ void renderFilledPolygon(SDL_Renderer *renderer, Polygon shape, const Vector &of
                 continue;
             }
             if (fill) {
-                lineRGBA(renderer, fx, y, intersections[i], y, r, g, b, a);
+                renderer->requestLine(fx, y, intersections[i], y, r, g, b, a);
             }
             fill = !fill;
             fx = intersections[i];
@@ -69,7 +69,7 @@ void renderFilledPolygon(SDL_Renderer *renderer, Polygon shape, const Vector &of
     }
 }
 
-void renderArrow(SDL_Renderer *renderer, const Vector &u, const Vector &v, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void renderArrow(Renderer *renderer, const Vector &u, const Vector &v, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
     Vector diff = v - u;
     double angle = diff.angle();
     double len = diff.mag();
@@ -79,31 +79,9 @@ void renderArrow(SDL_Renderer *renderer, const Vector &u, const Vector &v, Uint8
     p1.rotate(-angle, u);
     p2.rotate(-angle, u);
     p3.rotate(-angle, u);
-    lineRGBA(renderer, u.x, u.y, p1.x, p1.y, r, g, b, a);
-    lineRGBA(renderer, p1.x, p1.y, p2.x, p2.y, r, g, b, a);
-    lineRGBA(renderer, p1.x, p1.y, p3.x, p3.y, r, g, b, a);
-}
-
-void renderText(SDL_Renderer *renderer, TTF_Font *font, const string &text, int x, int y, TextRenderType type, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
-    SDL_Surface *surface = TTF_RenderText_Solid(font, text.c_str(), { r, g, b, a });
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
-    int text_width, text_height;
-    SDL_QueryTexture(texture, NULL, NULL, &text_width, &text_height);
-    SDL_FreeSurface(surface);
-    SDL_Rect rect;
-    switch(type) {
-        case TEXT_CENTERED:
-            rect = { x - text_width / 2, y - text_height / 2, text_width, text_height };
-            break;
-        case TEXT_LEFT:
-            rect = { x, y, text_width, text_height };
-            break;
-        case TEXT_RIGHT:
-            rect = { x - text_width, y, text_width, text_height };
-            break;
-    }
-    SDL_RenderCopy(renderer, texture, NULL, &rect);
-    SDL_DestroyTexture(texture);
+    renderer->requestLine(u.x, u.y, p1.x, p1.y, r, g, b, a);
+    renderer->requestLine(p1.x, p1.y, p2.x, p2.y, r, g, b, a);
+    renderer->requestLine(p1.x, p1.y, p3.x, p3.y, r, g, b, a);
 }
 
 string trimDouble(double num) {
@@ -128,7 +106,7 @@ int ObjectId::get(ObjectWithId *obj) {
 
 ObjectWithId::ObjectWithId() : id(-1) { }
 
-Bullet::Bullet(const Json::Value &config, Vector position, Vector velocity, double life) : position(position), velocity(velocity), life(life), dead(false) { }
+Bullet::Bullet(const json &config, Vector position, Vector velocity, double life) : position(position), velocity(velocity), life(life), dead(false) { }
 
 void Bullet::update(double delay) {
     this->position += this->velocity * delay;
@@ -137,16 +115,16 @@ void Bullet::update(double delay) {
     this->dead |= (this->life <= 0);
 }
 
-void Bullet::renderBullet(SDL_Renderer *renderer, Vector offset) const {
+void Bullet::renderBullet(Renderer *renderer, Vector offset) const {
     Vector new_position = this->position + offset;
-    filledCircleRGBA(renderer, new_position.x, new_position.y, 1, 255, 255, 255, 255);
+    renderer->requestFilledCircle(new_position.x, new_position.y, 1, 255, 255, 255, 255);
 }
 
-void Bullet::render(SDL_Renderer *renderer) const {
-    renderWrap<Bullet>(renderer, this->position, 1, this, &(this->renderBullet));
+void Bullet::render(Renderer *renderer) const {
+    renderWrap<Bullet>(renderer, this->position, 1, this, &Bullet::renderBullet);
 }
 
-bool Bullet::checkAsteroidCollision(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid) {
+bool Bullet::checkAsteroidCollision(const json &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid) {
     if (asteroid->invincibility > 0 || asteroid->dead || this->dead) {
         return false;
     }
@@ -185,11 +163,11 @@ bool Bullet::checkSaucerCollision(Saucer *saucer) {
     return false;
 }
 
-void Asteroid::analyzeAsteroidConfigurations(Json::Value &config) {
+void Asteroid::analyzeAsteroidConfigurations(json &config) {
     for (int i = 0; i < config["asteroid_shapes"].size(); i++) {
         Polygon bounds({});
         for (int j = 0; j < config["asteroid_shapes"][i].size(); j++) {
-            bounds.points.emplace_back(config["asteroid_shapes"][i][j][0].asDouble(), config["asteroid_shapes"][i][j][1].asDouble());
+            bounds.points.emplace_back(config["asteroid_shapes"][i][j][0], config["asteroid_shapes"][i][j][1]);
         }
         Rect rect = bounds.getRect();
         Vector offset(-rect.left, -rect.top);
@@ -201,25 +179,25 @@ void Asteroid::analyzeAsteroidConfigurations(Json::Value &config) {
     }
 }
 
-Asteroid::Asteroid(const Json::Value &config, Vector position, int size, int wave, mt19937 &gen) : ObjectWithId(), position(position), size(size), bounds(vector<Vector>()), gen(gen()) {
+Asteroid::Asteroid(const json &config, Vector position, int size, int wave, mt19937 &gen) : ObjectWithId(), position(position), size(size), bounds(vector<Vector>()), gen(gen()) {
     int max_size = config["asteroid_sizes"].size() - 1;
     int type = floor(randomInRange(this->gen, 0, config["asteroid_shapes"].size()));
     if (size == max_size) {
-        this->invincibility = config["asteroid_invincibility_time"].asDouble();
+        this->invincibility = config["asteroid_invincibility_time"];
     } else {
         this->invincibility = 0;
     }
     for (int i = 0; i < config["asteroid_shapes"][type].size(); i++) {
-        this->bounds.points.emplace_back(config["asteroid_shapes"][type][i][0].asDouble(), config["asteroid_shapes"][type][i][1].asDouble());
+        this->bounds.points.emplace_back(config["asteroid_shapes"][type][i][0], config["asteroid_shapes"][type][i][1]);
     }
-    this->bounds.scale(config["asteroid_sizes"][size].asDouble());
+    this->bounds.scale(config["asteroid_sizes"][size]);
     Rect rect = this->bounds.getRect();
     Vector offset(-rect.width / 2, -rect.height / 2);
     this->bounds.translate(offset);
     this->bounds.translate(position);
     this->angle = randomInRange(this->gen, 0, M_PI * 2);
     this->bounds.rotate(this->angle, this->position);
-    this->rotation_speed = randomInRange(this->gen, config["asteroid_rotation_speed_range"][0].asDouble(), config["asteroid_rotation_speed_range"][1].asDouble());
+    this->rotation_speed = randomInRange(this->gen, config["asteroid_rotation_speed_range"][0], config["asteroid_rotation_speed_range"][1]);
     if (floor(randomDouble(this->gen) * 2) == 1) {
         this->rotation_speed *= -1;
     }
@@ -227,7 +205,7 @@ Asteroid::Asteroid(const Json::Value &config, Vector position, int size, int wav
     this->velocity.x = cos(velocity_angle);
     this->velocity.y = sin(velocity_angle);
     double speed = randomInRange(this->gen, Asteroid::generateAsteroidSpeed(wave - 1), Asteroid::generateAsteroidSpeed(wave));
-    this->velocity *= config["asteroid_size_speed_scaling"][size].asDouble() * speed;
+    this->velocity *= config["asteroid_size_speed_scaling"][size].get<double>() * speed;
     this->dead = false;
 }
 
@@ -258,7 +236,7 @@ void Asteroid::update(double delay) {
     }
 }
 
-void Asteroid::renderAsteroid(SDL_Renderer *renderer, Vector offset) const {
+void Asteroid::renderAsteroid(Renderer *renderer, Vector offset) const {
     double alpha = 255;
     if (this->invincibility > 0) {
         alpha *= 0.25;
@@ -268,19 +246,19 @@ void Asteroid::renderAsteroid(SDL_Renderer *renderer, Vector offset) const {
     for (int i = 0; i < this->bounds.points.size(); i++) {
         Vector p1 = this->bounds.points[i] + offset;
         Vector p2 = this->bounds.points[(i + 1) % this->bounds.points.size()] + offset;
-        lineRGBA(renderer, p1.x, p1.y, p2.x, p2.y, 255, 255, 255, alpha);
+        renderer->requestLine(p1.x, p1.y, p2.x, p2.y, 255, 255, 255, alpha);
     }
     Vector vec = Vector::normalize(this->velocity) * this->velocity.mag() * 10 + this->position + offset;
     renderArrow(renderer, this->position + offset, vec, 250, 250, 100, 255);
-    filledCircleRGBA(renderer, this->position.x + offset.x, this->position.y + offset.y, 1, 125, 250, 125, 255);
+    renderer->requestFilledCircle(this->position.x + offset.x, this->position.y + offset.y, 1, 125, 250, 125, 255);
 }
 
-void Asteroid::render(SDL_Renderer *renderer) const {
+void Asteroid::render(Renderer *renderer) const {
     Rect rect = this->bounds.getRect();
-    renderWrap<Asteroid>(renderer, this->position, max(rect.width, rect.height) / 2, this, &(this->renderAsteroid));
+    renderWrap<Asteroid>(renderer, this->position, max(rect.width, rect.height) / 2, this, &Asteroid::renderAsteroid);
 }
 
-void Asteroid::destroy(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave) {
+void Asteroid::destroy(const json &config, vector<Asteroid*> *split_asteroids, int wave) {
     this->dead = true;
     if (this->size == 0) {
         return;
@@ -293,10 +271,10 @@ double Asteroid::generateAsteroidSpeed(int wave) {
     return max(1.0, 1 + 0.1 * log2(wave));
 }
 
-void Saucer::analyzeSaucerConfigurations(Json::Value &config) {
+void Saucer::analyzeSaucerConfigurations(json &config) {
     Polygon bounds({});
     for (int i = 0; i < config["saucer_shape"].size(); i++) {
-        bounds.points.emplace_back(config["saucer_shape"][i][0].asDouble(), config["saucer_shape"][i][1].asDouble());
+        bounds.points.emplace_back(config["saucer_shape"][i][0], config["saucer_shape"][i][1]);
     }
     Rect rect = bounds.getRect();
     Vector shift(-rect.left, -rect.top);
@@ -307,11 +285,11 @@ void Saucer::analyzeSaucerConfigurations(Json::Value &config) {
     }
 }
 
-Saucer::Saucer(const Json::Value &config, int size, int wave, mt19937 &gen) : ObjectWithId(), size(size), bounds(vector<Vector>()), gen(gen()) {
+Saucer::Saucer(const json &config, int size, int wave, mt19937 &gen) : ObjectWithId(), size(size), bounds(vector<Vector>()), gen(gen()) {
     for (int i = 0; i < config["saucer_shape"].size(); i++) {
-        this->bounds.points.emplace_back(config["saucer_shape"][i][0].asDouble(), config["saucer_shape"][i][1].asDouble());
+        this->bounds.points.emplace_back(config["saucer_shape"][i][0], config["saucer_shape"][i][1]);
     }
-    this->bounds.scale(config["saucer_sizes"][size].asDouble());
+    this->bounds.scale(config["saucer_sizes"][size]);
     Rect rect = this->bounds.getRect();
     Vector offset(-rect.width / 2, -rect.height / 2);
     this->bounds.translate(offset);
@@ -335,7 +313,7 @@ Saucer::Saucer(const Json::Value &config, int size, int wave, mt19937 &gen) : Ob
         this->vertical_movement = -1;
     }
     this->entered_x = this->entered_y = false;
-    this->bullet_life = config["saucer_bullet_life"].asDouble();
+    this->bullet_life = config["saucer_bullet_life"];
     this->fire_rate = randomInRange(this->gen, Saucer::generateFireRate(max(1, wave - 1)), Saucer::generateFireRate(wave));
     this->bullet_cooldown = 0;
     this->bullet_speed = randomInRange(this->gen, Saucer::generateBulletSpeed(max(1, wave - 1)), Saucer::generateBulletSpeed(wave));
@@ -387,7 +365,7 @@ Vector Saucer::bestFireDirection(const Ship &ship) const {
     return best;
 }
 
-void Saucer::fire(double delay, const Json::Value &config, const Ship &ship, vector<Bullet*> *saucer_bullets) {
+void Saucer::fire(double delay, const json &config, const Ship &ship, vector<Bullet*> *saucer_bullets) {
     if (this->bullet_cooldown >= 1) {
         Vector bullet_velocity = this->bestFireDirection(ship);
         bullet_velocity.normalize();
@@ -401,33 +379,33 @@ void Saucer::fire(double delay, const Json::Value &config, const Ship &ship, vec
     this->bullet_cooldown = min(1.0, this->bullet_cooldown + this->fire_rate * delay);
 }
 
-void Saucer::update(double delay, const Json::Value &config, const Ship &ship, vector<Bullet*> *saucer_bullets) {
+void Saucer::update(double delay, const json &config, const Ship &ship, vector<Bullet*> *saucer_bullets) {
     this->move(delay);
     this->fire(delay, config, ship, saucer_bullets);
 }
 
-void Saucer::renderSaucer(SDL_Renderer *renderer, Vector offset) const {
+void Saucer::renderSaucer(Renderer *renderer, Vector offset) const {
     renderFilledPolygon(renderer, this->bounds, offset, 200, 100, 100, 255 * 0.35);
     vector<Vector> points = this->bounds.points;
     for (int i = 0; i < points.size(); i++) {
         Vector p1 = points[i] + offset;
         Vector p2 = points[(i + 1) % points.size()] + offset;
-        lineRGBA(renderer, p1.x, p1.y, p2.x, p2.y, 255, 255, 255, 255);
+        renderer->requestLine(p1.x, p1.y, p2.x, p2.y, 255, 255, 255, 255);
     }
     Vector p1 = points[1] + offset;
     Vector p2 = points[2] + offset;
     Vector pm2 = points[points.size() - 2] + offset;
     Vector pm3 = points[points.size() - 3] + offset;
-    lineRGBA(renderer, p1.x, p1.y, pm2.x, pm2.y, 255, 255, 255, 255);
-    lineRGBA(renderer, p2.x, p2.y, pm3.x, pm3.y, 255, 255, 255, 255);
+    renderer->requestLine(p1.x, p1.y, pm2.x, pm2.y, 255, 255, 255, 255);
+    renderer->requestLine(p2.x, p2.y, pm3.x, pm3.y, 255, 255, 255, 255);
     Vector vec = Vector::normalize(this->velocity) * this->velocity.mag() * 10 + this->position + offset;
     renderArrow(renderer, this->position + offset, vec, 250, 250, 100, 255);
-    filledCircleRGBA(renderer, this->position.x + offset.x, this->position.y + offset.y, 1, 125, 250, 125, 255);
+    renderer->requestFilledCircle(this->position.x + offset.x, this->position.y + offset.y, 1, 125, 250, 125, 255);
 }
 
-void Saucer::render(SDL_Renderer *renderer) const {
+void Saucer::render(Renderer *renderer) const {
     Rect rect = this->bounds.getRect();
-    renderWrap(renderer, this->position, max(rect.width, rect.height) / 2, this, &(this->renderSaucer), this->entered_x, this->entered_y);
+    renderWrap<Saucer>(renderer, this->position, max(rect.width, rect.height) / 2, this, &Saucer::renderSaucer, this->entered_x, this->entered_y);
 }
 
 double Saucer::generateSaucerSpeed(int wave) {
@@ -446,27 +424,27 @@ double Saucer::generateBulletSpeed(int wave) {
     return min(6.0, 4 + (double)wave / 10 * 4);
 }
 
-Ship::Ship(const Json::Value &config) : position(), velocity(), bounds(vector<Vector>()) {
+Ship::Ship(const json &config) : position(), velocity(), bounds(vector<Vector>()) {
     this->position.x = Game::getWidth() / 2;
     this->position.y = Game::getHeight() / 2;
-    this->width = config["ship_width"].asDouble();
-    this->height = config["ship_height"].asDouble();
+    this->width = config["ship_width"];
+    this->height = config["ship_height"];
     this->bounds.points.emplace_back(-this->width / 2, -this->height / 2);
     this->bounds.points.emplace_back(-this->width / 2, this->height / 2);
     this->bounds.points.emplace_back(this->width / 2, 0);
     this->angle = M_PI / 2;
     Vector offset;
     this->bounds.rotate(this->angle, offset);
-    this->rotation_speed = config["ship_rotation_speed"].asDouble();
-    this->acceleration = config["ship_acceleration"].asDouble();
-    this->drag_coefficient = config["ship_drag_coefficient"].asDouble();
+    this->rotation_speed = config["ship_rotation_speed"];
+    this->acceleration = config["ship_acceleration"];
+    this->drag_coefficient = config["ship_drag_coefficient"];
     this->bullet_cooldown = 1;
-    this->fire_rate = config["ship_fire_rate"].asDouble();
-    this->bullet_speed = config["ship_bullet_speed"].asDouble();
-    this->bullet_life = config["ship_bullet_life"].asDouble();
+    this->fire_rate = config["ship_fire_rate"];
+    this->bullet_speed = config["ship_bullet_speed"];
+    this->bullet_life = config["ship_bullet_life"];
     this->thruster_status = 0;
     this->bounds.translate(this->position);
-    this->lives = config["game_lives"].asInt();
+    this->lives = config["game_lives"];
     this->dead = false;
     this->invincibility = 0;
     this->invincibility_time = 100;
@@ -493,12 +471,12 @@ void Ship::reviveShip() {
     }
 }
 
-void Ship::rotate(double delay) {
+void Ship::rotate(double delay, const EventManager *event_manager) {
     double old_angle = this->angle;
-    if (EventManager::left) {
+    if (event_manager->events->left) {
         this->angle += delay * this->rotation_speed;
     }
-    if (EventManager::right) {
+    if (event_manager->events->right) {
         this->angle -= delay * this->rotation_speed;
     }
     this->bounds.rotate(this->angle - old_angle, this->position);
@@ -510,9 +488,9 @@ void Ship::rotate(double delay) {
     }
 }
 
-void Ship::move(double delay) {
+void Ship::move(double delay, const EventManager *event_manager) {
     Vector direction(cos(this->angle), -sin(this->angle));
-    if (EventManager::forward) {
+    if (event_manager->events->forward) {
         direction *= this->acceleration;
         this->velocity += direction * delay;
         this->thruster_status += delay * 0.05;
@@ -529,8 +507,8 @@ void Ship::move(double delay) {
     this->position = (this->position * this->drag_coefficient + initial_velocity - this->velocity) / this->drag_coefficient;
 }
 
-void Ship::fire(double delay, const Json::Value &config, vector<Bullet*> *ship_bullets) {
-    if (EventManager::fire && this->bullet_cooldown >= 1) {
+void Ship::fire(double delay, const json &config, const EventManager *event_manager, vector<Bullet*> *ship_bullets) {
+    if (event_manager->events->fire && this->bullet_cooldown >= 1) {
         Vector direction(cos(this->angle), -sin(this->angle));
         direction *= this->width / 2 + 5;
         Vector bullet_position = direction + this->position;
@@ -554,23 +532,23 @@ void Ship::updateInvincibility(double delay) {
     this->invincibility = max(0.0, this->invincibility - delay);
 }
 
-void Ship::update(double delay, const Json::Value &config, vector<Bullet*> *ship_bullets) {
+void Ship::update(double delay, const json &config, const EventManager *event_manager, vector<Bullet*> *ship_bullets) {
     if (this->dead && this->lives > 0) {
         this->reviveShip();
     }
     if (this->dead) {
         return;
     }
-    this->rotate(delay);
+    this->rotate(delay, event_manager);
     Vector old_position = this->position;
-    this->move(delay);
+    this->move(delay, event_manager);
     wrap(this->position, Game::getWidth(), Game::getHeight());
     this->bounds.translate(this->position - old_position);
-    this->fire(delay, config, ship_bullets);
+    this->fire(delay, config, event_manager, ship_bullets);
     this->updateInvincibility(delay);
 }
 
-void Ship::renderShip(SDL_Renderer *renderer, Vector offset) const {
+void Ship::renderShip(Renderer *renderer, Vector offset) const {
     if (this->invincibility > 0 && this->invincibility_flash < 0.5) {
         return;
     }
@@ -586,14 +564,14 @@ void Ship::renderShip(SDL_Renderer *renderer, Vector offset) const {
     p3.rotate(this->angle, tp);
     p4.rotate(this->angle, tp);
     p5.rotate(this->angle, tp);
-    lineRGBA(renderer, p1.x, p1.y, p2.x, p2.y, 255, 255, 255, 255);
-    lineRGBA(renderer, p3.x, p3.y, p2.x, p2.y, 255, 255, 255, 255);
-    lineRGBA(renderer, p4.x, p4.y, p5.x, p5.y, 255, 255, 255, 255);
+    renderer->requestLine(p1.x, p1.y, p2.x, p2.y, 255, 255, 255, 255);
+    renderer->requestLine(p3.x, p3.y, p2.x, p2.y, 255, 255, 255, 255);
+    renderer->requestLine(p4.x, p4.y, p5.x, p5.y, 255, 255, 255, 255);
     if (this->thruster_status >= 0.5) {
         Vector p6(tp.x - this->width / 2 + 6 - 8, tp.y);
         p6.rotate(this->angle, tp);
-        lineRGBA(renderer, p4.x, p4.y, p6.x, p6.y, 255, 255, 255, 255);
-        lineRGBA(renderer, p6.x, p6.y, p5.x, p5.y, 255, 255, 255, 255);
+        renderer->requestLine(p4.x, p4.y, p6.x, p6.y, 255, 255, 255, 255);
+        renderer->requestLine(p6.x, p6.y, p5.x, p5.y, 255, 255, 255, 255);
     }
     Vector vec = Vector::normalize(this->velocity) * this->velocity.mag() * 10 + this->position + offset;
     renderArrow(renderer, this->position + offset, vec, 250, 250, 100, 255);
@@ -601,10 +579,10 @@ void Ship::renderShip(SDL_Renderer *renderer, Vector offset) const {
         vec = Vector(cos(this->angle), -sin(this->angle)) * this->acceleration * 250 + this->position + offset;
         renderArrow(renderer, this->position + offset, vec, 167, 184, 252, 255);
     }
-    filledCircleRGBA(renderer, tp.x, tp.y, 1, 125, 250, 125, 255);
+    renderer->requestFilledCircle(tp.x, tp.y, 1, 125, 250, 125, 255);
 }
 
-void Ship::renderLife(SDL_Renderer *renderer, Vector position) const {
+void Ship::renderLife(Renderer *renderer, Vector position) const {
     Vector p1(position.x - this->width / 2, position.y - this->height / 2);
     Vector p2(position.x + this->width / 2, position.y);
     Vector p3(position.x - this->width / 2, position.y + this->height / 2);
@@ -620,19 +598,19 @@ void Ship::renderLife(SDL_Renderer *renderer, Vector position) const {
     p3 *= 0.75;
     p4 *= 0.75;
     p5 *= 0.75;
-    lineRGBA(renderer, p1.x, p1.y, p2.x, p2.y, 255, 255, 255, 255);
-    lineRGBA(renderer, p3.x, p3.y, p2.x, p2.y, 255, 255, 255, 255);
-    lineRGBA(renderer, p4.x, p4.y, p5.x, p5.y, 255, 255, 255, 255);
+    renderer->requestLine(p1.x, p1.y, p2.x, p2.y, 255, 255, 255, 255);
+    renderer->requestLine(p3.x, p3.y, p2.x, p2.y, 255, 255, 255, 255);
+    renderer->requestLine(p4.x, p4.y, p5.x, p5.y, 255, 255, 255, 255);
 }
 
-void Ship::render(SDL_Renderer *renderer) const {
+void Ship::render(Renderer *renderer) const {
     if (this->dead) {
         return;
     }
-    renderWrap(renderer, this->position, this->width / 2, this, &(this->renderShip));
+    renderWrap<Ship>(renderer, this->position, this->width / 2, this, &Ship::renderShip);
 }
 
-void Ship::renderLives(SDL_Renderer *renderer) const {
+void Ship::renderLives(Renderer *renderer) const {
     Vector base_position(29, 70);
     for (int i = 0; i < this->lives; i++) {
         Vector offset(this->height * 2 * i, 0);
@@ -659,7 +637,7 @@ bool Ship::checkBulletCollision(Bullet *bullet) {
     return false;
 }
 
-bool Ship::checkAsteroidCollision(const Json::Value &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid) {
+bool Ship::checkAsteroidCollision(const json &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid) {
     if (asteroid->invincibility > 0 || asteroid->dead || this->dead || this->invincibility > 0) {
         return false;
     }
@@ -708,19 +686,17 @@ bool Ship::checkSaucerCollision(Saucer *saucer) {
     return false;
 }
 
-void Game::analyzeGameConfiguration(Json::Value &config) {
-    Game::width = config["window_width"].asInt();
-    Game::height = config["window_height"].asInt();
+void Game::analyzeGameConfiguration(json &config) {
+    Game::width = config["window_width"];
+    Game::height = config["window_height"];
     Asteroid::analyzeAsteroidConfigurations(config);
     Saucer::analyzeSaucerConfigurations(config);
 }
 
-Game::Game(const Json::Value &config, int seed) : ship(config), wave(0), score(0), extra_lives(0), saucer_cooldown(0), gen1(seed), gen2(-seed), time(0) {
-    this->font = TTF_OpenFont("font.ttf", 20);
-    this->debug_font = TTF_OpenFont("font.ttf", 15);
-    this->extra_life_point_value = config["game_extra_life_point_value"].asInt();
-    this->asteroid_point_value = config["game_asteroid_point_value"].asInt();
-    this->saucer_point_value = config["game_saucer_point_value"].asInt();
+Game::Game(const json &config, int seed) : ship(config), wave(0), score(0), extra_lives(0), saucer_cooldown(0), gen1(seed), gen2(-seed), time(0) {
+    this->extra_life_point_value = config["game_extra_life_point_value"];
+    this->asteroid_point_value = config["game_asteroid_point_value"];
+    this->saucer_point_value = config["game_saucer_point_value"];
 }
 
 Game::~Game() {
@@ -736,11 +712,9 @@ Game::~Game() {
     for (Bullet *bullet : this->saucer_bullets) {
         delete bullet;
     }
-    TTF_CloseFont(this->font);
-    TTF_CloseFont(this->debug_font);
 }
 
-void Game::makeAsteroids(const Json::Value &config) {
+void Game::makeAsteroids(const json &config) {
     int count = Game::generateAsteroidSpawnCount(this->wave);
     for (int i = 0; i < count; i++) {
         Vector position(randomInRange(this->gen1, 0, Game::getWidth()), randomInRange(this->gen1, 0, Game::getHeight()));
@@ -748,7 +722,7 @@ void Game::makeAsteroids(const Json::Value &config) {
     }
 }
 
-void Game::makeSaucer(double delay, const Json::Value &config) {
+void Game::makeSaucer(double delay, const json &config) {
     if (this->saucer_cooldown >= 1) {
         this->saucers.push_back(new Saucer(config, floor(randomInRange(this->gen2, 0, config["saucer_sizes"].size())), this->wave, this->gen2));
         this->saucer_cooldown = 0;
@@ -756,7 +730,7 @@ void Game::makeSaucer(double delay, const Json::Value &config) {
     this->saucer_cooldown = min(1.0, this->saucer_cooldown + Game::generateSaucerSpawnRate(this->wave) * delay);
 }
 
-void Game::update(double delay, const Json::Value &config) {
+void Game::update(double delay, const json &config, const EventManager *event_manager) {
     if (this->asteroids.empty()) {
         this->wave++;
         this->makeAsteroids(config);
@@ -768,7 +742,7 @@ void Game::update(double delay, const Json::Value &config) {
         this->ship.lives++;
         this->extra_lives++;
     }
-    this->ship.update(delay, config, &(this->ship_bullets));
+    this->ship.update(delay, config, event_manager, &(this->ship_bullets));
     for (Bullet *bullet : this->ship_bullets) {
         bullet->update(delay);
     }
@@ -853,7 +827,7 @@ double Game::generateSaucerSpawnRate(int wave) {
     return min(1.0, (double)wave / 2000);
 }
 
-void Game::renderGame(SDL_Renderer *renderer) const {
+void Game::renderGame(Renderer *renderer) const {
     this->ship.render(renderer);
     for (const Asteroid *asteroid : this->asteroids) {
         asteroid->render(renderer);
@@ -869,25 +843,25 @@ void Game::renderGame(SDL_Renderer *renderer) const {
     }
 }
 
-void Game::renderOverlay(SDL_Renderer *renderer, double fps) const {
-    renderText(renderer, this->font, to_string(this->score), 15, 8, TEXT_LEFT, 255, 255, 255, 255);
-    renderText(renderer, this->debug_font, "Wave: " + to_string(this->wave), Game::width - 10, 10, TEXT_RIGHT, 242, 86, 75, 255);
-    renderText(renderer, this->debug_font, "Saucer Count: " + to_string(this->saucers.size()), Game::width - 10, 30, TEXT_RIGHT, 242, 86, 75, 255);
+void Game::renderOverlay(Renderer *renderer, double fps) const {
+    renderer->requestText(REGULAR, to_string(this->score), 15, 8, LEFT, 255, 255, 255, 255);
+    renderer->requestText(SMALL, "Wave: " + to_string(this->wave), Game::width - 10, 10, RIGHT, 242, 86, 75, 255);
+    renderer->requestText(SMALL, "Saucer Count: " + to_string(this->saucers.size()), Game::width - 10, 30, RIGHT, 242, 86, 75, 255);
     int count[] = { 0, 0, 0 };
     for (const Asteroid *asteroid : this->asteroids) {
         count[asteroid->size]++;
     }
-    renderText(renderer, this->debug_font, "Large Asteroid Count: " + to_string(count[2]), Game::width - 10, 50, TEXT_RIGHT, 242, 86, 75, 255);
-    renderText(renderer, this->debug_font, "Medium Asteroid Count: " + to_string(count[1]), Game::width - 10, 70, TEXT_RIGHT, 242, 86, 75, 255);
-    renderText(renderer, this->debug_font, "Small Asteroid Count: " + to_string(count[0]), Game::width - 10, 90, TEXT_RIGHT, 242, 86, 75, 255);
-    renderText(renderer, this->debug_font, "FPS: " + trimDouble(fps), Game::width - 10, 110, TEXT_RIGHT, 242, 86, 75, 255);
+    renderer->requestText(SMALL, "Large Asteroid Count: " + to_string(count[2]), Game::width - 10, 50, RIGHT, 242, 86, 75, 255);
+    renderer->requestText(SMALL, "Medium Asteroid Count: " + to_string(count[1]), Game::width - 10, 70, RIGHT, 242, 86, 75, 255);
+    renderer->requestText(SMALL, "Small Asteroid Count: " + to_string(count[0]), Game::width - 10, 90, RIGHT, 242, 86, 75, 255);
+    renderer->requestText(SMALL, "FPS: " + trimDouble(fps), Game::width - 10, 110, RIGHT, 242, 86, 75, 255);
     int time_int = this->time * 100;
     string time_str = to_string(time_int);
     while (time_str.length() < 2) {
         time_str.insert(time_str.begin(), '0');
     }
     time_str.insert(time_str.begin() + time_str.length() - 2, '.');
-    renderText(renderer, this->debug_font, "Time Elapsed: " + time_str, Game::width - 10, 130, TEXT_RIGHT, 242, 86, 75, 255);
+    renderer->requestText(SMALL, "Time Elapsed: " + time_str, Game::width - 10, 130, RIGHT, 242, 86, 75, 255);
     this->ship.renderLives(renderer);
 }
 
