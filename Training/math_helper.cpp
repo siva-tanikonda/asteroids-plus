@@ -1,4 +1,4 @@
-#include "math.h"
+#include "math_helper.h"
 
 Vector::Vector(double x, double y) : x(x), y(y) { }
 
@@ -320,15 +320,15 @@ void wrap(Vector &v, int width, int height, bool wrap_x, bool wrap_y) {
 
 vector<double> solveQuadratic(double a, double b, double c) {
     double discriminant = b * b - 4 * a * c;
-    if (discriminant < 0) {
-        return { };
-    } else if (discriminant == 0) {
-        return { -b / (2 * a) };
-    } else {
-        vector<double> result = { (-b + sqrt(discriminant)) / (2 * a), (-b - sqrt(discriminant)) / (2 * a) };
+    vector<double> result;
+    if (discriminant == 0) {
+        result.push_back(-b / (2 * a));
+    } else if (discriminant > 0) {
+        result.push_back((-b + sqrt(discriminant)) / (2 * a));
+        result.push_back((-b - sqrt(discriminant)) / (2 * a));
         if (result[1] < result[0]) {
             swap(result[0], result[1]);
         }
-        return result;
     }
+    return result;
 }
