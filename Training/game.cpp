@@ -473,10 +473,10 @@ void Ship::reviveShip() {
 
 void Ship::rotate(double delay, const EventManager *event_manager) {
     double old_angle = this->angle;
-    if (event_manager->events->left) {
+    if (event_manager->left) {
         this->angle += delay * this->rotation_speed;
     }
-    if (event_manager->events->right) {
+    if (event_manager->right) {
         this->angle -= delay * this->rotation_speed;
     }
     this->bounds.rotate(this->angle - old_angle, this->position);
@@ -490,7 +490,7 @@ void Ship::rotate(double delay, const EventManager *event_manager) {
 
 void Ship::move(double delay, const EventManager *event_manager) {
     Vector direction(cos(this->angle), -sin(this->angle));
-    if (event_manager->events->forward) {
+    if (event_manager->forward) {
         direction *= this->acceleration;
         this->velocity += direction * delay;
         this->thruster_status += delay * 0.05;
@@ -508,7 +508,7 @@ void Ship::move(double delay, const EventManager *event_manager) {
 }
 
 void Ship::fire(double delay, const json &config, const EventManager *event_manager, vector<Bullet*> *ship_bullets) {
-    if (event_manager->events->fire && this->bullet_cooldown >= 1) {
+    if (event_manager->fire && this->bullet_cooldown >= 1) {
         Vector direction(cos(this->angle), -sin(this->angle));
         direction *= this->width / 2 + 5;
         Vector bullet_position = direction + this->position;

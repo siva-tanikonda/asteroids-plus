@@ -167,7 +167,7 @@ void Renderer::completeRequest() {
     pthread_mutex_unlock(&(this->queue->lock));
 }
 
-void Renderer::requestText(FontType font, const string &text, Uint16 x, Uint16 y, TextAlignment alignment, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void Renderer::requestText(FontType font, const string &text, int x, int y, TextAlignment alignment, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
     int i = this->queue->len++;
     this->queue->queue[i].type = TEXT;
     this->queue->queue[i].font = font;
@@ -181,7 +181,7 @@ void Renderer::requestText(FontType font, const string &text, Uint16 x, Uint16 y
     this->queue->queue[i].a = a;
 }
 
-void Renderer::requestFilledCircle(Uint16 x1, Uint16 y1, Uint16 radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void Renderer::requestFilledCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
     int i = this->queue->len++;
     this->queue->queue[i].type = FILLED_CIRCLE;
     this->queue->queue[i].x1 = x1;
@@ -193,7 +193,7 @@ void Renderer::requestFilledCircle(Uint16 x1, Uint16 y1, Uint16 radius, Uint8 r,
     this->queue->queue[i].a = a;
 }
 
-void Renderer::requestCircle(Uint16 x1, Uint16 y1, Uint16 radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void Renderer::requestCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
     int i = this->queue->len++;
     this->queue->queue[i].type = CIRCLE;
     this->queue->queue[i].x1 = x1;
@@ -205,7 +205,7 @@ void Renderer::requestCircle(Uint16 x1, Uint16 y1, Uint16 radius, Uint8 r, Uint8
     this->queue->queue[i].a = a;
 }
 
-void Renderer::requestLine(Uint16 x1, Uint16 y1, Uint16 x2, Uint16 y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void Renderer::requestLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
     int i = this->queue->len++;
     this->queue->queue[i].type = LINE;
     this->queue->queue[i].x1 = x1;
