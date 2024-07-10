@@ -11,9 +11,10 @@ struct EventManagerEvents {
 
 class EventManager {
     public:
-        bool manager;
+        bool manager, left, right, forward, fire;
         EventManagerEvents *events;
         EventManager(bool manager);
         ~EventManager();
         void update();
+        void applyEvents();
 };

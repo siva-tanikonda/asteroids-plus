@@ -60,3 +60,10 @@ void EventManager::update() {
         }
     }
 }
+
+void EventManager::applyEvents() {
+    this->left = this->events->left;
+    this->right = this->events->right;
+    this->forward = this->events->forward;
+    this->fire = this->events->fire;
+}

@@ -2,14 +2,21 @@
 play: Build/main
 	Build/main --play
 
-Build/main: Build Build/math_helper.o Build/renderer.o Build/event_manager.o Build/game.o Build/main.o
-	g++-14 Build/math_helper.o Build/renderer.o Build/event_manager.o Build/game.o Build/main.o -O3 -w -lSDL2main -lSDL2 -lSDL2_ttf -o Build/main
+.PHONY: ai
+ai: Build/main
+	Build/main --ai
+
+Build/main: Build Build/math_helper.o Build/renderer.o Build/event_manager.o Build/game.o Build/ai.o Build/main.o
+	g++-14 Build/math_helper.o Build/renderer.o Build/event_manager.o Build/game.o Build/ai.o Build/main.o -O3 -w -lSDL2main -lSDL2 -lSDL2_ttf -o Build/main
 
 Build:
 	mkdir Build
 
 Build/main.o: main.cpp game.h
 	g++-14 -c main.cpp -O3 -w -o Build/main.o
+
+Build/ai.o: ai.cpp ai.h game.h
+	g++-14 -c ai.cpp -O3 -w -o Build/ai.o
 
 Build/game.o: game.cpp game.h renderer.h event_manager.h
 	g++-14 -c game.cpp -O3 -w -o Build/game.o

@@ -43,10 +43,10 @@ class Renderer {
         void process();
         bool beginRequest();
         void completeRequest();
-        void requestText(FontType font, const string &text, Uint16 x, Uint16 y, TextAlignment alignment, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-        void requestFilledCircle(Uint16 x1, Uint16 y1, Uint16 radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-        void requestCircle(Uint16 x1, Uint16 y1, Uint16 radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-        void requestLine(Uint16 x1, Uint16 y1, Uint16 x2, Uint16 y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+        void requestText(FontType font, const string &text, int x, int y, TextAlignment alignment, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+        void requestFilledCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+        void requestCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+        void requestLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
     private:
         bool manager;
         SDL_Window *window;

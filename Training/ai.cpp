@@ -7,7 +7,7 @@ const double AI::FLOATING_POINT_COMPENSATION = 2.5;
 const double AI::RANDOM_WALK_SPEED_LIMIT = 1;
 const double AI::RANDOM_WALK_ROTATION_PROBABILITY = 0.1;
 
-template <class T> void renderWrap(SDL_Renderer *renderer, AI *ai, const Vector &position, double radius, const T *object, void (T::*func)(SDL_Renderer*, AI*, Vector) const, bool offset_x, bool offset_y) {
+template <class T> void renderWrap(Renderer *renderer, AI *ai, const Vector &position, double radius, const T *object, void (T::*func)(Renderer*, AI*, Vector) const, bool offset_x, bool offset_y) {
     vector<int> horizontal = { 0 };
     vector<int> vertical = { 0 };
     if (position.x + radius >= Game::getWidth() && offset_x) {
@@ -30,19 +30,9 @@ template <class T> void renderWrap(SDL_Renderer *renderer, AI *ai, const Vector 
     }
 }
 
-void renderFilledCircle(SDL_Renderer *renderer, const Vector &position, double radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
-    int top = ceil(position.y - radius);
-    int bottom = floor(position.y + radius);
-    for (int i = top; i <= bottom; i++) {
-        double dy = i - position.y;
-        double diff = sqrt(radius * radius - dy * dy);
-        lineRGBA(renderer, position.x - diff, i, position.x + diff, i, r, g, b, a);
-    }
-}
-
 AIShip::AIShip(const AIShipData &ship, double target_safety_radius) : position(ship.position), angle(ship.angle), width(ship.width), bullet_cooldown(ship.bullet_cooldown), bullet_speed(ship.bullet_speed), bullet_life(ship.bullet_life), drag_coefficient(ship.drag_coefficient), velocity(ship.velocity), rotation_speed(ship.rotation_speed), acceleration(ship.acceleration), size(AI::DANGER_RADIUS[1]), lives(ship.lives), target_safety_radius(target_safety_radius), flee_values({ -1, -1, -1, -1 }), nudge_values({ -1, -1, -1 }) { }
 
-void AIShip::renderArrowMetric(SDL_Renderer *renderer, double metric, double angle, const Vector &p, AI *ai, Uint8 r, Uint8 g, Uint8 b, Uint8 a) const {
+void AIShip::renderArrowMetric(Renderer *renderer, double metric, double angle, const Vector &p, AI *ai, Uint8 r, Uint8 g, Uint8 b, Uint8 a) const {
     double scaled_metric = min(75.0, metric * 75);
     Vector pd(p.x + scaled_metric, p.y);
     pd.rotate(angle + this->angle, p);
@@ -50,13 +40,13 @@ void AIShip::renderArrowMetric(SDL_Renderer *renderer, double metric, double ang
     pd.x = p.x + scaled_metric;
     pd.y = p.y + 15;
     pd.rotate(angle + this->angle, p);
-    renderText(renderer, ai->getSmallFont(), trimDouble(metric), pd.x, pd.y, TEXT_CENTERED, r, g, b, a);
+    renderer->requestText(TINY, trimDouble(metric), pd.x, pd.y, MIDDLE, r, g, b, a);
 }
 
-void AIShip::render(SDL_Renderer *renderer, AI *ai, Vector offset) const {
+void AIShip::render(Renderer *renderer, AI *ai, Vector offset) const {
     Vector p = this->position + offset;
-    circleRGBA(renderer, p.x, p.y, this->size, 210, 140, 240, 255 * 0.75);
-    renderFilledCircle(renderer, p, this->target_safety_radius, 245, 148, 69, 255 * 0.25);
+    renderer->requestCircle(p.x, p.y, this->size, 210, 140, 240, 255 * 0.75);
+    renderer->requestFilledCircle(p.x, p.y, this->target_safety_radius, 245, 148, 69, 255 * 0.25);
     if (this->flee_values[0] != -1) {
         this->renderArrowMetric(renderer, this->flee_values[2], 0, p, ai, 210, 140, 240, 255 * 0.75);
         this->renderArrowMetric(renderer, this->flee_values[0], M_PI / 2, p, ai, 210, 140, 240, 255 * 0.75);
@@ -70,49 +60,46 @@ void AIShip::render(SDL_Renderer *renderer, AI *ai, Vector offset) const {
 
 AIDanger::AIDanger(const AIDangerData &danger, int size_index, vector<double> danger_levels) : size(AI::DANGER_RADIUS[size_index]), position(danger.position), velocity(danger.velocity), danger_levels(danger_levels), entered_x(danger.entered_x), entered_y(danger.entered_y) { }
 
-void AIDanger::render(SDL_Renderer *renderer, AI *ai, Vector offset) const {
+void AIDanger::render(Renderer *renderer, AI *ai, Vector offset) const {
     Vector p = this->position + offset;
-    circleRGBA(renderer, p.x, p.y, this->size, 210, 140, 240, 255 * 0.75);
+    renderer->requestCircle(p.x, p.y, this->size, 210, 140, 240, 255 * 0.75);
     double max_danger = 0;
     for (double level : this->danger_levels) {
         max_danger = max(max_danger, level);
     }
-    renderText(renderer, ai->getSmallFont(), trimDouble(max_danger), this->position.x, this->position.y - 15, TEXT_CENTERED, 210, 140, 240, 255);
+    renderer->requestText(TINY, trimDouble(max_danger), this->position.x, this->position.y - 15, MIDDLE, 210, 140, 240, 255);
 }
 
 AITarget::AITarget(const AIDangerData &target, int size_index, double size) : position(target.position), size_index(size_index), size(size), pessimistic_size(AI::PESSIMISTIC_RADIUS[size_index]), velocity(target.velocity), invincibility(target.invincibility), id(target.id), entered_x(target.entered_x), entered_y(target.entered_y) { }
 
-void AITarget::render(SDL_Renderer *renderer, AI *ai, Vector offset) const {
+void AITarget::render(Renderer *renderer, AI *ai, Vector offset) const {
     Vector p = this->position + offset;
-    circleRGBA(renderer, p.x, p.y, this->size, 245, 148, 69, 255 * 0.75);
+    renderer->requestCircle(p.x, p.y, this->size, 245, 148, 69, 255 * 0.75);
 }
 
 AIMarker::AIMarker(AITarget &target, double life) : position(target.position), life(life), id(target.id), size_index(target.size_index) { }
 
-void AIMarker::render(SDL_Renderer *renderer, AI *ai, Vector offset) const {
+void AIMarker::render(Renderer *renderer, AI *ai, Vector offset) const {
     Vector p = this->position + offset;
-    lineRGBA(renderer, p.x - 8, p.y - 8, p.x + 8, p.y + 8, 245, 148, 69, 255);
-    lineRGBA(renderer, p.x + 8, p.y - 8, p.x - 8, p.y + 8, 245, 148, 69, 255);
+    renderer->requestLine(p.x - 8, p.y - 8, p.x + 8, p.y + 8, 245, 148, 69, 255);
+    renderer->requestLine(p.x + 8, p.y - 8, p.x - 8, p.y + 8, 245, 148, 69, 255);
 }
 
 AICrosshair::AICrosshair(int id, double angle, double ship_rotation_speed, const Vector &position) : position(position), id(id), angle(angle), life(M_PI / ship_rotation_speed) { }
 
-void AICrosshair::render(SDL_Renderer *renderer, AI *ai, Vector offset) const {
+void AICrosshair::render(Renderer *renderer, AI *ai, Vector offset) const {
     Vector p1 = this->position + offset;
-    lineRGBA(renderer, p1.x - 8, p1.y, p1.x - 3, p1.y, 245, 148, 69, 255);
-    lineRGBA(renderer, p1.x + 8, p1.y, p1.x + 3, p1.y, 245, 148, 69, 255);
-    lineRGBA(renderer, p1.x, p1.y - 8, p1.x, p1.y - 3, 245, 148, 69, 255);
-    lineRGBA(renderer, p1.x, p1.y + 8, p1.x, p1.y + 3, 245, 148, 69, 255);
+    renderer->requestLine(p1.x - 8, p1.y, p1.x - 3, p1.y, 245, 148, 69, 255);
+    renderer->requestLine(p1.x + 8, p1.y, p1.x + 3, p1.y, 245, 148, 69, 255);
+    renderer->requestLine(p1.x, p1.y - 8, p1.x, p1.y - 3, 245, 148, 69, 255);
+    renderer->requestLine(p1.x, p1.y + 8, p1.x, p1.y + 3, 245, 148, 69, 255);
     Vector p2(cos(this->angle), -sin(this->angle));
     p2 *= 40;
     p2 += p1;
     renderArrow(renderer, p1, p2, 245, 148, 69, 255 * 0.5);
 }
 
-AI::AI(double (&c)[C_LENGTH], AIShipData ship) : c(c), controls_left(false), controls_right(false), controls_forward(false), controls_fire(false), max_danger(0), flee_values{ 0, 0, 0, 0 }, nudge_values{ 0, 0, 0 }, size_groups{ 0, 0 }, ship(ship, c[26]), crosshair(nullptr), gen(rand()), misses(0) { 
-    this->font = TTF_OpenFont("font.ttf", 15);
-    this->small_font = TTF_OpenFont("font.ttf", 11);
-}
+AI::AI(double (&c)[C_LENGTH], AIShipData ship) : c(c), controls_left(false), controls_right(false), controls_forward(false), controls_fire(false), max_danger(0), flee_values{ 0, 0, 0, 0 }, nudge_values{ 0, 0, 0 }, size_groups{ 0, 0 }, ship(ship, c[26]), crosshair(nullptr), gen(rand()), misses(0) { }
 
 AI::~AI() {
     for (AIMarker *marker : this->markers) {
@@ -121,8 +108,6 @@ AI::~AI() {
     if (this->crosshair != nullptr) {
         delete this->crosshair;
     }
-    TTF_CloseFont(this->font);
-    TTF_CloseFont(this->small_font);
 }
 
 vector<double> AI::calculateDangerLevels(const AIDangerData &danger) {
@@ -408,7 +393,7 @@ tuple<AITarget*, double, Vector> AI::generateFiringOpportunity(bool aiming) {
     return { destroyed, min_time, collision_location };
 }
 
-void AI::manageFiring(double delay, const Json::Value &config) {
+void AI::manageFiring(double delay, const json &config) {
     if (this->ship.bullet_cooldown < 1) {
         return;
     }
@@ -492,14 +477,14 @@ void AI::predictEntityStates(double delay) {
     }
 }
 
-AICrosshair* AI::generateAimTarget(double delay, const Json::Value &config, Game *game) {
+AICrosshair* AI::generateAimTarget(double delay, const json &config, Game *game) {
     double angle_offset = 0;
     AITarget *target;
     double collision_time, aim_angle;
     Vector collision_location;
     bool found_target = false;
     bool first_iteration = true;
-    this->predictEntityStates(delay / config["game_precision"].asInt());
+    this->predictEntityStates(delay / config["game_precision"].get<int>());
     while (angle_offset <= M_PI) {
         this->ship.angle += angle_offset;
         while (this->ship.angle >= M_PI * 2) {
@@ -532,7 +517,7 @@ AICrosshair* AI::generateAimTarget(double delay, const Json::Value &config, Game
         this->ship.angle += angle_offset;
         angle_offset += this->ship.rotation_speed / AI::ROTATION_PRECISION;
         if (first_iteration) {
-            this->predictEntityStates(max(0.0, 1 / AI::ROTATION_PRECISION - delay / config["game_precision"].asInt()));
+            this->predictEntityStates(max(0.0, 1 / AI::ROTATION_PRECISION - delay / config["game_precision"].get<int>()));
             first_iteration = false;
         } else {
             this->predictEntityStates(1 / AI::ROTATION_PRECISION);
@@ -545,7 +530,7 @@ AICrosshair* AI::generateAimTarget(double delay, const Json::Value &config, Game
     return nullptr;
 }
 
-void AI::manageAim(double delay, const Json::Value &config, Game *game) {
+void AI::manageAim(double delay, const json &config, Game *game) {
     if (this->crosshair != nullptr && (this->isTargetMarked(this->crosshair->id) || this->crosshair->life <= 0)) {
         delete this->crosshair;
         this->crosshair = nullptr;
@@ -587,7 +572,7 @@ void AI::resetControls() {
     this->controls_left = this->controls_right = this->controls_forward = this->controls_fire = false;
 }
 
-void AI::update(double delay, const Json::Value &config, Game *game) {
+void AI::update(double delay, const json &config, Game *game) {
     this->resetControls();
     this->generateVirtualEntities(game);
     if (this->ship.lives > 0) {
@@ -596,42 +581,42 @@ void AI::update(double delay, const Json::Value &config, Game *game) {
         } else {
             this->manageAim(delay, config, game);
         }
-        this->predictEntityStates(delay / config["game_precision"].asInt());
+        this->predictEntityStates(delay / config["game_precision"].get<int>());
         this->manageFiring(delay, config);
         this->updateMarkers(delay);
     }
 }
 
-void AI::renderGame(SDL_Renderer *renderer, Game *game) {
+void AI::renderGame(Renderer *renderer, Game *game) {
     this->generateVirtualEntities(game);
     if (this->max_danger >= 1) {
         this->calculateFleeAndNudgeValues();
     }
     this->updateMarkers(0);
     if (this->ship.lives > 0) {
-        renderWrap<AIShip>(renderer, this, ship.position, max(75.0, ship.target_safety_radius), &(this->ship), &(this->ship.render));
+        renderWrap<AIShip>(renderer, this, ship.position, max(75.0, ship.target_safety_radius), &(this->ship), &AIShip::render);
     }
     for (const AIDanger &danger : this->dangers) {
-        renderWrap<AIDanger>(renderer, this, danger.position, danger.size, &danger, &(danger.render), danger.entered_x, danger.entered_y);
+        renderWrap<AIDanger>(renderer, this, danger.position, danger.size, &danger, &AIDanger::render, danger.entered_x, danger.entered_y);
     }
     for (const AITarget &target : this->targets) {
-        renderWrap<AITarget>(renderer, this, target.position, target.size, &target, &(target.render), target.entered_x, target.entered_y);
+        renderWrap<AITarget>(renderer, this, target.position, target.size, &target, &AITarget::render, target.entered_x, target.entered_y);
     }
     for (const AIMarker *marker : this->markers) {
-        renderWrap<AIMarker>(renderer, this, marker->position, 32, marker, &(marker->render));
+        renderWrap<AIMarker>(renderer, this, marker->position, 32, marker, &AIMarker::render);
     }
     if (this->crosshair != nullptr) {
-        renderWrap<AICrosshair>(renderer, this, this->crosshair->position, 40, this->crosshair, &(this->crosshair->render));
+        renderWrap<AICrosshair>(renderer, this, this->crosshair->position, 40, this->crosshair, &AICrosshair::render);
     }
 }
 
-void AI::renderOverlay(SDL_Renderer *renderer) const {
+void AI::renderOverlay(Renderer *renderer) const {
     if (this->max_danger >= 1) {
-        renderText(renderer, this->font, "AI Mode: Fleeing", Game::getWidth() - 10, 150, TEXT_RIGHT, 210, 140, 240, 255);
+        renderer->requestText(SMALL, "AI Mode: Fleeing", Game::getWidth() - 10, 150, RIGHT, 210, 140, 240, 255);
     } else {
-        renderText(renderer, this->font, "AI Mode: Aiming", Game::getWidth() - 10, 150, TEXT_RIGHT, 245, 148, 69, 255);
+        renderer->requestText(SMALL, "AI Mode: Aiming", Game::getWidth() - 10, 150, RIGHT, 245, 148, 69, 255);
     }
-    renderText(renderer, this->font, "AI Misses: " + to_string(this->misses), Game::getWidth() - 10, 170, TEXT_RIGHT, 245, 148, 69, 255);
+    renderer->requestText(SMALL, "AI Misses: " + to_string(this->misses), Game::getWidth() - 10, 170, RIGHT, 245, 148, 69, 255);
     int row_count = ceil(C_LENGTH / 10.0);
     for (int i = 0; i < row_count * 10; i += 10) {
         string c_str;
@@ -647,17 +632,13 @@ void AI::renderOverlay(SDL_Renderer *renderer) const {
                 c_str += trimDouble(this->c[j]) + " ]";
             }
         }
-        renderText(renderer, this->small_font, c_str, 5, Game::getHeight() - 20 * (row_count - i / 10), TEXT_LEFT, 255, 255, 255, 255);
+        renderer->requestText(TINY, c_str, 5, Game::getHeight() - 20 * (row_count - i / 10), LEFT, 255, 255, 255, 255);
     }
 }
 
-void AI::applyControls() const {
-    EventManager::left = this->controls_left;
-    EventManager::right = this->controls_right;
-    EventManager::forward = this->controls_forward;
-    EventManager::fire = this->controls_fire;
-}
-
-TTF_Font* AI::getSmallFont() {
-    return this->small_font;
+void AI::applyControls(EventManager *event_manager) const {
+    event_manager->left = this->controls_left;
+    event_manager->right = this->controls_right;
+    event_manager->forward = this->controls_forward;
+    event_manager->fire = this->controls_fire;
 }

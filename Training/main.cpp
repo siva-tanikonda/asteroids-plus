@@ -1,10 +1,8 @@
 #include <fstream>
 #include <signal.h>
-#include "game.h"
+#include "ai.h"
 
-using json = nlohmann::json;
-using namespace std;
-
+double c[C_LENGTH];
 json config;
 pid_t pid;
 
@@ -12,6 +10,9 @@ json loadConfig() {
     ifstream config_file("config.json", ifstream::binary);
     json config = json::parse(config_file);
     config_file.close();
+    for (int i = 0; i < C_LENGTH; i++) {
+        c[i] = config["c"][i];
+    }
     return config;
 }
 
@@ -30,11 +31,15 @@ void runManager() {
     delete event_manager;
 }
 
-void runPlay() {
+void runPlay(bool use_ai = false) {
     Game::analyzeGameConfiguration(config);
     Renderer *renderer = new Renderer(config, false);
     EventManager *event_manager = new EventManager(false);
     Game *game = new Game(config, rand());
+    AI *ai;
+    if (use_ai) {
+        ai = new AI(c, game->getAIShipData());
+    }
     int game_precision = config["game_precision"];
     double performance_frequency = SDL_GetPerformanceFrequency();
     double fps_reset_rate = 2e-2;
@@ -53,17 +58,32 @@ void runPlay() {
             }
             fps_cooldown = max(0.0, fps_cooldown - fps_reset_rate);
             double delay = seconds_passed * 60;
+            if (!use_ai) {
+                event_manager->applyEvents();
+            } else {
+                ai->update(delay, config, game);
+                ai->applyControls(event_manager);
+            }
             for (int i = 0; i < game_precision; i++) {
                 game->update(delay / game_precision, config, event_manager);
             }
             game->renderGame(renderer);
+            if (use_ai) {
+                ai->renderGame(renderer, game);
+            }
             game->renderOverlay(renderer, fps);
+            if (use_ai) {
+                ai->renderOverlay(renderer);
+            }
             renderer->completeRequest();
         }
     }
     delete renderer;
     delete event_manager;
     delete game;
+    if (use_ai) {
+        delete ai;
+    }
 }
 
 int main(int argv, char **args) {
@@ -73,6 +93,8 @@ int main(int argv, char **args) {
         runManager();
     } else if (strcmp(args[1], "--play") == 0) {
         runPlay();
+    } else if (strcmp(args[1], "--ai") == 0) {
+        runPlay(true);
     }
     return 0;
 }
