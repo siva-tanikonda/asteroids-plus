@@ -49,16 +49,18 @@ void testRun(double (&c)[C_LENGTH], int seed, Renderer *renderer, EventManager *
     double default_delay = config["default_delay"];
     double performance_frequency = SDL_GetPerformanceFrequency();
     double fps_reset_rate = 2e-2;
-    Uint64 timestamp = SDL_GetPerformanceCounter();
-    Uint64 old_timestamp = 0;
+    Uint64 old_timestamp = -1;
     double fps_cooldown = 0;
     double fps = 0;
     while (true) {
         if (renderer->isOwner(process_num)) {
             if (renderer->beginRequest()) {
-                old_timestamp = timestamp;
-                timestamp = SDL_GetPerformanceCounter();
+                if (old_timestamp == -1) {
+                    old_timestamp = SDL_GetPerformanceCounter();
+                }
+                Uint64 timestamp = SDL_GetPerformanceCounter();
                 double seconds_passed = (timestamp - old_timestamp) / performance_frequency;
+                old_timestamp = timestamp;
                 if (fps_cooldown <= 0) {
                     fps = 1 / seconds_passed;
                     fps_cooldown = 1;
@@ -85,6 +87,7 @@ void testRun(double (&c)[C_LENGTH], int seed, Renderer *renderer, EventManager *
                 renderer->completeRequest();
             }
         } else {
+            old_timestamp = -1;
             if (user_input) {
                 event_manager->applyEvents();
             } else {
