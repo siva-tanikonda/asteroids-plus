@@ -1,10 +1,11 @@
 #include <fstream>
 #include <signal.h>
-#include "ai.h"
+#include "evaluation.h"
 
 double c[C_LENGTH];
 json config;
-pid_t pid;
+vector<pid_t> pids;
+int process_num;
 
 json loadConfig() {
     ifstream config_file("config.json", ifstream::binary);
@@ -16,9 +17,13 @@ json loadConfig() {
     return config;
 }
 
-void runManager() {
+void runManager(bool test = false) {
     Renderer *renderer = new Renderer(config, true);
     EventManager *event_manager = new EventManager(true);
+    EvaluationFlowManager *evaluation_flow_manager = new EvaluationFlowManager(true);
+    if (test) {
+        evaluation_flow_manager->requestEvaluation(c, config["seed"], 0);
+    }
     while (true) {
         event_manager->update();
         if (event_manager->events->quit) {
@@ -26,21 +31,22 @@ void runManager() {
         }
         renderer->process();
     }
-    kill(pid, SIGTERM);
+    for (pid_t pid : pids) {
+        kill(pid, SIGTERM);
+    }
     delete renderer;
     delete event_manager;
+    delete evaluation_flow_manager;
 }
 
-void runPlay(bool use_ai = false) {
-    Game::analyzeGameConfiguration(config);
-    Renderer *renderer = new Renderer(config, false);
-    EventManager *event_manager = new EventManager(false);
+void testRun(double (&c)[C_LENGTH], int seed, Renderer *renderer, EventManager *event_manager, bool user_input = false) {
     Game *game = new Game(config, rand());
     AI *ai;
-    if (use_ai) {
+    if (!user_input) {
         ai = new AI(c, game->getAIShipData());
     }
     int game_precision = config["game_precision"];
+    double default_delay = config["default_delay"];
     double performance_frequency = SDL_GetPerformanceFrequency();
     double fps_reset_rate = 2e-2;
     Uint64 timestamp = SDL_GetPerformanceCounter();
@@ -48,53 +54,99 @@ void runPlay(bool use_ai = false) {
     double fps_cooldown = 0;
     double fps = 0;
     while (true) {
-        if (renderer->beginRequest()) {
-            old_timestamp = timestamp;
-            timestamp = SDL_GetPerformanceCounter();
-            double seconds_passed = (timestamp - old_timestamp) / performance_frequency;
-            if (fps_cooldown <= 0) {
-                fps = 1 / seconds_passed;
-                fps_cooldown = 1;
+        if (renderer->isOwner(process_num)) {
+            if (renderer->beginRequest()) {
+                old_timestamp = timestamp;
+                timestamp = SDL_GetPerformanceCounter();
+                double seconds_passed = (timestamp - old_timestamp) / performance_frequency;
+                if (fps_cooldown <= 0) {
+                    fps = 1 / seconds_passed;
+                    fps_cooldown = 1;
+                }
+                fps_cooldown = max(0.0, fps_cooldown - fps_reset_rate);
+                double delay = seconds_passed * 60;
+                if (user_input) {
+                    event_manager->applyEvents();
+                } else {
+                    ai->update(delay, config, game);
+                    ai->applyControls(event_manager);
+                }
+                for (int i = 0; i < game_precision; i++) {
+                    game->update(delay / game_precision, config, event_manager);
+                }
+                game->renderGame(renderer);
+                if (!user_input) {
+                    ai->renderGame(renderer, game);
+                }
+                game->renderOverlay(renderer, fps);
+                if (!user_input) {
+                    ai->renderOverlay(renderer);
+                }
+                renderer->completeRequest();
             }
-            fps_cooldown = max(0.0, fps_cooldown - fps_reset_rate);
-            double delay = seconds_passed * 60;
-            if (!use_ai) {
+        } else {
+            if (user_input) {
                 event_manager->applyEvents();
             } else {
-                ai->update(delay, config, game);
+                ai->update(default_delay, config, game);
                 ai->applyControls(event_manager);
             }
             for (int i = 0; i < game_precision; i++) {
-                game->update(delay / game_precision, config, event_manager);
+                game->update(default_delay / game_precision, config, event_manager);
             }
-            game->renderGame(renderer);
-            if (use_ai) {
-                ai->renderGame(renderer, game);
-            }
-            game->renderOverlay(renderer, fps);
-            if (use_ai) {
-                ai->renderOverlay(renderer);
-            }
-            renderer->completeRequest();
         }
     }
-    delete renderer;
-    delete event_manager;
     delete game;
-    if (use_ai) {
+    if (!user_input) {
         delete ai;
     }
 }
 
+void runEvaluator(bool testing = false, bool user_input = false) {
+    double c[C_LENGTH];
+    Game::analyzeGameConfiguration(config);
+    Renderer *renderer = new Renderer(config, false);
+    EventManager *event_manager = new EventManager(false);
+    EvaluationFlowManager *evaluation_flow_manager = new EvaluationFlowManager(false);
+    while (true) {
+        array<double, C_LENGTH + 2> request = evaluation_flow_manager->fulfillEvaluation();
+        for (int i = 0; i < C_LENGTH; i++) {
+            c[i] = request[i];
+        }
+        int seed = request[C_LENGTH];
+        int id = request[C_LENGTH + 1];
+        if (testing) {
+            testRun(c, seed, renderer, event_manager, user_input);
+        } else {
+            //TODO
+        }
+    }
+    delete renderer;
+    delete event_manager;
+    delete evaluation_flow_manager;
+}
+
 int main(int argv, char **args) {
+    pid_t pid;
     config = loadConfig();
-    pid = fork();
-    if (pid > 0) {
-        runManager();
-    } else if (strcmp(args[1], "--play") == 0) {
-        runPlay();
+    if (strcmp(args[1], "--play") == 0) {
+        pid = fork();
+        if (pid > 0) {
+            pids.push_back(pid);
+            runManager(true);
+        } else {
+            process_num = 1;
+            runEvaluator(true, true);
+        }
     } else if (strcmp(args[1], "--ai") == 0) {
-        runPlay(true);
+        pid = fork();
+        if (pid > 0) {
+            pids.push_back(pid);
+            runManager(true);
+        } else {
+            process_num = 1;
+            runEvaluator(true);
+        }
     }
     return 0;
 }

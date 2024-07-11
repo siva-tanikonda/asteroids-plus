@@ -99,7 +99,7 @@ void AICrosshair::render(Renderer *renderer, AI *ai, Vector offset) const {
     renderArrow(renderer, p1, p2, 245, 148, 69, 255 * 0.5);
 }
 
-AI::AI(double (&c)[C_LENGTH], AIShipData ship) : c(c), controls_left(false), controls_right(false), controls_forward(false), controls_fire(false), max_danger(0), flee_values{ 0, 0, 0, 0 }, nudge_values{ 0, 0, 0 }, size_groups{ 0, 0 }, ship(ship, c[26]), crosshair(nullptr), gen(rand()), misses(0) { }
+AI::AI(double (&c)[C_LENGTH], AIShipData ship) : c(c), controls_left(false), controls_right(false), controls_forward(false), controls_fire(false), max_danger(0), flee_values{ 0, 0, 0, 0 }, nudge_values{ 0, 0, 0 }, size_groups{ 0, 0 }, ship(ship, c[26]), crosshair(nullptr), gen(rand()), misses(0), flee_time(0) { }
 
 AI::~AI() {
     for (AIMarker *marker : this->markers) {
@@ -577,6 +577,7 @@ void AI::update(double delay, const json &config, Game *game) {
     this->generateVirtualEntities(game);
     if (this->ship.lives > 0) {
         if (this->max_danger >= 1) {
+            this->flee_time += delay / 60;
             this->manageFleeing();
         } else {
             this->manageAim(delay, config, game);
@@ -617,6 +618,7 @@ void AI::renderOverlay(Renderer *renderer) const {
         renderer->requestText(SMALL, "AI Mode: Aiming", Game::getWidth() - 10, 150, RIGHT, 245, 148, 69, 255);
     }
     renderer->requestText(SMALL, "AI Misses: " + to_string(this->misses), Game::getWidth() - 10, 170, RIGHT, 245, 148, 69, 255);
+    renderer->requestText(SMALL, "AI Flee Time: " + trimDouble(this->flee_time), Game::getWidth() - 10, 190, RIGHT, 210, 140, 240, 255);
     int row_count = ceil(C_LENGTH / 10.0);
     for (int i = 0; i < row_count * 10; i += 10) {
         string c_str;
@@ -641,4 +643,12 @@ void AI::applyControls(EventManager *event_manager) const {
     event_manager->right = this->controls_right;
     event_manager->forward = this->controls_forward;
     event_manager->fire = this->controls_fire;
+}
+
+double AI::getFleeTime() const {
+    return this->flee_time;
+}
+
+int AI::getMisses() const {
+    return this->misses;
 }

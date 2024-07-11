@@ -139,6 +139,8 @@ class Game {
         vector<AIDangerData> getAIAsteroidsData();
         vector<AIDangerData> getAISaucersData();
         vector<AIDangerData> getAISaucerBulletsData();
+        int getScore() const;
+        double getTime() const;
         static int getWidth();
         static int getHeight();
     private:
