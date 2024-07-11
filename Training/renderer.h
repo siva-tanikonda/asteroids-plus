@@ -31,8 +31,9 @@ struct RenderRequest {
 
 struct RenderQueue {
     pthread_mutex_t lock;
+    pthread_cond_t cond;
     bool done_processing;
-    int len;
+    int len, owner;
     RenderRequest queue[MAX_QUEUE_LENGTH];
 };
 
@@ -47,6 +48,7 @@ class Renderer {
         void requestFilledCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
         void requestCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
         void requestLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+        bool isOwner(int process_num) const;
     private:
         bool manager;
         SDL_Window *window;

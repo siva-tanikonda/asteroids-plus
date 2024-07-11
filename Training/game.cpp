@@ -893,6 +893,14 @@ vector<AIDangerData> Game::getAISaucerBulletsData() {
     return saucer_bullets;
 }
 
+int Game::getScore() const {
+    return this->score;
+}
+
+double Game::getTime() const {
+    return this->time;
+}
+
 int Game::getWidth() {
     return Game::width;
 }

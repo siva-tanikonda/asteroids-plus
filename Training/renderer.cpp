@@ -19,6 +19,7 @@ Renderer::Renderer(const json &config, bool manager) : manager(manager) {
         pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
         pthread_mutex_init(&(this->queue->lock), &mutex_attr);
         pthread_mutexattr_destroy(&mutex_attr);
+        this->queue->owner = 1;
     } else {
         int queue_fd = shm_open(RENDERER_SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
         ftruncate(queue_fd, sizeof(RenderQueue));
@@ -216,4 +217,8 @@ void Renderer::requestLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uin
     this->queue->queue[i].g = g;
     this->queue->queue[i].b = b;
     this->queue->queue[i].a = a;
+}
+
+bool Renderer::isOwner(int process_num) const {
+    return this->queue->owner == process_num;
 }
