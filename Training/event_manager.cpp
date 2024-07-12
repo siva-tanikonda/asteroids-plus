@@ -1,6 +1,6 @@
 #include "event_manager.h"
 
-EventManager::EventManager(bool manager) : manager(manager) {
+EventManager::EventManager() : manager(false) {
     int events_fd = shm_open(EVENT_MANAGER_SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
     ftruncate(events_fd, sizeof(EventManagerEvents));
     this->events = static_cast<EventManagerEvents*>(mmap(0, sizeof(EventManagerEvents), PROT_READ | PROT_WRITE, MAP_SHARED, events_fd, 0));
@@ -66,4 +66,8 @@ void EventManager::applyEvents() {
     this->right = this->events->right;
     this->forward = this->events->forward;
     this->fire = this->events->fire;
+}
+
+void EventManager::setManager() {
+    this->manager = true;
 }

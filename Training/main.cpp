@@ -2,6 +2,9 @@
 #include <signal.h>
 #include "evaluation.h"
 
+Renderer *renderer;
+EventManager *event_manager;
+EvaluationFlowManager *evaluation_flow_manager;
 double c[C_LENGTH];
 json config;
 vector<pid_t> pids;
@@ -18,9 +21,9 @@ json loadConfig() {
 }
 
 void runManager(bool test = false) {
-    Renderer *renderer = new Renderer(config, true);
-    EventManager *event_manager = new EventManager(true);
-    EvaluationFlowManager *evaluation_flow_manager = new EvaluationFlowManager(true);
+    renderer->setManager();
+    event_manager->setManager();
+    evaluation_flow_manager->setManager();
     if (test) {
         evaluation_flow_manager->requestEvaluation(c, config["seed"], 0);
     }
@@ -108,9 +111,6 @@ void testRun(double (&c)[C_LENGTH], int seed, Renderer *renderer, EventManager *
 void runEvaluator(bool testing = false, bool user_input = false) {
     double c[C_LENGTH];
     Game::analyzeGameConfiguration(config);
-    Renderer *renderer = new Renderer(config, false);
-    EventManager *event_manager = new EventManager(false);
-    EvaluationFlowManager *evaluation_flow_manager = new EvaluationFlowManager(false);
     while (true) {
         array<double, C_LENGTH + 2> request = evaluation_flow_manager->fulfillEvaluation();
         for (int i = 0; i < C_LENGTH; i++) {
@@ -132,7 +132,12 @@ void runEvaluator(bool testing = false, bool user_input = false) {
 int main(int argv, char **args) {
     pid_t pid;
     config = loadConfig();
-    if (strcmp(args[1], "--play") == 0) {
+    renderer = new Renderer(config);
+    event_manager = new EventManager();
+    evaluation_flow_manager = new EvaluationFlowManager();
+    if (strcmp(args[1], "--train") == 0) {
+        //TODO
+    } else if (strcmp(args[1], "--play") == 0) {
         pid = fork();
         if (pid > 0) {
             pids.push_back(pid);

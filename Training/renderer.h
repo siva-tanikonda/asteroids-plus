@@ -39,7 +39,7 @@ struct RenderQueue {
 
 class Renderer {
     public:
-        Renderer(const json &config, bool manager);
+        Renderer(const json &config);
         ~Renderer();
         void process();
         bool beginRequest();
@@ -49,6 +49,7 @@ class Renderer {
         void requestCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
         void requestLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
         bool isOwner(int process_num) const;
+        void setManager();
     private:
         bool manager;
         SDL_Window *window;

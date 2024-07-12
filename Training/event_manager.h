@@ -13,8 +13,9 @@ class EventManager {
     public:
         bool manager, left, right, forward, fire;
         EventManagerEvents *events;
-        EventManager(bool manager);
+        EventManager();
         ~EventManager();
         void update();
         void applyEvents();
+        void setManager();
 };

@@ -1,31 +1,24 @@
 #include "renderer.h"
 
-Renderer::Renderer(const json &config, bool manager) : manager(manager) {
-    if (manager) {
-        SDL_Init(SDL_INIT_VIDEO);
-        this->window = SDL_CreateWindow("Asteroids+ Trainer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, config["window_width"], config["window_height"], SDL_WINDOW_SHOWN);
-        this->renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        TTF_Init();
-        this->font = TTF_OpenFont("font.ttf", 20);
-        this->small_font = TTF_OpenFont("font.ttf", 15);
-        this->tiny_font = TTF_OpenFont("font.ttf", 11);
-        int queue_fd = shm_open(RENDERER_SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
-        ftruncate(queue_fd, sizeof(RenderQueue));
-        this->queue = static_cast<RenderQueue*>(mmap(0, sizeof(RenderQueue), PROT_READ | PROT_WRITE, MAP_SHARED, queue_fd, 0));
-        close(queue_fd);
-        pthread_mutexattr_t mutex_attr;
-        pthread_mutexattr_init(&mutex_attr);
-        pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
-        pthread_mutex_init(&(this->queue->lock), &mutex_attr);
-        pthread_mutexattr_destroy(&mutex_attr);
-        this->queue->owner = 1;
-    } else {
-        int queue_fd = shm_open(RENDERER_SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
-        ftruncate(queue_fd, sizeof(RenderQueue));
-        this->queue = static_cast<RenderQueue*>(mmap(0, sizeof(RenderQueue), PROT_READ | PROT_WRITE, MAP_SHARED, queue_fd, 0));
-        close(queue_fd);
-    }
+Renderer::Renderer(const json &config) : manager(false) {
+    SDL_Init(SDL_INIT_VIDEO);
+    this->window = SDL_CreateWindow("Asteroids+ Trainer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, config["window_width"], config["window_height"], SDL_WINDOW_SHOWN);
+    this->renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    TTF_Init();
+    this->font = TTF_OpenFont("font.ttf", 20);
+    this->small_font = TTF_OpenFont("font.ttf", 15);
+    this->tiny_font = TTF_OpenFont("font.ttf", 11);
+    int queue_fd = shm_open(RENDERER_SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
+    ftruncate(queue_fd, sizeof(RenderQueue));
+    this->queue = static_cast<RenderQueue*>(mmap(0, sizeof(RenderQueue), PROT_READ | PROT_WRITE, MAP_SHARED, queue_fd, 0));
+    close(queue_fd);
+    pthread_mutexattr_t mutex_attr;
+    pthread_mutexattr_init(&mutex_attr);
+    pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&(this->queue->lock), &mutex_attr);
+    pthread_mutexattr_destroy(&mutex_attr);
+    this->queue->owner = 1;
 }
 
 Renderer::~Renderer() {
@@ -221,4 +214,8 @@ void Renderer::requestLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uin
 
 bool Renderer::isOwner(int process_num) const {
     return this->queue->owner == process_num;
+}
+
+void Renderer::setManager() {
+    this->manager = true;
 }
