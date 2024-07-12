@@ -1,27 +1,20 @@
 #include "evaluation.h"
 
-EvaluationFlowManager::EvaluationFlowManager(bool manager) : manager(manager) {
-    if (manager) {
-        int flow_fd = shm_open(EVALUATION_FLOW_SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
-        ftruncate(flow_fd, sizeof(EvaluationFlow));
-        this->flow = static_cast<EvaluationFlow*>(mmap(0, sizeof(EvaluationFlow), PROT_READ | PROT_WRITE, MAP_SHARED, flow_fd, 0));
-        close(flow_fd);
-        pthread_mutexattr_t mutex_attr;
-        pthread_mutexattr_init(&mutex_attr);
-        pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
-        pthread_mutex_init(&(this->flow->lock), &mutex_attr);
-        pthread_mutexattr_destroy(&mutex_attr);
-        pthread_condattr_t cond_attr;
-        pthread_condattr_init(&cond_attr);
-        pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
-        pthread_cond_init(&(this->flow->cond), &cond_attr);
-        pthread_condattr_destroy(&cond_attr);
-    } else {
-        int flow_fd = shm_open(EVALUATION_FLOW_SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
-        ftruncate(flow_fd, sizeof(EvaluationFlow));
-        this->flow = static_cast<EvaluationFlow*>(mmap(0, sizeof(EvaluationFlow), PROT_READ | PROT_WRITE, MAP_SHARED, flow_fd, 0));
-        close(flow_fd);
-    }
+EvaluationFlowManager::EvaluationFlowManager() : manager(false) {
+    int flow_fd = shm_open(EVALUATION_FLOW_SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
+    ftruncate(flow_fd, sizeof(EvaluationFlow));
+    this->flow = static_cast<EvaluationFlow*>(mmap(0, sizeof(EvaluationFlow), PROT_READ | PROT_WRITE, MAP_SHARED, flow_fd, 0));
+    close(flow_fd);
+    pthread_mutexattr_t mutex_attr;
+    pthread_mutexattr_init(&mutex_attr);
+    pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&(this->flow->lock), &mutex_attr);
+    pthread_mutexattr_destroy(&mutex_attr);
+    pthread_condattr_t cond_attr;
+    pthread_condattr_init(&cond_attr);
+    pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
+    pthread_cond_init(&(this->flow->cond), &cond_attr);
+    pthread_condattr_destroy(&cond_attr);
 }
 
 EvaluationFlowManager::~EvaluationFlowManager() {
@@ -71,4 +64,8 @@ array<double, C_LENGTH + 2> EvaluationFlowManager::fulfillEvaluation() {
         }
         return request;
     }
+}
+
+void EvaluationFlowManager::setManager() {
+    this->manager = true;
 }

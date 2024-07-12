@@ -13,11 +13,12 @@ struct EvaluationFlow {
 
 class EvaluationFlowManager {
     public:
-        EvaluationFlowManager(bool manager);
+        EvaluationFlowManager();
         ~EvaluationFlowManager();
         void waitForUpdate();
         void requestEvaluation(double (&c)[C_LENGTH], int seed, int id);
         array<double, C_LENGTH + 2> fulfillEvaluation();
+        void setManager();
     private:
         bool manager;
         EvaluationFlow *flow;
