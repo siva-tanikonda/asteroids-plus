@@ -8,19 +8,15 @@ EvaluationManager::EvaluationManager() : manager(false) {
     pthread_mutexattr_t mutex_attr;
     pthread_mutexattr_init(&mutex_attr);
     pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&(this->queue->lock), &mutex_attr);
+    pthread_mutex_init(&(this->queue->request_lock), &mutex_attr);
+    pthread_mutex_init(&(this->queue->results_lock), &mutex_attr);
     pthread_mutexattr_destroy(&mutex_attr);
-    pthread_condattr_t cond_attr;
-    pthread_condattr_init(&cond_attr);
-    pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
-    pthread_cond_init(&(this->queue->cond), &cond_attr);
-    pthread_condattr_destroy(&cond_attr);
 }
 
 EvaluationManager::~EvaluationManager() {
     if (this->manager) {
-        pthread_mutex_destroy(&(this->queue->lock));
-        pthread_cond_destroy(&(this->queue->cond));
+        pthread_mutex_destroy(&(this->queue->request_lock));
+        pthread_mutex_destroy(&(this->queue->results_lock));
     }
     munmap(this->queue, sizeof(EvaluationQueue));
     if (this->manager) {
@@ -28,42 +24,62 @@ EvaluationManager::~EvaluationManager() {
     }
 }
 
-void EvaluationManager::waitForUpdate() {
-    pthread_mutex_lock(&(this->queue->lock));
-    if (this->queue->request_queue_len == MAX_EVALUATION_QUEUE_LENGTH && this->queue->results_queue_len == 0) {
-        pthread_cond_wait(&(this->queue->cond), &(this->queue->lock));
+bool EvaluationManager::sendRequest(double c[C_LENGTH], int seed, int id) {
+    bool submitted = false;
+    pthread_mutex_lock(&(this->queue->request_lock));
+    if (this->queue->request_queue_len < MAX_EVALUATION_QUEUE_LENGTH) {
+        int i = this->queue->request_queue_len;
+        copy(c, c + C_LENGTH, this->queue->request_queue[i]);
+        this->queue->request_queue[i][C_LENGTH] = seed;
+        this->queue->request_queue[i][C_LENGTH + 1] = id;
+        this->queue->request_queue_len++;
+        submitted = true;
     }
-    pthread_mutex_unlock(&(this->queue->lock));
+    pthread_mutex_unlock(&(this->queue->request_lock));
+    return submitted;
 }
 
-void EvaluationManager::sendRequest(double (&c)[C_LENGTH], int seed, int id) {
-    pthread_mutex_lock(&(this->queue->lock));
-    int i = this->queue->request_queue_len;
-    copy(c, c + C_LENGTH, this->queue->request_queue[i]);
-    this->queue->request_queue[i][C_LENGTH] = seed;
-    this->queue->request_queue[i][C_LENGTH + 1] = id;
-    this->queue->request_queue_len++;
-    pthread_mutex_unlock(&(this->queue->lock));
-}
-
-array<double, C_LENGTH + 2> EvaluationManager::getRequest() {
+pair<int, int> EvaluationManager::getRequest(double request[C_LENGTH]) {
     while (true) {
-        pthread_mutex_lock(&(this->queue->lock));
+        pthread_mutex_lock(&(this->queue->request_lock));
         if (this->queue->request_queue_len == 0) {
-            pthread_mutex_unlock(&(this->queue->lock));
+            pthread_mutex_unlock(&(this->queue->request_lock));
             continue;
         }
         int i = this->queue->request_queue_len - 1;
-        array<double, C_LENGTH + 2> request;
-        copy(this->queue->request_queue[i], this->queue->request_queue[i] + C_LENGTH, request.begin());
-        request[C_LENGTH] = this->queue->request_queue[i][C_LENGTH];
-        request[C_LENGTH + 1] = this->queue->request_queue[i][C_LENGTH + 1];
+        copy(this->queue->request_queue[i], this->queue->request_queue[i] + C_LENGTH, request);
+        pair<int, int> extra_info(this->queue->request_queue[i][C_LENGTH], this->queue->request_queue[i][C_LENGTH + 1]);
         this->queue->request_queue_len--;
-        if (this->queue->request_queue_len == MAX_EVALUATION_QUEUE_LENGTH - 1) {
-            pthread_cond_signal(&(this->queue->cond));
+        pthread_mutex_unlock(&(this->queue->request_lock));
+        return extra_info;
+    }
+}
+
+int EvaluationManager::getResult(double results[EVALUATION_METRICS]) {
+    int id = -1;
+    pthread_mutex_lock(&(this->queue->results_lock));
+    if (this->queue->results_queue_len > 0) {
+        int i = this->queue->results_queue_len - 1;
+        copy(this->queue->results_queue[i], this->queue->results_queue[i] + EVALUATION_METRICS, results);
+        id = this->queue->results_queue[i][EVALUATION_METRICS];
+        this->queue->results_queue_len--;
+    }
+    pthread_mutex_unlock(&(this->queue->results_lock));
+    return id;
+}
+
+void EvaluationManager::sendResult(int id, double results[EVALUATION_METRICS]) {
+    while (true) {
+        pthread_mutex_lock(&(this->queue->results_lock));
+        if (this->queue->results_queue_len == MAX_EVALUATION_QUEUE_LENGTH) {
+            pthread_mutex_unlock(&(this->queue->results_lock));
+            continue;
         }
-        pthread_mutex_unlock(&(this->queue->lock));
-        return request;
+        int i = this->queue->results_queue_len;
+        copy(results, results + EVALUATION_METRICS, this->queue->results_queue[i]);
+        this->queue->results_queue[i][EVALUATION_METRICS] = id;
+        this->queue->results_queue_len++;
+        pthread_mutex_unlock(&(this->queue->results_lock));
     }
 }
 
