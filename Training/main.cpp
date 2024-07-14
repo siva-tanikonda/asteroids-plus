@@ -46,17 +46,16 @@ void runEvaluator(bool testing = false, bool user_input = false) {
     double c[C_LENGTH];
     Game::analyzeGameConfiguration(config);
     while (true) {
-        array<double, C_LENGTH + 2> request = evaluation_manager->getRequest();
-        for (int i = 0; i < C_LENGTH; i++) {
-            c[i] = request[i];
-        }
-        int seed = request[C_LENGTH];
-        int id = request[C_LENGTH + 1];
+        double c[C_LENGTH];
+        pair<int, int> extra_info = evaluation_manager->getRequest(c);
+        int seed = extra_info.first;
+        int id = extra_info.second;
         if (testing) {
             testRun(renderer, event_manager, config, process_num, c, seed, user_input);
         } else {
             double results[EVALUATION_METRICS];
             evaluate(renderer, event_manager, config, process_num, c, seed, results);
+            evaluation_manager->sendResult(id, results);
         }
     }
     delete renderer;
@@ -65,7 +64,13 @@ void runEvaluator(bool testing = false, bool user_input = false) {
 }
 
 void runTrainer() {
-    //TODO
+
+    while (true) {
+        //TODO
+    }
+    delete renderer;
+    delete event_manager;
+    delete evaluation_manager;
 }
 
 int main(int argv, char **args) {
@@ -77,7 +82,21 @@ int main(int argv, char **args) {
     if (strcmp(args[1], "--train") == 0) {
         pid = fork();
         if (pid > 0) {
-            runManager();
+            bool evaluating = false;
+            pids.push_back(pid);
+            for (int i = 0; i < config["evaluator_count"]; i++) {
+                pid = fork();
+                if (pid > 0) {
+                    pids.push_back(pid);
+                } else {
+                    evaluating = true;
+                    runEvaluator();
+                    break;
+                }
+            }
+            if (!evaluating) {
+                runManager();
+            }
         } else {
             runTrainer();
         }

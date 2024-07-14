@@ -1,3 +1,7 @@
+.PHONY: train
+train: Build/main
+	Build/main --train
+
 .PHONY: play
 play: Build/main
 	Build/main --play
@@ -8,14 +12,14 @@ ai: Build/main
 
 .PHONY: valgrind
 valgrind: Build/main
-	valgrind valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=Build/valgrind-out.txt Build/main --ai
+	valgrind valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=Build/valgrind-out.txt Build/main --train
 
 .PHONY: clean
 clean:
 	rm -rf Build
 
 Build/main: Build Build/math_helper.o Build/renderer.o Build/event_manager.o Build/game.o Build/ai.o Build/evaluation_manager.o Build/evaluator.o Build/main.o
-	g++ Build/math_helper.o Build/renderer.o Build/event_manager.o Build/game.o Build/ai.o Build/evaluation.o Build/evaluator.o Build/main.o -O2 -w -lSDL2main -lSDL2 -lSDL2_ttf -o Build/main
+	g++ Build/math_helper.o Build/renderer.o Build/event_manager.o Build/game.o Build/ai.o Build/evaluation_manager.o Build/evaluator.o Build/main.o -O2 -w -lSDL2main -lSDL2 -lSDL2_ttf -o Build/main
 
 Build:
 	mkdir Build
@@ -27,7 +31,7 @@ Build/evaluator.o: Evaluator/evaluator.cpp Evaluator/evaluator.h Shared/evaluati
 	g++ -c Evaluator/evaluator.cpp -O2 -w -o Build/evaluator.o
 
 Build/evaluation_manager.o: Shared/evaluation_manager.cpp Shared/evaluation_manager.h Evaluator/ai.h
-	g++ -c Shared/evaluation_manager.cpp -O2 -w -o Build/evaluation.o
+	g++ -c Shared/evaluation_manager.cpp -O2 -w -o Build/evaluation_manager.o
 
 Build/ai.o: Evaluator/ai.cpp Evaluator/ai.h Evaluator/game.h
 	g++ -c Evaluator/ai.cpp -O2 -w -o Build/ai.o
