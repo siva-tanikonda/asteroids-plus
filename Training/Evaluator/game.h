@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <nlohmann/json.hpp>
-#include "event_manager.h"
-#include "renderer.h"
+#include "../Shared/event_manager.h"
+#include "../Shared/renderer.h"
 
 using json = nlohmann::json;
 
@@ -141,6 +141,7 @@ class Game {
         vector<AIDangerData> getAISaucerBulletsData();
         int getScore() const;
         double getTime() const;
+        bool isShipDead() const;
         static int getWidth();
         static int getHeight();
     private:

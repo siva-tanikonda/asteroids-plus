@@ -57,7 +57,7 @@ class AICrosshair {
 
 class AI {
     public:
-        AI(double (&c)[C_LENGTH], AIShipData ship);
+        AI(double (&c)[C_LENGTH], AIShipData ship, int seed);
         ~AI();
         void update(double delay, const json &config, Game *game);
         void renderGame(Renderer *renderer, Game *game);
@@ -65,11 +65,12 @@ class AI {
         void applyControls(EventManager *event_manager) const;
         double getFleeTime() const;
         int getMisses() const;
+        int getFires() const;
         static const double DANGER_RADIUS[];
         static const double PESSIMISTIC_RADIUS[], FLOATING_POINT_COMPENSATION, RANDOM_WALK_ROTATION_PROBABILITY, RANDOM_WALK_SPEED_LIMIT;
         static const int ROTATION_PRECISION;
     private:
-        int size_groups[2], misses;
+        int size_groups[2], misses, fires;
         bool controls_left, controls_right, controls_forward, controls_fire;
         double (&c)[C_LENGTH], max_danger, flee_values[4], nudge_values[3], flee_time;
         vector<AIDanger> dangers;
