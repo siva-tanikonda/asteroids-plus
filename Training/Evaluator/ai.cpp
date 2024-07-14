@@ -99,7 +99,7 @@ void AICrosshair::render(Renderer *renderer, AI *ai, Vector offset) const {
     renderArrow(renderer, p1, p2, 245, 148, 69, 255 * 0.5);
 }
 
-AI::AI(double (&c)[C_LENGTH], AIShipData ship) : c(c), controls_left(false), controls_right(false), controls_forward(false), controls_fire(false), max_danger(0), flee_values{ 0, 0, 0, 0 }, nudge_values{ 0, 0, 0 }, size_groups{ 0, 0 }, ship(ship, c[26]), crosshair(nullptr), gen(rand()), misses(0), flee_time(0) { }
+AI::AI(double (&c)[C_LENGTH], AIShipData ship, int seed) : c(c), controls_left(false), controls_right(false), controls_forward(false), controls_fire(false), max_danger(0), flee_values{ 0, 0, 0, 0 }, nudge_values{ 0, 0, 0 }, size_groups{ 0, 0 }, ship(ship, c[26]), crosshair(nullptr), gen(seed), misses(0), flee_time(0), fires(0) { }
 
 AI::~AI() {
     for (AIMarker *marker : this->markers) {
@@ -404,6 +404,7 @@ void AI::manageFiring(double delay, const json &config) {
     if (target != nullptr) {
         this->controls_fire = true;
         AIMarker *new_marker = new AIMarker(*target, collision_time + AI::FLOATING_POINT_COMPENSATION);
+        this->fires++;
         if (new_marker->size_index == 2) {
             this->size_groups[1] += 2;
         } else if (new_marker->size_index == 1) {
@@ -651,4 +652,8 @@ double AI::getFleeTime() const {
 
 int AI::getMisses() const {
     return this->misses;
+}
+
+int AI::getFires() const {
+    return this->fires;
 }

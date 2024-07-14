@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
-#include "math_helper.h"
+#include "../math_helper.h"
 
 using json = nlohmann::json;
 

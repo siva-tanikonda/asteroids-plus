@@ -901,6 +901,10 @@ double Game::getTime() const {
     return this->time;
 }
 
+bool Game::isShipDead() const {
+    return this->ship.dead;
+}
+
 int Game::getWidth() {
     return Game::width;
 }
