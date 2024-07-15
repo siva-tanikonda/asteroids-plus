@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
-#include "../math_helper.h"
+#include "event_manager.h"
 
 using json = nlohmann::json;
 
@@ -16,7 +16,7 @@ constexpr const int MAX_TEXT_LENGTH = 200;
 constexpr const int MAX_POLYGON_VERTICES = 20;
 constexpr const char *RENDERER_SHARED_MEMORY_NAME = "/renderer_shared_memory";
 
-enum RenderType { TEXT, FILLED_CIRCLE, CIRCLE, LINE };
+enum RenderType { TEXT, FILLED_CIRCLE, CIRCLE, LINE, RECTANGLE };
 enum FontType { REGULAR, SMALL, TINY };
 enum TextAlignment { LEFT, RIGHT, MIDDLE };
 
@@ -31,7 +31,6 @@ struct RenderRequest {
 
 struct RenderQueue {
     pthread_mutex_t lock;
-    pthread_cond_t cond;
     bool done_processing;
     int len, owner;
     RenderRequest queue[MAX_QUEUE_LENGTH];
@@ -41,14 +40,17 @@ class Renderer {
     public:
         Renderer(const json &config);
         ~Renderer();
-        void process();
-        bool beginRequest();
-        void completeRequest();
+        bool beginProcessing();
+        void endProcessing();
+        bool beginRequest(int process_num);
+        void endRequest();
         void requestText(FontType font, const string &text, int x, int y, TextAlignment alignment, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
         void requestFilledCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
         void requestCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
         void requestLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-        bool isOwner(int process_num) const;
+        void requestRectangle(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+        void setOwner(int process_num);
+        int getOwner() const;
         void setManager();
     private:
         bool manager;
@@ -60,5 +62,6 @@ class Renderer {
         void renderLine(const RenderRequest *request);
         void renderFilledCircle(const RenderRequest *request);
         void renderCircle(const RenderRequest *request);
+        void renderRectangle(const RenderRequest *request);
         void processRequest(const RenderRequest *request);
 };

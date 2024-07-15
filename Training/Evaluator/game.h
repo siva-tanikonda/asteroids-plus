@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <nlohmann/json.hpp>
-#include "../Shared/event_manager.h"
 #include "../Shared/renderer.h"
 
 using json = nlohmann::json;
