@@ -164,40 +164,40 @@ bool Bullet::checkSaucerCollision(Saucer *saucer) {
 }
 
 void Asteroid::analyzeAsteroidConfigurations(json &config) {
-    for (int i = 0; i < config["asteroid_shapes"].size(); i++) {
+    for (int i = 0; i < config["game_config"]["asteroid_shapes"].size(); i++) {
         Polygon bounds({});
-        for (int j = 0; j < config["asteroid_shapes"][i].size(); j++) {
-            bounds.points.emplace_back(config["asteroid_shapes"][i][j][0], config["asteroid_shapes"][i][j][1]);
+        for (int j = 0; j < config["game_config"]["asteroid_shapes"][i].size(); j++) {
+            bounds.points.emplace_back(config["game_config"]["asteroid_shapes"][i][j][0], config["game_config"]["asteroid_shapes"][i][j][1]);
         }
         Rect rect = bounds.getRect();
         Vector offset(-rect.left, -rect.top);
         bounds.translate(offset);
-        for (int j = 0; j < config["asteroid_shapes"][i].size(); j++) {
-            config["asteroid_shapes"][i][j][0] = bounds.points[j].x;
-            config["asteroid_shapes"][i][j][1] = bounds.points[j].y;
+        for (int j = 0; j < config["game_config"]["asteroid_shapes"][i].size(); j++) {
+            config["game_config"]["asteroid_shapes"][i][j][0] = bounds.points[j].x;
+            config["game_config"]["asteroid_shapes"][i][j][1] = bounds.points[j].y;
         }
     }
 }
 
 Asteroid::Asteroid(const json &config, Vector position, int size, int wave, mt19937 &gen) : ObjectWithId(), position(position), size(size), bounds(vector<Vector>()), gen(gen()) {
-    int max_size = config["asteroid_sizes"].size() - 1;
-    int type = floor(randomInRange(this->gen, 0, config["asteroid_shapes"].size()));
+    int max_size = config["game_config"]["asteroid_sizes"].size() - 1;
+    int type = floor(randomInRange(this->gen, 0, config["game_config"]["asteroid_shapes"].size()));
     if (size == max_size) {
-        this->invincibility = config["asteroid_invincibility_time"];
+        this->invincibility = config["game_config"]["asteroid_invincibility_time"];
     } else {
         this->invincibility = 0;
     }
-    for (int i = 0; i < config["asteroid_shapes"][type].size(); i++) {
-        this->bounds.points.emplace_back(config["asteroid_shapes"][type][i][0], config["asteroid_shapes"][type][i][1]);
+    for (int i = 0; i < config["game_config"]["asteroid_shapes"][type].size(); i++) {
+        this->bounds.points.emplace_back(config["game_config"]["asteroid_shapes"][type][i][0], config["game_config"]["asteroid_shapes"][type][i][1]);
     }
-    this->bounds.scale(config["asteroid_sizes"][size]);
+    this->bounds.scale(config["game_config"]["asteroid_sizes"][size]);
     Rect rect = this->bounds.getRect();
     Vector offset(-rect.width / 2, -rect.height / 2);
     this->bounds.translate(offset);
     this->bounds.translate(position);
     this->angle = randomInRange(this->gen, 0, M_PI * 2);
     this->bounds.rotate(this->angle, this->position);
-    this->rotation_speed = randomInRange(this->gen, config["asteroid_rotation_speed_range"][0], config["asteroid_rotation_speed_range"][1]);
+    this->rotation_speed = randomInRange(this->gen, config["game_config"]["asteroid_rotation_speed_range"][0], config["game_config"]["asteroid_rotation_speed_range"][1]);
     if (floor(randomDouble(this->gen) * 2) == 1) {
         this->rotation_speed *= -1;
     }
@@ -205,7 +205,7 @@ Asteroid::Asteroid(const json &config, Vector position, int size, int wave, mt19
     this->velocity.x = cos(velocity_angle);
     this->velocity.y = sin(velocity_angle);
     double speed = randomInRange(this->gen, Asteroid::generateAsteroidSpeed(wave - 1), Asteroid::generateAsteroidSpeed(wave));
-    this->velocity *= config["asteroid_size_speed_scaling"][size].get<double>() * speed;
+    this->velocity *= config["game_config"]["asteroid_size_speed_scaling"][size].get<double>() * speed;
     this->dead = false;
 }
 
@@ -273,23 +273,23 @@ double Asteroid::generateAsteroidSpeed(int wave) {
 
 void Saucer::analyzeSaucerConfigurations(json &config) {
     Polygon bounds({});
-    for (int i = 0; i < config["saucer_shape"].size(); i++) {
-        bounds.points.emplace_back(config["saucer_shape"][i][0], config["saucer_shape"][i][1]);
+    for (int i = 0; i < config["game_config"]["saucer_shape"].size(); i++) {
+        bounds.points.emplace_back(config["game_config"]["saucer_shape"][i][0], config["game_config"]["saucer_shape"][i][1]);
     }
     Rect rect = bounds.getRect();
     Vector shift(-rect.left, -rect.top);
     bounds.translate(shift);
-    for (int i = 0; i < config["saucer_shape"].size(); i++) {
-        config["saucer_shape"][i][0] = bounds.points[i].x;
-        config["saucer_shape"][i][1] = bounds.points[i].y;
+    for (int i = 0; i < config["game_config"]["saucer_shape"].size(); i++) {
+        config["game_config"]["saucer_shape"][i][0] = bounds.points[i].x;
+        config["game_config"]["saucer_shape"][i][1] = bounds.points[i].y;
     }
 }
 
 Saucer::Saucer(const json &config, int size, int wave, mt19937 &gen) : ObjectWithId(), size(size), bounds(vector<Vector>()), gen(gen()) {
-    for (int i = 0; i < config["saucer_shape"].size(); i++) {
-        this->bounds.points.emplace_back(config["saucer_shape"][i][0], config["saucer_shape"][i][1]);
+    for (int i = 0; i < config["game_config"]["saucer_shape"].size(); i++) {
+        this->bounds.points.emplace_back(config["game_config"]["saucer_shape"][i][0], config["game_config"]["saucer_shape"][i][1]);
     }
-    this->bounds.scale(config["saucer_sizes"][size]);
+    this->bounds.scale(config["game_config"]["saucer_sizes"][size]);
     Rect rect = this->bounds.getRect();
     Vector offset(-rect.width / 2, -rect.height / 2);
     this->bounds.translate(offset);
@@ -313,7 +313,7 @@ Saucer::Saucer(const json &config, int size, int wave, mt19937 &gen) : ObjectWit
         this->vertical_movement = -1;
     }
     this->entered_x = this->entered_y = false;
-    this->bullet_life = config["saucer_bullet_life"];
+    this->bullet_life = config["game_config"]["saucer_bullet_life"];
     this->fire_rate = randomInRange(this->gen, Saucer::generateFireRate(max(1, wave - 1)), Saucer::generateFireRate(wave));
     this->bullet_cooldown = 0;
     this->bullet_speed = randomInRange(this->gen, Saucer::generateBulletSpeed(max(1, wave - 1)), Saucer::generateBulletSpeed(wave));
@@ -427,24 +427,24 @@ double Saucer::generateBulletSpeed(int wave) {
 Ship::Ship(const json &config) : position(), velocity(), bounds(vector<Vector>()) {
     this->position.x = Game::getWidth() / 2;
     this->position.y = Game::getHeight() / 2;
-    this->width = config["ship_width"];
-    this->height = config["ship_height"];
+    this->width = config["game_config"]["ship_width"];
+    this->height = config["game_config"]["ship_height"];
     this->bounds.points.emplace_back(-this->width / 2, -this->height / 2);
     this->bounds.points.emplace_back(-this->width / 2, this->height / 2);
     this->bounds.points.emplace_back(this->width / 2, 0);
     this->angle = M_PI / 2;
     Vector offset;
     this->bounds.rotate(this->angle, offset);
-    this->rotation_speed = config["ship_rotation_speed"];
-    this->acceleration = config["ship_acceleration"];
-    this->drag_coefficient = config["ship_drag_coefficient"];
+    this->rotation_speed = config["game_config"]["ship_rotation_speed"];
+    this->acceleration = config["game_config"]["ship_acceleration"];
+    this->drag_coefficient = config["game_config"]["ship_drag_coefficient"];
     this->bullet_cooldown = 1;
-    this->fire_rate = config["ship_fire_rate"];
-    this->bullet_speed = config["ship_bullet_speed"];
-    this->bullet_life = config["ship_bullet_life"];
+    this->fire_rate = config["game_config"]["ship_fire_rate"];
+    this->bullet_speed = config["game_config"]["ship_bullet_speed"];
+    this->bullet_life = config["game_config"]["ship_bullet_life"];
     this->thruster_status = 0;
     this->bounds.translate(this->position);
-    this->lives = config["game_lives"];
+    this->lives = config["game_config"]["game_lives"];
     this->dead = false;
     this->invincibility = 0;
     this->invincibility_time = 100;
@@ -694,9 +694,9 @@ void Game::analyzeGameConfiguration(json &config) {
 }
 
 Game::Game(const json &config, int seed) : ship(config), wave(0), score(0), extra_lives(0), saucer_cooldown(0), gen1(seed), gen2(-seed), time(0) {
-    this->extra_life_point_value = config["game_extra_life_point_value"];
-    this->asteroid_point_value = config["game_asteroid_point_value"];
-    this->saucer_point_value = config["game_saucer_point_value"];
+    this->extra_life_point_value = config["game_config"]["game_extra_life_point_value"];
+    this->asteroid_point_value = config["game_config"]["game_asteroid_point_value"];
+    this->saucer_point_value = config["game_config"]["game_saucer_point_value"];
 }
 
 Game::~Game() {
@@ -724,7 +724,7 @@ void Game::makeAsteroids(const json &config) {
 
 void Game::makeSaucer(double delay, const json &config) {
     if (this->saucer_cooldown >= 1) {
-        this->saucers.push_back(new Saucer(config, floor(randomInRange(this->gen2, 0, config["saucer_sizes"].size())), this->wave, this->gen2));
+        this->saucers.push_back(new Saucer(config, floor(randomInRange(this->gen2, 0, config["game_config"]["saucer_sizes"].size())), this->wave, this->gen2));
         this->saucer_cooldown = 0;
     }
     this->saucer_cooldown = min(1.0, this->saucer_cooldown + Game::generateSaucerSpawnRate(this->wave) * delay);
