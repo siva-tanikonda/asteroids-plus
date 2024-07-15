@@ -19,6 +19,7 @@ constexpr const char *RENDERER_SHARED_MEMORY_NAME = "/renderer_shared_memory";
 enum RenderType { TEXT, FILLED_CIRCLE, CIRCLE, LINE, RECTANGLE };
 enum FontType { REGULAR, SMALL, TINY };
 enum TextAlignment { LEFT, RIGHT, MIDDLE };
+enum CursorType { POINTER, ARROW };
 
 struct RenderRequest {
     RenderType type;
@@ -49,6 +50,7 @@ class Renderer {
         void requestCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
         void requestLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
         void requestRectangle(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+        void setCursor(CursorType cursor);
         void setOwner(int process_num);
         int getOwner() const;
         void setManager();
@@ -57,6 +59,7 @@ class Renderer {
         SDL_Window *window;
         SDL_Renderer *renderer;
         TTF_Font *font, *small_font, *tiny_font;
+        SDL_Cursor *pointer_cursor, *arrow_cursor;
         RenderQueue *queue;
         void renderText(const RenderRequest *request);
         void renderLine(const RenderRequest *request);

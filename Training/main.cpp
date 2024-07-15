@@ -46,6 +46,7 @@ void renderThreadPage() {
     for (int i = 0; i < config["training_config"]["evaluator_count"]; i++) {
         double alpha = 0.3;
         if (mp.x >= v.x && mp.x <= v.x + 30 && mp.y >= v.y && mp.y <= v.y + 30) {
+            renderer->setCursor(POINTER);
             alpha = 0.5;
         }
         if (renderer->getOwner() == i + 2) {
@@ -60,6 +61,7 @@ void renderThreadPage() {
     Rect rect(0, static_cast<int>(config["window_height"]) / 2 - 100, 25, static_cast<int>(config["window_height"]) / 2 + 100);
     double alpha = 0.3;
     if (mp.x >= rect.left && mp.x <= rect.right && mp.y >= rect.top && mp.y <= rect.bottom) {
+        renderer->setCursor(POINTER);
         alpha = 0.5;
     }
     renderer->requestLine(rect.left, rect.top, rect.right, rect.top, 255, 255, 255, 255 * alpha);
@@ -85,6 +87,7 @@ void renderTrainerPage() {
     Rect rect(static_cast<int>(config["window_width"]) - 25, static_cast<int>(config["window_height"]) / 2 - 100, static_cast<int>(config["window_width"]), static_cast<int>(config["window_height"]) / 2 + 100);
     double alpha = 0.3;
     if (mp.x >= rect.left && mp.x <= rect.right && mp.y >= rect.top && mp.y <= rect.bottom) {
+        renderer->setCursor(POINTER);
         alpha = 0.5;
     }
     renderer->requestLine(rect.left, rect.top, rect.right, rect.top, 255, 255, 255, 255 * alpha);
