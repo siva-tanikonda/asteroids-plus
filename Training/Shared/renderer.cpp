@@ -18,7 +18,6 @@ Renderer::Renderer(const json &config) : manager(false) {
     pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
     pthread_mutex_init(&(this->queue->lock), &mutex_attr);
     pthread_mutexattr_destroy(&mutex_attr);
-    this->queue->owner = 1;
 }
 
 Renderer::~Renderer() {
@@ -38,19 +37,20 @@ Renderer::~Renderer() {
     }
 }
 
-void Renderer::process() {
-    if (this->manager && !(this->queue->done_processing)) {
-        pthread_mutex_lock(&(this->queue->lock));
-        SDL_SetRenderDrawColor(this->renderer, 20, 20, 20, 255);
-        SDL_RenderClear(renderer);
-        for (int i = 0; i < this->queue->len; i++) {
-            this->processRequest(&(this->queue->queue[i]));
-        }
-        SDL_RenderPresent(renderer);
-        this->queue->len = 0;
-        this->queue->done_processing = true;
-        pthread_mutex_unlock(&(this->queue->lock));
+bool Renderer::beginProcessing() {
+    return (this->manager && !(this->queue->done_processing) && pthread_mutex_trylock(&(this->queue->lock)) == 0);
+}
+
+void Renderer::endProcessing() {
+    SDL_SetRenderDrawColor(this->renderer, 20, 20, 20, 255);
+    SDL_RenderClear(renderer);
+    for (int i = 0; i < this->queue->len; i++) {
+        this->processRequest(&(this->queue->queue[i]));
     }
+    SDL_RenderPresent(renderer);
+    this->queue->len = 0;
+    this->queue->done_processing = true;
+    pthread_mutex_unlock(&(this->queue->lock));
 }
 
 void Renderer::renderText(const RenderRequest *request) {
@@ -111,14 +111,14 @@ void Renderer::renderCircle(const RenderRequest *request) {
     int ty = 1;
     int err = tx - request->radius * 2;
     while (x >= y) {
-        SDL_RenderDrawPoint(renderer, request->x1 + x, request->y1 - y);
-        SDL_RenderDrawPoint(renderer, request->x1 + x, request->y1 + y);
-        SDL_RenderDrawPoint(renderer, request->x1 - x, request->y1 - y);
-        SDL_RenderDrawPoint(renderer, request->x1 - x, request->y1 + y);
-        SDL_RenderDrawPoint(renderer, request->x1 + y, request->y1 - x);
-        SDL_RenderDrawPoint(renderer, request->x1 + y, request->y1 + x);
-        SDL_RenderDrawPoint(renderer, request->x1 - y, request->y1 - x);
-        SDL_RenderDrawPoint(renderer, request->x1 - y, request->y1 + x);
+        SDL_RenderDrawPoint(this->renderer, request->x1 + x, request->y1 - y);
+        SDL_RenderDrawPoint(this->renderer, request->x1 + x, request->y1 + y);
+        SDL_RenderDrawPoint(this->renderer, request->x1 - x, request->y1 - y);
+        SDL_RenderDrawPoint(this->renderer, request->x1 - x, request->y1 + y);
+        SDL_RenderDrawPoint(this->renderer, request->x1 + y, request->y1 - x);
+        SDL_RenderDrawPoint(this->renderer, request->x1 + y, request->y1 + x);
+        SDL_RenderDrawPoint(this->renderer, request->x1 - y, request->y1 - x);
+        SDL_RenderDrawPoint(this->renderer, request->x1 - y, request->y1 + x);
         if (err <= 0) {
             y++;
             err += ty;
@@ -130,6 +130,12 @@ void Renderer::renderCircle(const RenderRequest *request) {
             err += tx - request->radius * 2;
         }
     }
+}
+
+void Renderer::renderRectangle(const RenderRequest *request) {
+    SDL_SetRenderDrawColor(this->renderer, request->r, request->g, request->b, request->a);
+    SDL_Rect rect = { request->x1, request->y1, request->x2 - request->x1, request->y2 - request->y1 };
+    SDL_RenderDrawRect(this->renderer, &rect);
 }
 
 void Renderer::processRequest(const RenderRequest *request) {
@@ -146,17 +152,17 @@ void Renderer::processRequest(const RenderRequest *request) {
         case LINE:
             this->renderLine(request);
             break;
+        case RECTANGLE:
+            this->renderRectangle(request);
+            break;
     }
 }
 
-bool Renderer::beginRequest() {
-    if (this->queue->done_processing) {
-        pthread_mutex_lock(&(this->queue->lock));
-    }
-    return this->queue->done_processing;
+bool Renderer::beginRequest(int process_num) {
+    return (this->queue->owner == process_num && this->queue->done_processing && pthread_mutex_trylock(&(this->queue->lock)) == 0);
 }
 
-void Renderer::completeRequest() {
+void Renderer::endRequest() {
     this->queue->done_processing = false;
     pthread_mutex_unlock(&(this->queue->lock));
 }
@@ -212,8 +218,25 @@ void Renderer::requestLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uin
     this->queue->queue[i].a = a;
 }
 
-bool Renderer::isOwner(int process_num) const {
-    return this->queue->owner == process_num;
+void Renderer::requestRectangle(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+    int i = this->queue->len++;
+    this->queue->queue[i].type = RECTANGLE;
+    this->queue->queue[i].x1 = x1;
+    this->queue->queue[i].y1 = y1;
+    this->queue->queue[i].x2 = x2;
+    this->queue->queue[i].y2 = y2;
+    this->queue->queue[i].r = r;
+    this->queue->queue[i].g = g;
+    this->queue->queue[i].b = b;
+    this->queue->queue[i].a = a;
+}
+
+void Renderer::setOwner(int process_num) {
+    this->queue->owner = process_num;
+}
+
+int Renderer::getOwner() const {
+    return this->queue->owner;
 }
 
 void Renderer::setManager() {

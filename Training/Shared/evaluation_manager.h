@@ -15,9 +15,9 @@ class EvaluationManager {
         EvaluationManager();
         ~EvaluationManager();
         bool sendRequest(double c[C_LENGTH], int seed, int id);
-        pair<int, int> getRequest(double request[C_LENGTH]);
+        pair<int, int> getRequest(double c[C_LENGTH]);
         int getResult(double results[EVALUATION_METRICS]);
-        void sendResult(int id, double results[EVALUATION_METRICS]);
+        bool sendResult(int id, double results[EVALUATION_METRICS]);
         void setManager();
     private:
         bool manager;
