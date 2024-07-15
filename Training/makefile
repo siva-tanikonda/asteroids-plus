@@ -18,14 +18,17 @@ valgrind: Build/main
 clean:
 	rm -rf Build
 
-Build/main: Build Build/math_helper.o Build/renderer.o Build/event_manager.o Build/game.o Build/ai.o Build/evaluation_manager.o Build/main.o
-	g++ Build/math_helper.o Build/renderer.o Build/event_manager.o Build/game.o Build/ai.o Build/evaluation_manager.o Build/main.o -O2 -w -lSDL2main -lSDL2 -lSDL2_ttf -o Build/main
+Build/main: Build Build/math_helper.o Build/event_manager.o Build/renderer.o Build/game.o Build/ai.o Build/evaluation_manager.o Build/trainer.o Build/main.o
+	g++ Build/math_helper.o Build/renderer.o Build/event_manager.o Build/game.o Build/ai.o Build/evaluation_manager.o Build/trainer.o Build/main.o -O2 -w -lSDL2main -lSDL2 -lSDL2_ttf -o Build/main
 
 Build:
 	mkdir Build
 
-Build/main.o: main.cpp Shared/evaluation_manager.h
+Build/main.o: main.cpp trainer.h
 	g++ -c main.cpp -O2 -w -o Build/main.o
+
+Build/trainer.o: trainer.cpp trainer.h Shared/evaluation_manager.h
+	g++ -c trainer.cpp -O2 -w -o Build/trainer.o
 
 Build/evaluation_manager.o: Shared/evaluation_manager.cpp Shared/evaluation_manager.h Evaluator/ai.h
 	g++ -c Shared/evaluation_manager.cpp -O2 -w -o Build/evaluation_manager.o

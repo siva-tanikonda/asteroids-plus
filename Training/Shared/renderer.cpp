@@ -9,6 +9,8 @@ Renderer::Renderer(const json &config) : manager(false) {
     this->font = TTF_OpenFont("font.ttf", 20);
     this->small_font = TTF_OpenFont("font.ttf", 15);
     this->tiny_font = TTF_OpenFont("font.ttf", 11);
+    this->pointer_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
+    this->arrow_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
     int queue_fd = shm_open(RENDERER_SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
     ftruncate(queue_fd, sizeof(RenderQueue));
     this->queue = static_cast<RenderQueue*>(mmap(0, sizeof(RenderQueue), PROT_READ | PROT_WRITE, MAP_SHARED, queue_fd, 0));
@@ -26,6 +28,8 @@ Renderer::~Renderer() {
         TTF_CloseFont(this->small_font);
         TTF_CloseFont(this->tiny_font);
         TTF_Quit();
+        SDL_FreeCursor(this->pointer_cursor);
+        SDL_FreeCursor(this->arrow_cursor);
         SDL_DestroyRenderer(this->renderer);
         SDL_DestroyWindow(this->window);
         SDL_Quit();
@@ -38,7 +42,11 @@ Renderer::~Renderer() {
 }
 
 bool Renderer::beginProcessing() {
-    return (this->manager && !(this->queue->done_processing) && pthread_mutex_trylock(&(this->queue->lock)) == 0);
+    bool succeeded = (this->manager && !(this->queue->done_processing) && pthread_mutex_trylock(&(this->queue->lock)) == 0);
+    if (succeeded) {
+        SDL_SetCursor(this->arrow_cursor);
+    }
+    return succeeded;
 }
 
 void Renderer::endProcessing() {
@@ -229,6 +237,14 @@ void Renderer::requestRectangle(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g
     this->queue->queue[i].g = g;
     this->queue->queue[i].b = b;
     this->queue->queue[i].a = a;
+}
+
+void Renderer::setCursor(CursorType cursor) {
+    if (cursor == POINTER) {
+        SDL_SetCursor(this->pointer_cursor);
+    } else {
+        SDL_SetCursor(this->arrow_cursor);
+    }
 }
 
 void Renderer::setOwner(int process_num) {
