@@ -18,16 +18,16 @@ json loadConfig() {
     json config = json::parse(config_file);
     config_file.close();
     for (int i = 0; i < C_LENGTH; i++) {
-        c[i] = config["c"][i];
+        c[i] = config["test_config"]["c"][i];
     }
     return config;
 }
 
 void updateThreadPage(Page *page) {
-    int bar_length = static_cast<int>(config["evaluator_count"]) * 40 - 10;
+    int bar_length = static_cast<int>(config["training_config"]["evaluator_count"]) * 40 - 10;
     Vector v(static_cast<int>(config["window_width"]) / 2 - bar_length / 2, 10);
     Vector mp = event_manager->getMousePosition();
-    for (int i = 0; i < config["evaluator_count"]; i++) {
+    for (int i = 0; i < config["training_config"]["evaluator_count"]; i++) {
         if (mp.x >= v.x && mp.x <= v.x + 30 && mp.y >= v.y && mp.y <= v.y + 30 && event_manager->getClick()) {
             renderer->setOwner(i + 2);
         }
@@ -40,10 +40,10 @@ void updateThreadPage(Page *page) {
 }
 
 void renderThreadPage() {
-    int bar_length = static_cast<int>(config["evaluator_count"]) * 40 - 10;
+    int bar_length = static_cast<int>(config["training_config"]["evaluator_count"]) * 40 - 10;
     Vector v(static_cast<int>(config["window_width"]) / 2 - bar_length / 2, 10);
     Vector mp = event_manager->getMousePosition();
-    for (int i = 0; i < config["evaluator_count"]; i++) {
+    for (int i = 0; i < config["training_config"]["evaluator_count"]; i++) {
         double alpha = 0.3;
         if (mp.x >= v.x && mp.x <= v.x + 30 && mp.y >= v.y && mp.y <= v.y + 30) {
             alpha = 0.5;
@@ -102,7 +102,7 @@ void runManager(bool test = false) {
     event_manager->setManager();
     evaluation_manager->setManager();
     if (test) {
-        evaluation_manager->sendRequest(c, config["seed"], 0);
+        evaluation_manager->sendRequest(c, config["test_config"]["seed"], 0);
     }
     while (true) {
         event_manager->update();
@@ -278,7 +278,7 @@ int main(int argv, char **args) {
         if (pid > 0) {
             bool evaluating = false;
             pids.push_back(pid);
-            for (int i = 0; i < config["evaluator_count"]; i++) {
+            for (int i = 0; i < config["training_config"]["evaluator_count"]; i++) {
                 pid = fork();
                 if (pid > 0) {
                     pids.push_back(pid);
