@@ -1,6 +1,6 @@
 #include <fstream>
 #include <signal.h>
-#include "Shared/evaluation_manager.h"
+#include "trainer.h"
 
 enum Page { EVALUATION, TRAINING };
 enum EvaluationStatus { IDLE, EVALUATING, COMPLETING };
