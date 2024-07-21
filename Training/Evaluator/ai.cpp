@@ -304,10 +304,10 @@ pair<double, Vector> AI::calculateBulletCollisionTime(const AITarget &target, bo
         r1 = target.pessimistic_size;
     }
     if (aiming) {
-        r1 = max(0.0, r1 - AI::FLOATING_POINT_COMPENSATION);
+        r1 = max(0.0, r1);
     }
     double result = this->calculateCirclePointCollisionTime(p1, v1, r1, p2, v2);
-    if (result >= this->ship.bullet_life - AI::FLOATING_POINT_COMPENSATION) {
+    if (result >= this->ship.bullet_life) {
         return { DBL_MAX, Vector() };
     }
     if (target.size_index > 0 && target.size_index < 3) {
