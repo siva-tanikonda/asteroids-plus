@@ -165,14 +165,14 @@ void runEvaluator(bool testing = false, bool user_input = false) {
                 if (request.first != -1) {
                     game = new Game(config, request.first);
                     if (!user_input) {
-                        ai = new AI(c, game->getAIShipData(), rand());
+                        ai = new AI(c, game->getAIShipData(), 0);
                     }
                     id = request.second;
                     status = EVALUATING;
                 }
                 break;
             case EVALUATING:
-                if (renderer->getOwner() == process_num) {
+                if (renderer->getOwner() == process_num || rendering) {
                     if (rendering) {
                         if (old_timestamp == -1) {
                             old_timestamp = SDL_GetPerformanceCounter();
@@ -220,14 +220,12 @@ void runEvaluator(bool testing = false, bool user_input = false) {
                 if (game->isShipDead() && !testing) {
                     results[0] = game->getScore();
                     results[1] = game->getTime();
-                    results[2] = ai->getFleeTime() / game->getTime();
-                    results[3] = (double)ai->getMisses() / ai->getFires();
-                    delete game;
+                    results[2] = ai->getFleeTime();
+                    results[3] = ai->getMisses();
                     if (ai != nullptr) {
                         delete ai;
                     }
-                    game = nullptr;
-                    ai = nullptr;
+                    delete game;
                     status = COMPLETING;
                 }
                 break;
@@ -257,13 +255,17 @@ void runEvaluator(bool testing = false, bool user_input = false) {
 }
 
 void runTrainer() {
+    Game::analyzeGameConfiguration(config);
+    Trainer *trainer = new Trainer(config);
     while (true) {
         bool rendering = renderer->beginRequest(process_num);
-        //TODO
+        trainer->update(evaluation_manager);
         if (rendering) {
+            trainer->render(renderer);
             renderer->endRequest();
         }
     }
+    delete trainer;
     delete renderer;
     delete event_manager;
     delete evaluation_manager;

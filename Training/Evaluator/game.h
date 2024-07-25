@@ -68,7 +68,7 @@ class Asteroid : public ObjectWithId {
         Polygon bounds;
         mt19937 gen;
         static void analyzeAsteroidConfigurations(json &config);
-        Asteroid(const json &config, Vector position, int size, int wave, mt19937 &gen);
+        Asteroid(const json &config, Vector position, int size, int wave, int seed);
         void update(double delay);
         void render(Renderer *renderer) const;
         void destroy(const json &config, vector<Asteroid*> *split_asteroids, int wave);
@@ -88,7 +88,7 @@ class Saucer : public ObjectWithId {
         bool entered_x, entered_y, dead;
         mt19937 gen;
         static void analyzeSaucerConfigurations(json &config);
-        Saucer(const json &config, int size, int wave, mt19937 &gen);
+        Saucer(const json &config, int size, int wave, int seed);
         void update(double delay, const json &config, const Ship &ship, vector<Bullet*> *saucer_bullets);
         void render(Renderer *renderer) const;
     private:
