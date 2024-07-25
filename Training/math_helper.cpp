@@ -303,6 +303,11 @@ double randomInRange(mt19937 &gen, double left, double right) {
     return left + randomDouble(gen) * (right - left);
 }
 
+double randomInNormal(mt19937 &gen, double mean, double std) {
+    std::normal_distribution<double> distribution(mean, std);
+    return distribution(gen);
+}
+
 void wrap(Vector &v, int width, int height, bool wrap_x, bool wrap_y) {
     while (v.x >= width && wrap_x) {
         v.x -= width;
