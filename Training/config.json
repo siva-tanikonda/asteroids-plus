@@ -69,17 +69,17 @@
         "game_saucer_point_value": 0
     },
     "training_config": {
-        "evaluator_count": 8,
-        "generation_size": 10,
+        "evaluator_count": 14,
+        "generation_size": 100,
         "save_num": 1,
         "random_starting_weights": false,
         "training_generations": [
             {
                 "seed": 0,
                 "seed_count": 20,
-                "trial_count": 5,
-                "generations_count": 100,
-                "carry_over_count": 5,
+                "trial_count": 1,
+                "generations_count": 2,
+                "carry_over_count": 50,
                 "mutation_rate": 0.1,
                 "reroll_mutation_rate": 0.25,
                 "mutation_weight": 0.01,
@@ -123,11 +123,61 @@
                     [ 0, 60 ],
                     [ 0, 70 ]
                 ]
+            },
+            {
+                "seed": 40,
+                "seed_count": 20,
+                "trial_count": 1,
+                "generations_count": 2,
+                "carry_over_count": 50,
+                "mutation_rate": 0.1,
+                "reroll_mutation_rate": 0.25,
+                "mutation_weight": 0.01,
+                "combination_count": 2,
+                "softmax_weight": 1,
+                "memory": 3,
+                "fitness_weights": [ 1, 0, 0, 0 ],
+                "weight_ranges": [
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 1 ],
+                    [ 0, 200 ],
+                    [ 0, 100 ],
+                    [ 0, 100 ],
+                    [ 0, 14 ],
+                    [ 0, 34 ],
+                    [ 0, 53 ],
+                    [ 0, 60 ],
+                    [ 0, 70 ]
+                ]
             }
         ],
         "evaluation_generation": {
-            "seed": -1,
-            "trial_count": 100,
+            "seed": 20,
+            "trial_count": 1,
             "fitness_weights": [ 1, 0, 0, 0 ]
         }
     }

@@ -15,8 +15,8 @@ bool compareTrainerGenerationDataPointers(const TrainerGenerationData *data1, co
     return fitness1 > fitness2;
 }
 
-Trainer::Trainer(const json &config) : generation_size(config["training_config"]["generation_size"]), current_generation(1), viewing_generation(1), stage(0), seed(0), evaluation_progress(0), evaluation_index(0) {
-    processStages(config["training_config"]["training_generations"]);
+Trainer::Trainer(const json &config) : generation_size(config["training_config"]["generation_size"]), current_generation(1), viewing_generation(1), stage(0), seed(0), evaluation_progress(0), evaluation_index(0), old_click(false), done(false) {
+    processStages(config["training_config"]["training_generations"], config["training_config"]["evaluation_generation"]);
     createFirstGeneration(config["training_config"]["random_starting_weights"]);
 }
 
@@ -26,7 +26,24 @@ Trainer::~Trainer() {
     }
 }
 
-void Trainer::update(EvaluationManager *evaluation_manager) {
+void Trainer::update(bool rendering, EvaluationManager *evaluation_manager, EventManager *event_manager) {
+    Vector mp = event_manager->getMousePosition();
+    Vector button_corner_1(Game::getWidth() / 3 + 150, Game::getHeight() - 115);
+    Vector button_corner_2(button_corner_1.x + 30, button_corner_1.y + 30);
+    bool some_click = false;
+    if (!this->old_click && this->viewing_generation < this->current_generation && mp.x >= button_corner_1.x && mp.x <= button_corner_2.x && mp.y >= button_corner_1.y && mp.y <= button_corner_2.y && event_manager->getClick()) {
+        this->viewing_generation++;
+        this->old_click = true;
+    }
+    button_corner_1.x -= 330;
+    button_corner_2.x -= 330;
+    if (!this->old_click && this->viewing_generation > 1 && mp.x >= button_corner_1.x && mp.x <= button_corner_2.x && mp.y >= button_corner_1.y && mp.y <= button_corner_2.y && event_manager->getClick()) {
+        this->viewing_generation--;
+        this->old_click = true;
+    }
+    if (rendering) {
+        this->old_click = false;
+    }
     if (this->evaluation_progress < (this->generation_size) * (this->stages[this->stage].trial_count)) {
         if (this->evaluation_index < this->generation_size) {
             //Attempt to send the next request
@@ -50,28 +67,63 @@ void Trainer::update(EvaluationManager *evaluation_manager) {
             this->data[result_index]->new_metrics.push_back(metric);
             this->evaluation_progress++;
         }
-    } else {
+    } else if (!done) {
         this->performGenerationPostProcessing();
         this->addDisplayedData();
-        this->progressGeneration();
-        this->createNewGeneration();
+        this->done = this->progressGeneration();
+        if (!(this->done)) {
+            this->createNewGeneration();
+        }
     }
 }
 
-void Trainer::render(Renderer *renderer) const {
-    if (this->displayed_data.size() <= this->viewing_generation) {
-        renderer->requestText(SMALL, "Progress: " + to_string(this->evaluation_progress) + "/" + to_string(this->stages[this->stage].trial_count * this->generation_size), Game::getWidth() / 3, Game::getHeight() - 125, MIDDLE, 250, 250, 100, 255);
+void Trainer::render(Renderer *renderer, EventManager *event_manager) const {
+    if (!done && this->displayed_data.size() < this->viewing_generation) {
+        renderer->requestText(SMALL, "Progress: " + to_string(this->evaluation_progress) + "/" + to_string(this->stages[this->stage].trial_count * this->generation_size), Game::getWidth() / 3, Game::getHeight() - 140, MIDDLE, 250, 250, 100, 255);
     } else {
         TrainerGenerationStatistics statistics = this->displayed_data[this->viewing_generation - 1].statistics;
-        renderer->requestText(SMALL, "Mean: " + trimDouble(statistics.mean_fitness) + ", STD: " + trimDouble(statistics.std_fitness) + ", Median: " + trimDouble(statistics.median_fitness) + ", Min: " + trimDouble(statistics.min_fitness) + ", Max: " + trimDouble(statistics.max_fitness), Game::getWidth() / 3, Game::getHeight() - 125, MIDDLE, 255, 255, 255, 255);
+        renderer->requestText(SMALL, "Mean: " + trimDouble(statistics.mean_fitness) + ", STD: " + trimDouble(statistics.std_fitness) + ", Median: " + trimDouble(statistics.median_fitness) + ", Min: " + trimDouble(statistics.min_fitness) + ", Max: " + trimDouble(statistics.max_fitness), Game::getWidth() / 3, Game::getHeight() - 140, MIDDLE, 255, 255, 255, 255);
+        this->renderHistogram(renderer, Game::getWidth() / 3 - 300, Game::getHeight() - 600, 600, 400);
     }
-    renderer->requestText(REGULAR, "Generation " + to_string(this->viewing_generation), Game::getWidth() / 3, Game::getHeight() - 100, MIDDLE, 255, 255, 255, 255);
+    Vector button_corner_1(Game::getWidth() / 3 + 150, Game::getHeight() - 115);
+    Vector button_corner_2(button_corner_1.x + 30, button_corner_1.y + 30);
+    if (this->viewing_generation < this->current_generation) {
+        renderer->requestRectangle(button_corner_1.x, button_corner_1.y, button_corner_2.x, button_corner_2.y, 255, 255, 255, 255);
+        renderer->requestLine(button_corner_1.x + 23, button_corner_1.y + 15, button_corner_1.x + 10, button_corner_1.y + 8, 255, 255, 255, 255);
+        renderer->requestLine(button_corner_1.x + 23, button_corner_1.y + 15, button_corner_1.x + 10, button_corner_1.y + 22, 255, 255, 255, 255);
+    }
+    button_corner_1.x -= 330;
+    button_corner_2.x -= 330;
+    if (this->viewing_generation > 1) {
+        renderer->requestRectangle(button_corner_1.x, button_corner_1.y, button_corner_2.x, button_corner_2.y, 255, 255, 255, 255);
+        renderer->requestLine(button_corner_1.x + 7, button_corner_1.y + 15, button_corner_1.x + 20, button_corner_1.y + 8, 255, 255, 255, 255);
+        renderer->requestLine(button_corner_1.x + 7, button_corner_1.y + 15, button_corner_1.x + 20, button_corner_1.y + 22, 255, 255, 255, 255);
+    }
+    if (this->stage < this->stages.size() - 1 || this->current_generation != this->viewing_generation) {
+        renderer->requestText(REGULAR, "Generation " + to_string(this->viewing_generation), Game::getWidth() / 3, Game::getHeight() - 100, MIDDLE, 255, 255, 255, 255);
+    } else {
+        renderer->requestText(REGULAR, "Evaluation", Game::getWidth() / 3, Game::getHeight() - 100, MIDDLE, 255, 255, 255, 255);
+    }
     this->renderProgressionGraph(renderer, Game::getWidth() - 300, 100, 200, 200, "Generation", "Mean Fitness", MEAN);
     this->renderProgressionGraph(renderer, Game::getWidth() - 300, 400, 200, 200, "Generation", "STD Fitness", STD);
 }
 
+void Trainer::renderHistogram(Renderer *renderer, double x, double y, double width, double height) const {
+    renderer->requestLine(x, y + height, x + width, y + height, 255, 255, 255, 255);
+    for (int i = 0; i <= HISTOGRAM_BARS; i++) {
+        double statistics_range = this->displayed_data[this->viewing_generation - 1].statistics.max_fitness - this->displayed_data[this->viewing_generation - 1].statistics.min_fitness;
+        renderer->requestLine(x + i * (width / HISTOGRAM_BARS), y + height, x + i * (width / HISTOGRAM_BARS), y + height + 5, 255, 255, 255, 255);
+        renderer->requestText(TINY, to_string((int)(this->displayed_data[this->viewing_generation - 1].statistics.min_fitness + i * (statistics_range / HISTOGRAM_BARS))), x + i * (width / HISTOGRAM_BARS), y + height + 15, MIDDLE, 255, 255, 255, 255);
+        if (i < HISTOGRAM_BARS) {
+            renderer->requestFilledRectangle(x + i * (width / HISTOGRAM_BARS) + 1, y + height - this->displayed_data[this->viewing_generation - 1].histogram_bars[i] * (height / this->generation_size), x + (i + 1) * (width / HISTOGRAM_BARS) - 1, y + height, 255, 255, 255, 255);
+            renderer->requestText(TINY, to_string(this->displayed_data[this->viewing_generation - 1].histogram_bars[i]), x + i * (width / HISTOGRAM_BARS) + (width / (2 * HISTOGRAM_BARS)), y + height - this->displayed_data[this->viewing_generation - 1].histogram_bars[i] * (height / this->generation_size) - 15, MIDDLE, 255, 255, 255, 255);
+        }
+    }
+}
+
 void Trainer::renderProgressionGraph(Renderer *renderer, int x, int y, int width, int height, string x_axis, string y_axis, TRAINER_STATISTIC_DISPLAY statistic) const {
     double max_value = 1;
+    int count = min(this->current_generation - 1, (int)this->displayed_data.size());
     for (int i = 0; i < min(this->current_generation - 1, (int)this->displayed_data.size()); i++) {
         switch(statistic) {
             case MEAN:
@@ -87,10 +139,10 @@ void Trainer::renderProgressionGraph(Renderer *renderer, int x, int y, int width
         Vector point(x + (i + 1) * ((double)width / max(1, this->current_generation - 1)), y + height);
         switch(statistic) {
             case MEAN:
-                point.y -= (this->displayed_data[i].statistics.mean_fitness / max_value) * height;
+                point.y -= max(0.0, (this->displayed_data[i].statistics.mean_fitness / max_value) * height);
                 break;
             case STD:
-                point.y -= (this->displayed_data[i].statistics.std_fitness / max_value) * height;
+                point.y -= max(0.0, (this->displayed_data[i].statistics.std_fitness / max_value) * height);
                 break;
         }
         renderer->requestLine(previous_point.x, previous_point.y, point.x, point.y, 255, 255, 255, 255);
@@ -100,7 +152,7 @@ void Trainer::renderProgressionGraph(Renderer *renderer, int x, int y, int width
     renderer->requestLine(x, y + height, x + width, y + height, 255, 255, 255, 255);
     renderer->requestText(SMALL, y_axis, x - 10, y + height / 2 - 6, RIGHT, 255, 255, 255, 255);
     renderer->requestText(SMALL, x_axis, x + width / 2, y + height + 17, MIDDLE, 255, 255, 255, 255);
-    renderer->requestText(TINY, to_string(this->current_generation), x + width + 10, y + height - 7, LEFT, 255, 255, 255, 255);
+    renderer->requestText(TINY, to_string(this->current_generation - 1), x + width + 10, y + height - 7, LEFT, 255, 255, 255, 255);
     renderer->requestText(TINY, trimDouble(max_value), x, y - 15, MIDDLE, 255, 255, 255, 255);
 }
 
@@ -167,6 +219,7 @@ void Trainer::createNewGeneration() {
         double generated;
         for (int j = 0; j < C_LENGTH; j++) {
             new_data->c[j] /= this->stages[this->stage].combination_count;
+            generated = randomDouble(gen);
             if (generated <= this->stages[this->stage].mutation_rate) {
                 generated = randomDouble(gen);
                 if (generated <= this->stages[this->stage].reroll_mutation_rate) {
@@ -195,7 +248,7 @@ void Trainer::createNewGeneration() {
     this->data = new_generation;
 }
 
-void Trainer::processStages(const json &stage_configs) {
+void Trainer::processStages(const json &stage_configs, const json &evaluation_config) {
     for (int i = 0; i < stage_configs.size(); i++) {
         const json &stage_config = stage_configs[i];
         TrainerStage stage;
@@ -218,10 +271,18 @@ void Trainer::processStages(const json &stage_configs) {
         }
         this->stages.push_back(stage);
     }
+    TrainerStage evaluation_stage;
+    evaluation_stage.seed = evaluation_config["seed"];
+    evaluation_stage.trial_count = evaluation_config["trial_count"];
+    for (int i = 0; i < EVALUATION_METRICS; i++) {
+        evaluation_stage.fitness_weights[i] = evaluation_config["fitness_weights"][i];
+    }
+    evaluation_stage.generations_count = 1;
+    this->stages.push_back(evaluation_stage);
     this->seed = this->stages[0].seed;
 }
 
-void Trainer::progressGeneration() {
+bool Trainer::progressGeneration() {
     if (this->current_generation == this->viewing_generation) {
         this->viewing_generation++;
     }
@@ -229,11 +290,16 @@ void Trainer::progressGeneration() {
     int stage_generation_sum = 0;
     int new_stage = 0;
     for (int i = 0; i < this->stages.size(); i++) {
-        if (stage_generation_sum + this->stages[i].generations_count > this->current_generation) {
+        if (stage_generation_sum + this->stages[i].generations_count >= this->current_generation) {
             break;
         }
         stage_generation_sum += this->stages[i].generations_count;
         new_stage++;
+    }
+    if (new_stage >= this->stages.size()) {
+        this->current_generation--;
+        this->viewing_generation = min(this->viewing_generation, this->current_generation);
+        return true;
     }
     if (new_stage > this->stage) {
         this->stage = new_stage;
@@ -243,6 +309,7 @@ void Trainer::progressGeneration() {
     }
     this->evaluation_progress = 0;
     this->evaluation_index = 0;
+    return false;
 }
 
 void Trainer::performGenerationPostProcessing() {
@@ -261,6 +328,7 @@ void Trainer::addDisplayedData() {
     TrainerGenerationDisplayedData generation_displayed_data;
     generation_displayed_data.statistics.min_fitness = DBL_MAX;
     generation_displayed_data.statistics.max_fitness = DBL_MIN;
+    generation_displayed_data.statistics.median_fitness = generation_displayed_data.statistics.mean_fitness = generation_displayed_data.statistics.std_fitness = 0;
     for (int i = 0; i < this->generation_size; i++) {
         double fitness = calculateTrainerGenerationDataFitness(this->data[i]);
         generation_displayed_data.statistics.min_fitness = min(generation_displayed_data.statistics.min_fitness, fitness);
@@ -278,6 +346,7 @@ void Trainer::addDisplayedData() {
     if (histogram_bar_length == 0) {
         histogram_bar_length = 100;
     }
+    fill(generation_displayed_data.histogram_bars, generation_displayed_data.histogram_bars + HISTOGRAM_BARS, 0);
     for (int i = 0; i < this->generation_size; i++) {
         double fitness = calculateTrainerGenerationDataFitness(this->data[i]);
         int histogram_bar = (int)floor((fitness - generation_displayed_data.statistics.min_fitness) / histogram_bar_length);

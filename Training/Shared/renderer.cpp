@@ -146,6 +146,12 @@ void Renderer::renderRectangle(const RenderRequest *request) {
     SDL_RenderDrawRect(this->renderer, &rect);
 }
 
+void Renderer::renderFilledRectangle(const RenderRequest *request) {
+    SDL_SetRenderDrawColor(this->renderer, request->r, request->g, request->b, request->a);
+    SDL_Rect rect = { request->x1, request->y1, request->x2 - request->x1, request->y2 - request->y1 };
+    SDL_RenderFillRect(this->renderer, &rect);
+}
+
 void Renderer::processRequest(const RenderRequest *request) {
     switch (request->type) {
         case TEXT:
@@ -162,6 +168,9 @@ void Renderer::processRequest(const RenderRequest *request) {
             break;
         case RECTANGLE:
             this->renderRectangle(request);
+            break;
+        case FILLED_RECTANGLE:
+            this->renderFilledRectangle(request);
             break;
     }
 }
@@ -229,6 +238,19 @@ void Renderer::requestLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uin
 void Renderer::requestRectangle(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
     int i = this->queue->len++;
     this->queue->queue[i].type = RECTANGLE;
+    this->queue->queue[i].x1 = x1;
+    this->queue->queue[i].y1 = y1;
+    this->queue->queue[i].x2 = x2;
+    this->queue->queue[i].y2 = y2;
+    this->queue->queue[i].r = r;
+    this->queue->queue[i].g = g;
+    this->queue->queue[i].b = b;
+    this->queue->queue[i].a = a;
+}
+
+void Renderer::requestFilledRectangle(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+    int i = this->queue->len++;
+    this->queue->queue[i].type = FILLED_RECTANGLE;
     this->queue->queue[i].x1 = x1;
     this->queue->queue[i].y1 = y1;
     this->queue->queue[i].x2 = x2;
