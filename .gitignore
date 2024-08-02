@@ -1,4 +1,5 @@
 .DS_Store
 .vscode
 Training/Build
-Training/Data
+Training/Data/*
+!Training/Data/save-1
