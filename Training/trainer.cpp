@@ -67,12 +67,14 @@ void Trainer::update(bool rendering, EvaluationManager *evaluation_manager, Even
             this->data[result_index]->new_metrics.push_back(metric);
             this->evaluation_progress++;
         }
-    } else if (!done) {
+    } else if (!(this->done)) {
         this->performGenerationPostProcessing();
         this->addDisplayedData();
         this->done = this->progressGeneration();
-        if (!(this->done)) {
+        if (this->stage < this->stages.size() - 1) {
             this->createNewGeneration();
+        } else if (this->stage == this->stages.size() - 1) {
+            this->prepareEvaluation();
         }
     }
 }
@@ -246,6 +248,14 @@ void Trainer::createNewGeneration() {
         }
     }
     this->data = new_generation;
+}
+
+void Trainer::prepareEvaluation() {
+    for (int i = 0; i < this->generation_size; i++) {
+        this->data[i]->metrics.clear();
+        this->data[i]->seeds_remaining = this->stages[this->stage].trial_count;
+        this->data[i]->new_metrics.clear();
+    }
 }
 
 void Trainer::processStages(const json &stage_configs, const json &evaluation_config) {

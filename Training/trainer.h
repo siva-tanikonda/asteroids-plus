@@ -50,4 +50,5 @@ class Trainer {
         bool progressGeneration();
         void performGenerationPostProcessing();
         void addDisplayedData();
+        void prepareEvaluation();
 };
