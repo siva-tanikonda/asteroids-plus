@@ -259,9 +259,9 @@ void runTrainer() {
     Trainer *trainer = new Trainer(config);
     while (true) {
         bool rendering = renderer->beginRequest(process_num);
-        trainer->update(evaluation_manager);
+        trainer->update(rendering, evaluation_manager, event_manager);
         if (rendering) {
-            trainer->render(renderer);
+            trainer->render(renderer, event_manager);
             renderer->endRequest();
         }
     }

@@ -34,18 +34,20 @@ class Trainer {
     public:
         Trainer(const json &config);
         ~Trainer();
-        void update(EvaluationManager *evaluation_manager);
-        void render(Renderer *renderer) const;
+        void update(bool rendering, EvaluationManager *evaluation_manager, EventManager *event_manager);
+        void render(Renderer *renderer, EventManager *event_manager) const;
     private:
         int generation_size, current_generation, viewing_generation, stage, evaluation_progress, evaluation_index, seed;
         vector<TrainerStage> stages;
         vector<TrainerGenerationDisplayedData> displayed_data;
         vector<TrainerGenerationData*> data;
+        bool old_click, done;
         void renderProgressionGraph(Renderer *renderer, int x, int y, int width, int height, string x_axis, string y_axis, TRAINER_STATISTIC_DISPLAY statistic) const;
+        void renderHistogram(Renderer *renderer, double x, double y, double width, double height) const;
         void createNewGeneration();
         void createFirstGeneration(bool random_starting_weights);
-        void processStages(const json &stage_configs);
-        void progressGeneration();
+        void processStages(const json &stage_configs, const json &evaluation_config);
+        bool progressGeneration();
         void performGenerationPostProcessing();
         void addDisplayedData();
 };
