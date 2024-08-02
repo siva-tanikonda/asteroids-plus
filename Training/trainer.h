@@ -1,4 +1,8 @@
+#include <fstream>
+#include <filesystem>
 #include "Shared/evaluation_manager.h"
+
+namespace fs = std::filesystem;
 
 constexpr const int HISTOGRAM_BARS = 10;
 enum TRAINER_STATISTIC_DISPLAY { MEAN, STD };
@@ -37,7 +41,7 @@ class Trainer {
         void update(bool rendering, EvaluationManager *evaluation_manager, EventManager *event_manager);
         void render(Renderer *renderer, EventManager *event_manager) const;
     private:
-        int generation_size, current_generation, viewing_generation, stage, evaluation_progress, evaluation_index, seed;
+        int generation_size, current_generation, viewing_generation, stage, evaluation_progress, evaluation_index, seed, save;
         vector<TrainerStage> stages;
         vector<TrainerGenerationDisplayedData> displayed_data;
         vector<TrainerGenerationData*> data;
@@ -51,4 +55,5 @@ class Trainer {
         void performGenerationPostProcessing();
         void addDisplayedData();
         void prepareEvaluation();
+        void saveGeneration() const;
 };

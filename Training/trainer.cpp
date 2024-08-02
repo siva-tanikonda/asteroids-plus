@@ -15,7 +15,7 @@ bool compareTrainerGenerationDataPointers(const TrainerGenerationData *data1, co
     return fitness1 > fitness2;
 }
 
-Trainer::Trainer(const json &config) : generation_size(config["training_config"]["generation_size"]), current_generation(1), viewing_generation(1), stage(0), seed(0), evaluation_progress(0), evaluation_index(0), old_click(false), done(false) {
+Trainer::Trainer(const json &config) : generation_size(config["training_config"]["generation_size"]), current_generation(1), viewing_generation(1), stage(0), seed(0), evaluation_progress(0), evaluation_index(0), old_click(false), done(false), save(config["training_config"]["save"]) {
     processStages(config["training_config"]["training_generations"], config["training_config"]["evaluation_generation"]);
     createFirstGeneration(config["training_config"]["random_starting_weights"]);
 }
@@ -70,6 +70,7 @@ void Trainer::update(bool rendering, EvaluationManager *evaluation_manager, Even
     } else if (!(this->done)) {
         this->performGenerationPostProcessing();
         this->addDisplayedData();
+        this->saveGeneration();
         this->done = this->progressGeneration();
         if (this->stage < this->stages.size() - 1) {
             this->createNewGeneration();
@@ -367,4 +368,33 @@ void Trainer::addDisplayedData() {
     }
     generation_displayed_data.statistics.std_fitness = sqrt(generation_displayed_data.statistics.std_fitness / this->generation_size);
     this->displayed_data.push_back(generation_displayed_data);
+}
+
+void Trainer::saveGeneration() const {
+    json output_data;
+    output_data["seed"] = this->seed;
+    if (this->stage < this->stages.size() - 1) {
+        output_data["generation"] = this->current_generation;
+    } else {
+        output_data["generation"] = "evaluation";
+    }
+    output_data["stage"] = this->stage;
+    json output_display_data;
+    output_display_data["histogram_bars"] = this->displayed_data[this->current_generation - 1].histogram_bars;
+    output_display_data["statistics"]["min_fitness"] = this->displayed_data[this->current_generation - 1].statistics.min_fitness;
+    output_display_data["statistics"]["max_fitness"] = this->displayed_data[this->current_generation - 1].statistics.max_fitness;
+    output_display_data["statistics"]["mean_fitness"] = this->displayed_data[this->current_generation - 1].statistics.mean_fitness;
+    output_display_data["statistics"]["std_fitness"] = this->displayed_data[this->current_generation - 1].statistics.std_fitness;
+    output_display_data["statistics"]["median_fitness"] = this->displayed_data[this->current_generation - 1].statistics.median_fitness;
+    output_data["display_data"] = output_display_data;
+    for (int i = 0; i < this->generation_size; i++) {
+        json output_agent;
+        output_agent["c"] = this->data[i]->c;
+        output_agent["metrics"] = this->data[i]->metrics;
+        output_data["data"][i] = output_agent;
+    }
+    fs::create_directories("./Data/save-" + to_string(this->save));
+    ofstream fout("./Data/save-" + to_string(this->save) + "/generation-" + to_string(this->current_generation) + ".json");
+    fout << output_data.dump(4) << endl;
+    fout.close();
 }

@@ -69,6 +69,7 @@
         "game_saucer_point_value": 0
     },
     "training_config": {
+        "save": 1,
         "evaluator_count": 14,
         "generation_size": 100,
         "save_num": 1,
