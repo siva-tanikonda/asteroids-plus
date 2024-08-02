@@ -56,4 +56,6 @@ class Trainer {
         void addDisplayedData();
         void prepareEvaluation();
         void saveGeneration() const;
+        void loadSavedData(bool random_starting_weights);
+        void deleteSavedData() const;
 };

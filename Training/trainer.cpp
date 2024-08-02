@@ -1,3 +1,4 @@
+#include <climits>
 #include "trainer.h"
 
 double calculateTrainerGenerationDataFitness(const TrainerGenerationData *data) {
@@ -16,8 +17,13 @@ bool compareTrainerGenerationDataPointers(const TrainerGenerationData *data1, co
 }
 
 Trainer::Trainer(const json &config) : generation_size(config["training_config"]["generation_size"]), current_generation(1), viewing_generation(1), stage(0), seed(0), evaluation_progress(0), evaluation_index(0), old_click(false), done(false), save(config["training_config"]["save"]) {
-    processStages(config["training_config"]["training_generations"], config["training_config"]["evaluation_generation"]);
-    createFirstGeneration(config["training_config"]["random_starting_weights"]);
+    this->processStages(config["training_config"]["training_generations"], config["training_config"]["evaluation_generation"]);
+    if (!config["training_config"]["override_save"]) {
+        this->loadSavedData(config["training_config"]["random_starting_weights"]);
+    } else {
+        this->deleteSavedData();
+        this->createFirstGeneration(config["training_config"]["random_starting_weights"]);
+    }
 }
 
 Trainer::~Trainer() {
@@ -44,6 +50,9 @@ void Trainer::update(bool rendering, EvaluationManager *evaluation_manager, Even
     if (rendering) {
         this->old_click = false;
     }
+    if (this->done) {
+        return;
+    }
     if (this->evaluation_progress < (this->generation_size) * (this->stages[this->stage].trial_count)) {
         if (this->evaluation_index < this->generation_size) {
             //Attempt to send the next request
@@ -67,7 +76,7 @@ void Trainer::update(bool rendering, EvaluationManager *evaluation_manager, Even
             this->data[result_index]->new_metrics.push_back(metric);
             this->evaluation_progress++;
         }
-    } else if (!(this->done)) {
+    } else {
         this->performGenerationPostProcessing();
         this->addDisplayedData();
         this->saveGeneration();
@@ -376,7 +385,7 @@ void Trainer::saveGeneration() const {
     if (this->stage < this->stages.size() - 1) {
         output_data["generation"] = this->current_generation;
     } else {
-        output_data["generation"] = "evaluation";
+        output_data["generation"] = -1;
     }
     output_data["stage"] = this->stage;
     json output_display_data;
@@ -393,8 +402,82 @@ void Trainer::saveGeneration() const {
         output_agent["metrics"] = this->data[i]->metrics;
         output_data["data"][i] = output_agent;
     }
-    fs::create_directories("./Data/save-" + to_string(this->save));
-    ofstream fout("./Data/save-" + to_string(this->save) + "/generation-" + to_string(this->current_generation) + ".json");
+    string file_name = (this->stage == this->stages.size() - 1) ? "evaluation" : ("generation-" + to_string(this->current_generation));
+    ofstream fout("./Data/save-" + to_string(this->save) + "/" + file_name + ".json");
     fout << output_data.dump(4) << endl;
     fout.close();
+}
+
+void Trainer::loadSavedData(bool random_starting_weights) {
+    fs::create_directories("./Data/save-" + to_string(this->save));
+    string directory_name = "./Data/save-" + to_string(this->save);
+    int max_generation = 0;
+    int max_stage = 0;
+    int max_seed = -1;
+    for (const auto &file_entry : fs::directory_iterator(directory_name)) {
+        max_generation++;
+    }
+    this->displayed_data = vector<TrainerGenerationDisplayedData>(max_generation);
+    for (const auto &file_entry : fs::directory_iterator(directory_name)) {
+        ifstream fin(file_entry.path());
+        json raw_data;
+        fin >> raw_data;
+        TrainerGenerationDisplayedData ddata;
+        for (int i = 0; i < HISTOGRAM_BARS; i++) {
+            ddata.histogram_bars[i] = raw_data["display_data"]["histogram_bars"][i];
+        }
+        ddata.statistics.min_fitness = raw_data["display_data"]["statistics"]["min_fitness"];
+        ddata.statistics.max_fitness = raw_data["display_data"]["statistics"]["max_fitness"];
+        ddata.statistics.mean_fitness = raw_data["display_data"]["statistics"]["mean_fitness"];
+        ddata.statistics.std_fitness = raw_data["display_data"]["statistics"]["std_fitness"];
+        ddata.statistics.median_fitness = raw_data["display_data"]["statistics"]["median_fitness"];
+        if (raw_data["generation"] != -1) {
+            int generation = raw_data["generation"];
+            this->displayed_data[generation - 1] = ddata;
+            if (generation == max_generation) {
+                max_seed = raw_data["seed"];
+                max_stage = raw_data["stage"];
+                for (json agent : raw_data["data"]) {
+                    TrainerGenerationData *new_data = new TrainerGenerationData();
+                    for (int i = 0; i < C_LENGTH; i++) {
+                        new_data->c[i] = agent["c"][i];
+                    }
+                    for (int metric : agent["metrics"]) {
+                        new_data->metrics.push_back(metric);
+                    }
+                    this->data.push_back(new_data);
+                }
+            }
+        } else if (raw_data["generation"] == -1) {
+            this->displayed_data[max_generation - 1] = ddata;
+            this->done = true;
+        }
+        fin.close();
+    }
+    if (max_generation == 0) {
+        this->createFirstGeneration(random_starting_weights);
+    } else {
+        if (!(this->done)) {
+            this->current_generation = this->viewing_generation = max_generation;
+            this->seed = max_seed;
+            this->stage = max_stage;
+            this->progressGeneration();
+            if (this->stage < this->stages.size() - 1) {
+                this->createNewGeneration();
+            } else {
+                this->prepareEvaluation();
+            }
+        } else {
+            this->stage = INT_MAX;
+            this->current_generation = this->viewing_generation = max_generation;
+        }
+    }
+}
+
+void Trainer::deleteSavedData() const {
+    fs::create_directories("./Data/save-" + to_string(this->save));
+    string directory_name = "./Data/save-" + to_string(this->save);
+    for (const auto &file_entry : fs::directory_iterator(directory_name)) {
+        fs::remove_all(file_entry.path());
+    }
 }
