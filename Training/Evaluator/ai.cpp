@@ -1,5 +1,9 @@
 #include "ai.h"
 
+/*
+This AI is the same as the one in Website/Scripts/ai.js, except with SDL2 rendering for debug visuals
+*/
+
 const double AI::DANGER_RADIUS[] = { 0, 18, 14, 34, 53, 60, 70 };
 const double AI::PESSIMISTIC_RADIUS[] = { 14, 34, 53, 27, 32 };
 const int AI::ROTATION_PRECISION = 2;
@@ -32,7 +36,7 @@ template <class T> void renderWrap(Renderer *renderer, AI *ai, const Vector &pos
 
 AIShip::AIShip(const AIShipData &ship, double target_safety_radius) : position(ship.position), angle(ship.angle), width(ship.width), bullet_cooldown(ship.bullet_cooldown), bullet_speed(ship.bullet_speed), bullet_life(ship.bullet_life), drag_coefficient(ship.drag_coefficient), velocity(ship.velocity), rotation_speed(ship.rotation_speed), acceleration(ship.acceleration), size(AI::DANGER_RADIUS[1]), lives(ship.lives), target_safety_radius(target_safety_radius), flee_values({ -1, -1, -1, -1 }), nudge_values({ -1, -1, -1 }) { }
 
-void AIShip::renderArrowMetric(Renderer *renderer, double metric, double angle, const Vector &p, AI *ai, Uint8 r, Uint8 g, Uint8 b, Uint8 a) const {
+void AIShip::renderArrowMetric(Renderer *renderer, double metric, double angle, const Vector &p, AI *ai, uint8_t r, uint8_t g, uint8_t b, uint8_t a) const {
     double scaled_metric = min(75.0, metric * 75);
     Vector pd(p.x + scaled_metric, p.y);
     pd.rotate(angle + this->angle, p);

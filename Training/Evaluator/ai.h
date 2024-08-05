@@ -14,7 +14,7 @@ class AIShip {
         AIShip(const AIShipData &ship, double target_safety_radius);
         void render(Renderer *renderer, AI *ai, Vector offset) const;
     private:
-        void renderArrowMetric(Renderer *renderer, double metric, double angle, const Vector &p, AI *ai, Uint8 r, Uint8 g, Uint8 b, Uint8 a) const;
+        void renderArrowMetric(Renderer *renderer, double metric, double angle, const Vector &p, AI *ai, uint8_t r, uint8_t g, uint8_t b, uint8_t a) const;
 };
 
 class AIDanger {

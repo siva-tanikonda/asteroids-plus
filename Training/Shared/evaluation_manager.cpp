@@ -1,10 +1,12 @@
 #include "evaluation_manager.h"
 
 EvaluationManager::EvaluationManager() : manager(false) {
+    // Create shared memory mapping
     int flow_fd = shm_open(EVALUATION_FLOW_SHARED_MEMORY_NAME, O_CREAT | O_RDWR, 0666);
     ftruncate(flow_fd, sizeof(EvaluationQueue));
     this->queue = static_cast<EvaluationQueue*>(mmap(0, sizeof(EvaluationQueue), PROT_READ | PROT_WRITE, MAP_SHARED, flow_fd, 0));
     close(flow_fd);
+    // Create locks to regulate access to this manager
     pthread_mutexattr_t mutex_attr;
     pthread_mutexattr_init(&mutex_attr);
     pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
@@ -15,15 +17,18 @@ EvaluationManager::EvaluationManager() : manager(false) {
 
 EvaluationManager::~EvaluationManager() {
     if (this->manager) {
+        // Perform the final application completion logic
         pthread_mutex_destroy(&(this->queue->request_lock));
         pthread_mutex_destroy(&(this->queue->results_lock));
     }
+    // Unmap the shared memory from current process's address space
     munmap(this->queue, sizeof(EvaluationQueue));
     if (this->manager) {
         shm_unlink(EVALUATION_FLOW_SHARED_MEMORY_NAME);
     }
 }
 
+// Processes an evaluation request from the trainer
 bool EvaluationManager::sendRequest(const double c[C_LENGTH], int seed, int id) {
     bool submitted = false;
     pthread_mutex_lock(&(this->queue->request_lock));
@@ -39,6 +44,7 @@ bool EvaluationManager::sendRequest(const double c[C_LENGTH], int seed, int id) 
     return submitted;
 }
 
+// Gets an evaluation request for an evaluator to get metrics for
 pair<int, int> EvaluationManager::getRequest(double c[C_LENGTH]) {
     pair<int, int> extra_info(-1, -1);
     pthread_mutex_lock(&(this->queue->request_lock));
@@ -52,6 +58,7 @@ pair<int, int> EvaluationManager::getRequest(double c[C_LENGTH]) {
     return extra_info;
 }
 
+// The trainer gets the metrics of a request that has completed evaluation
 int EvaluationManager::getResult(double results[EVALUATION_METRICS]) {
     int id = -1;
     pthread_mutex_lock(&(this->queue->results_lock));
@@ -65,6 +72,7 @@ int EvaluationManager::getResult(double results[EVALUATION_METRICS]) {
     return id;
 }
 
+// Once the evaluator finishes the evaluation, it sends the results to the queue
 bool EvaluationManager::sendResult(int id, double results[EVALUATION_METRICS]) {
     bool submitted = false;
     pthread_mutex_lock(&(this->queue->results_lock));
@@ -79,6 +87,7 @@ bool EvaluationManager::sendResult(int id, double results[EVALUATION_METRICS]) {
     return submitted;
 }
 
+// Sets that the current process is the manager process
 void EvaluationManager::setManager() {
     this->manager = true;
 }

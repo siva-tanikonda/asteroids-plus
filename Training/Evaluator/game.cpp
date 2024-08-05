@@ -1,6 +1,10 @@
 #include <climits>
 #include "game.h"
 
+/*
+This game is the same as the one in Website/Scripts/game.js, except this one doesn't support teleporation and this one uses SDL2 rendering
+*/
+
 int Game::width = 1000;
 int Game::height = 1000;
 const int ObjectId::MAX_ID = 1e9;
@@ -28,7 +32,7 @@ template <class T> void renderWrap(Renderer *renderer, const Vector &position, d
     }
 }
 
-void renderFilledPolygon(Renderer *renderer, Polygon shape, const Vector &offset, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void renderFilledPolygon(Renderer *renderer, Polygon shape, const Vector &offset, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     shape.translate(offset);
     Rect rect = shape.getRect();
     rect.top = ceil(rect.top);
@@ -70,7 +74,7 @@ void renderFilledPolygon(Renderer *renderer, Polygon shape, const Vector &offset
     }
 }
 
-void renderArrow(Renderer *renderer, const Vector &u, const Vector &v, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void renderArrow(Renderer *renderer, const Vector &u, const Vector &v, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     Vector diff = v - u;
     double angle = diff.angle();
     double len = diff.mag();

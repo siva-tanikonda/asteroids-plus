@@ -6,6 +6,7 @@
 
 constexpr const char *EVENT_MANAGER_SHARED_MEMORY_NAME = "/event_manager_shared_memory";
 
+// The structure of the shared memory for inputs
 struct EventManagerEvents {
     bool left, right, forward, fire, quit, click;
     int mouse_x, mouse_y;
