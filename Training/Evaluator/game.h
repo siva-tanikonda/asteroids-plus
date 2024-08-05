@@ -12,9 +12,9 @@ class Game;
 
 template <class T> void renderWrap(Renderer *renderer, const Vector &position, double radius, const T *object, void (T::*func)(Renderer*, Vector) const, bool offset_x = true, bool offset_y = true);
 
-void renderFilledPolygon(Renderer *renderer, Polygon shape, const Vector &offset, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+void renderFilledPolygon(Renderer *renderer, Polygon shape, const Vector &offset, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
-void renderArrow(Renderer *renderer, const Vector &u, const Vector &v, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+void renderArrow(Renderer *renderer, const Vector &u, const Vector &v, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
 string trimDouble(double num);
 

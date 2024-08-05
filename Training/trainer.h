@@ -13,21 +13,25 @@ double calculateTrainerGenerationDataFitness(const TrainerGenerationData *data);
 
 bool compareTrainerGenerationDataPointers(const TrainerGenerationData *data1, const TrainerGenerationData *data2);
 
+// Stores general statistics for the generation
 struct TrainerGenerationStatistics {
     double min_fitness, max_fitness, mean_fitness, std_fitness, median_fitness;
 };
 
+// Stores stage configuration (evaluation or training)
 struct TrainerStage {
     int seed, seed_count, trial_count, generations_count, carry_over_count, combination_count, memory;
     double mutation_rate, reroll_mutation_rate, mutation_weight, softmax_weight, fitness_weights[EVALUATION_METRICS];
     pair<double, double> weight_ranges[C_LENGTH];
 };
 
+// Stores display data for a generation (only for use by UI and the statistics for creating a new generation)
 struct TrainerGenerationDisplayedData {
     int histogram_bars[HISTOGRAM_BARS];
     TrainerGenerationStatistics statistics;
 };
 
+// Stores the data (fitness + progress) for an agent in a generation
 struct TrainerGenerationData {
     double c[C_LENGTH];
     vector<double> metrics, new_metrics;
@@ -56,6 +60,5 @@ class Trainer {
         void addDisplayedData();
         void prepareEvaluation();
         void saveGeneration() const;
-        void loadSavedData(bool random_starting_weights);
         void deleteSavedData() const;
 };

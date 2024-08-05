@@ -67,7 +67,6 @@ class Polygon {
         bool intersectsPolygon(const Polygon &p) const;
 };
 
-//Generates a random double in the range [0, 1)
 double randomDouble(mt19937 &gen);
 
 double randomInRange(mt19937 &gen, double left, double right);

@@ -1,5 +1,9 @@
 #include "math_helper.h"
 
+/*
+This math class is the same as in Website/Scripts/math_helper.js, but with a few extra functions at the bottom of this file
+*/
+
 Vector::Vector(double x, double y) : x(x), y(y) { }
 
 Vector& Vector::operator+=(const Vector &v) {
@@ -295,19 +299,6 @@ bool Polygon::intersectsPolygon(const Polygon &p) const {
     return false;
 }
 
-double randomDouble(mt19937 &gen) {
-    return (double)gen() / mt19937::max();
-}
-
-double randomInRange(mt19937 &gen, double left, double right) {
-    return left + randomDouble(gen) * (right - left);
-}
-
-double randomInNormal(mt19937 &gen, double mean, double std) {
-    std::normal_distribution<double> distribution(mean, std);
-    return distribution(gen);
-}
-
 void wrap(Vector &v, int width, int height, bool wrap_x, bool wrap_y) {
     while (v.x >= width && wrap_x) {
         v.x -= width;
@@ -323,6 +314,23 @@ void wrap(Vector &v, int width, int height, bool wrap_x, bool wrap_y) {
     }
 }
 
+// Generates a random double in the range [0, 1) using a seeded random number generator
+double randomDouble(mt19937 &gen) {
+    return (double)gen() / mt19937::max();
+}
+
+// Generates a random double in the range [left, right) using a seeded random number generator
+double randomInRange(mt19937 &gen, double left, double right) {
+    return left + randomDouble(gen) * (right - left);
+}
+
+// Generates a random number in the distribution N(mean, std) using a seeded random number generator
+double randomInNormal(mt19937 &gen, double mean, double std) {
+    std::normal_distribution<double> distribution(mean, std);
+    return distribution(gen);
+}
+
+// Generates solutions for x given the form ax^2 + bx + c = 0
 vector<double> solveQuadratic(double a, double b, double c) {
     double discriminant = b * b - 4 * a * c;
     vector<double> result;

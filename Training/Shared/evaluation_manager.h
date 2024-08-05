@@ -4,6 +4,7 @@ constexpr const int MAX_EVALUATION_QUEUE_LENGTH = 100;
 constexpr const int EVALUATION_METRICS = 4;
 constexpr const char *EVALUATION_FLOW_SHARED_MEMORY_NAME = "/evaluation_flow_shared_memory";
 
+// The shared memory that manages the evaluation queue (name is misleading, it is actually a stack)
 struct EvaluationQueue {
     pthread_mutex_t request_lock, results_lock;
     int request_queue_len, results_queue_len;

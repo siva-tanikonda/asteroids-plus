@@ -13,7 +13,6 @@ struct RenderQueue;
 
 constexpr const int MAX_QUEUE_LENGTH = 100000;
 constexpr const int MAX_TEXT_LENGTH = 200;
-constexpr const int MAX_POLYGON_VERTICES = 20;
 constexpr const char *RENDERER_SHARED_MEMORY_NAME = "/renderer_shared_memory";
 
 enum RenderType { TEXT, FILLED_CIRCLE, CIRCLE, LINE, RECTANGLE, FILLED_RECTANGLE };
@@ -21,6 +20,7 @@ enum FontType { REGULAR, SMALL, TINY };
 enum TextAlignment { LEFT, RIGHT, MIDDLE };
 enum CursorType { POINTER, ARROW };
 
+// The structure of a request from the renderer owner to the manager thread
 struct RenderRequest {
     RenderType type;
     FontType font;
@@ -30,6 +30,7 @@ struct RenderRequest {
     uint8_t r, g, b, a;
 };
 
+// The shared memory description for the render queue
 struct RenderQueue {
     pthread_mutex_t lock;
     bool done_processing;
@@ -42,15 +43,15 @@ class Renderer {
         Renderer(const json &config);
         ~Renderer();
         bool beginProcessing();
-        void endProcessing();
+        void endProcessing(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
         bool beginRequest(int process_num);
         void endRequest();
-        void requestText(FontType font, const string &text, int x, int y, TextAlignment alignment, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-        void requestFilledCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-        void requestCircle(int x1, int y1, int radius, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-        void requestLine(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-        void requestRectangle(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-        void requestFilledRectangle(int x1, int y1, int x2, int y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+        void requestText(FontType font, const string &text, int x, int y, TextAlignment alignment, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+        void requestFilledCircle(int x1, int y1, int radius, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+        void requestCircle(int x1, int y1, int radius, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+        void requestLine(int x1, int y1, int x2, int y2, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+        void requestRectangle(int x1, int y1, int x2, int y2, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+        void requestFilledRectangle(int x1, int y1, int x2, int y2, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
         void setCursor(CursorType cursor);
         void setOwner(int process_num);
         int getOwner() const;

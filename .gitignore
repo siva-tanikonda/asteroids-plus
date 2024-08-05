@@ -2,4 +2,3 @@
 .vscode
 Training/Build
 Training/Data/*
-!Training/Data/save-1
