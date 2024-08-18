@@ -5,7 +5,6 @@
 namespace fs = std::filesystem;
 
 constexpr const int HISTOGRAM_BARS = 10;
-enum TRAINER_STATISTIC_DISPLAY { MEAN, STD };
 
 struct TrainerGenerationData;
 
@@ -21,7 +20,7 @@ struct TrainerGenerationStatistics {
 // Stores stage configuration (evaluation or training)
 struct TrainerStage {
     int seed, seed_count, trial_count, generations_count, carry_over_count, combination_count, memory;
-    double mutation_rate, reroll_mutation_rate, mutation_weight, softmax_weight, fitness_weights[EVALUATION_METRICS];
+    double mutation_rate, shift_mutation_rate, mutation_weight, softmax_weight, fitness_weights[EVALUATION_METRICS];
     pair<double, double> weight_ranges[C_LENGTH];
 };
 
@@ -50,10 +49,10 @@ class Trainer {
         vector<TrainerGenerationDisplayedData> displayed_data;
         vector<TrainerGenerationData*> data;
         bool old_click, done;
-        void renderProgressionGraph(Renderer *renderer, int x, int y, int width, int height, string x_axis, string y_axis, TRAINER_STATISTIC_DISPLAY statistic) const;
+        void renderProgressionGraph(Renderer *renderer, int x, int y, int width, int height, string x_axis, string y_axis) const;
         void renderHistogram(Renderer *renderer, double x, double y, double width, double height) const;
         void createNewGeneration();
-        void createFirstGeneration(bool random_starting_weights);
+        void createFirstGeneration(const json &training_config, bool random_starting_weights);
         void processStages(const json &stage_configs, const json &evaluation_config);
         bool progressGeneration();
         void performGenerationPostProcessing();
