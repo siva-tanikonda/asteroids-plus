@@ -22,7 +22,7 @@ Trainer::Trainer(const json &config) : generation_size(config["training_config"]
     // Loads each stage of the training configuration
     this->processStages(config["training_config"]["training_generations"], config["training_config"]["evaluation_generation"]);
     this->deleteSavedData();
-    this->createFirstGeneration(config["training_config"]["random_starting_weights"]);
+    this->createFirstGeneration(config["training_config"], config["training_config"]["random_starting_weights"]);
 }
 
 Trainer::~Trainer() {
@@ -135,8 +135,7 @@ void Trainer::render(Renderer *renderer, EventManager *event_manager) const {
         renderer->requestText(REGULAR, "Evaluation", Game::getWidth() / 3, Game::getHeight() - 100, MIDDLE, 255, 255, 255, 255);
     }
     // Render the graphs of the mean fitnesses over generations and the standard deviations over generations
-    this->renderProgressionGraph(renderer, Game::getWidth() - 300, 100, 200, 200, "Generation", "Mean Fitness", MEAN);
-    this->renderProgressionGraph(renderer, Game::getWidth() - 300, 400, 200, 200, "Generation", "STD Fitness", STD);
+    this->renderProgressionGraph(renderer, Game::getWidth() - 375, Game::getHeight() / 2 - 125, 250, 250, "Generation", "Fitness");
 }
 
 // Renders the histogram for the generation
@@ -156,35 +155,57 @@ void Trainer::renderHistogram(Renderer *renderer, double x, double y, double wid
 }
 
 // Render a graph to show statistics changes over generations
-void Trainer::renderProgressionGraph(Renderer *renderer, int x, int y, int width, int height, string x_axis, string y_axis, TRAINER_STATISTIC_DISPLAY statistic) const {
+void Trainer::renderProgressionGraph(Renderer *renderer, int x, int y, int width, int height, string x_axis, string y_axis) const {
     // Get the max value of the statistic
     double max_value = 1;
     int count = min(this->current_generation - 1, (int)this->displayed_data.size());
     for (int i = 0; i < min(this->current_generation - 1, (int)this->displayed_data.size()); i++) {
-        switch(statistic) {
-            case MEAN:
-                max_value = max(max_value, this->displayed_data[i].statistics.mean_fitness);
-                break;
-            case STD:
-                max_value = max(max_value, this->displayed_data[i].statistics.std_fitness);
-                break;
-        }
+        max_value = max(max_value, this->displayed_data[i].statistics.mean_fitness);
+        max_value = max(max_value, this->displayed_data[i].statistics.max_fitness);
+        max_value = max(max_value, this->displayed_data[i].statistics.min_fitness);
+        max_value = max(max_value, this->displayed_data[i].statistics.mean_fitness + this->displayed_data[i].statistics.std_fitness);
     }
     // Render the line plot to cover all data points
-    Vector previous_point(x, y + height);
+    Vector previous_mean(x, y + height);
+    Vector previous_min(x, y + height);
+    Vector previous_max(x, y + height);
+    Vector previous_pstd(x, y + height);
+    Vector previous_nstd(x, y + height);
+    vector<Vector> std_points;
+    std_points.emplace_back(x, y + height);
     for (int i = 0; i < this->current_generation - 1; i++) {
-        Vector point(x + (i + 1) * ((double)width / max(1, this->current_generation - 1)), y + height);
-        switch(statistic) {
-            case MEAN:
-                point.y -= max(0.0, (this->displayed_data[i].statistics.mean_fitness / max_value) * height);
-                break;
-            case STD:
-                point.y -= max(0.0, (this->displayed_data[i].statistics.std_fitness / max_value) * height);
-                break;
-        }
-        renderer->requestLine(previous_point.x, previous_point.y, point.x, point.y, 255, 255, 255, 255);
-        previous_point = point;
+        Vector mean_point(x + (i + 1) * ((double)width / max(1, this->current_generation - 1)), y + height);
+        Vector min_point(x + (i + 1) * ((double)width / max(1, this->current_generation - 1)), y + height);
+        Vector max_point(x + (i + 1) * ((double)width / max(1, this->current_generation - 1)), y + height);
+        Vector pstd_point(x + (i + 1) * ((double)width / max(1, this->current_generation - 1)), y + height);
+        Vector nstd_point(x + (i + 1) * ((double)width / max(1, this->current_generation - 1)), y + height);
+        min_point.y -= max(0.0, (this->displayed_data[i].statistics.min_fitness / max_value) * height);
+        renderer->requestLine(previous_min.x, previous_min.y, min_point.x, min_point.y, 120, 135, 235, 255);
+        previous_min = min_point;
+        max_point.y -= max(0.0, (this->displayed_data[i].statistics.max_fitness / max_value) * height);
+        renderer->requestLine(previous_max.x, previous_max.y, max_point.x, max_point.y, 235, 125, 120, 255);
+        previous_max = max_point;
+        mean_point.y -= max(0.0, (this->displayed_data[i].statistics.mean_fitness / max_value) * height);
+        renderer->requestLine(previous_mean.x, previous_mean.y, mean_point.x, mean_point.y, 255, 255, 255, 255);
+        previous_mean = mean_point;
+        pstd_point.y -= max(0.0, ((this->displayed_data[i].statistics.mean_fitness + this->displayed_data[i].statistics.std_fitness) / max_value) * height);
+        std_points.push_back(pstd_point);
+        previous_pstd = pstd_point;
+        nstd_point.y -= max(0.0, ((this->displayed_data[i].statistics.mean_fitness - this->displayed_data[i].statistics.std_fitness) / max_value) * height);
+        std_points.insert(std_points.begin(), nstd_point);
+        previous_nstd = nstd_point;
     }
+    // Render text to show what each line represents
+    renderer->requestText(TINY, "Mean", previous_mean.x + 5, previous_mean.y - 7, LEFT, 255, 255, 255, 255);
+    renderer->requestText(TINY, "Max", previous_max.x + 5, previous_max.y - 7, LEFT, 235, 125, 120, 255);
+    renderer->requestText(TINY, "Min", previous_min.x + 5, previous_min.y - 7, LEFT, 120, 135, 235, 255);
+    Vector meanpstd = std_points.back();
+    renderer->requestText(TINY, "Mean + STD", meanpstd.x + 5, meanpstd.y - 7, LEFT, 255, 255, 255, 255);
+    Vector meannstd = std_points[0];
+    renderer->requestText(TINY, "Mean - STD", meannstd.x + 5, meannstd.y - 7, LEFT, 255, 255, 255, 255);
+    // Render standard deviation range polygon
+    Polygon std_shape(std_points);
+    renderFilledPolygon(renderer, std_shape, Vector(), 255, 255, 255, 255 * 0.2);
     // Render axis names and axis labels
     renderer->requestLine(x, y, x, y + height, 255, 255, 255, 255);
     renderer->requestLine(x, y + height, x + width, y + height, 255, 255, 255, 255);
@@ -195,8 +216,12 @@ void Trainer::renderProgressionGraph(Renderer *renderer, int x, int y, int width
 }
 
 // Creates the first generation for training (Generation 1)
-void Trainer::createFirstGeneration(bool random_starting_weights) {
+void Trainer::createFirstGeneration(const json &training_config, bool random_starting_weights) {
     mt19937 gen(-this->stages[0].seed);
+    double default_c[C_LENGTH];
+    for (int i = 0; i < C_LENGTH; i++) {
+        default_c[i] = training_config["default_starting_weights"][i];
+    }
     for (int i = 0; i < this->generation_size; i++) {
         // Create the generation with random weights or with all 0-ed out weights
         TrainerGenerationData *new_data = new TrainerGenerationData();
@@ -204,7 +229,7 @@ void Trainer::createFirstGeneration(bool random_starting_weights) {
             if (random_starting_weights) {
                 new_data->c[j] = randomInRange(gen, this->stages[0].weight_ranges[j].first, this->stages[0].weight_ranges[j].second);
             } else {
-                new_data->c[j] = this->stages[0].weight_ranges[j].first;
+                new_data->c[j] = default_c[j];
             }
         }
         new_data->seeds_remaining = this->stages[0].trial_count;
@@ -223,15 +248,21 @@ void Trainer::createNewGeneration() {
             double fitness = calculateTrainerGenerationDataFitness(this->data[i]);
             fitness -= this->displayed_data.back().statistics.mean_fitness;
             fitness /= this->displayed_data.back().statistics.std_fitness;
-            // Create the softmax denominator with the z-scores of each fitness
-            softmax_sum += exp(this->stages[this->stage].softmax_weight * fitness);
+            // Create the softmax denominator with the z-scores of each fitness (only include agents that score at least average)
+            if (fitness >= 0) {
+                softmax_sum += exp(this->stages[this->stage].softmax_weight * fitness);
+            }
         }
         for (int i = 0; i < this->generation_size; i++) {
             double fitness = calculateTrainerGenerationDataFitness(this->data[i]);
             fitness -= this->displayed_data.back().statistics.mean_fitness;
             fitness /= this->displayed_data.back().statistics.std_fitness;
-            // State the probability of picking this agent based on the z-score of the fitness
-            distribution.push_back(exp(this->stages[this->stage].softmax_weight * fitness) / softmax_sum);
+            // State the probability of picking this agent based on the z-score of the fitness (0 for below-average agents)
+            if (fitness >= 0) {
+                distribution.push_back(exp(this->stages[this->stage].softmax_weight * fitness) / softmax_sum);
+            } else {
+                distribution.push_back(0);
+            }
         }
     } else {
         // If we have no variance, just define a uniform distribution to pick agents for recombination
@@ -270,15 +301,16 @@ void Trainer::createNewGeneration() {
             if (generated <= this->stages[this->stage].mutation_rate) {
                 // In this case, we want to mutate the gene in some way
                 generated = randomDouble(gen);
-                if (generated <= this->stages[this->stage].reroll_mutation_rate) {
+                if (generated <= this->stages[this->stage].shift_mutation_rate) {
                     // We want to randomly pick a value for this gene
-                    new_data->c[j] = randomInRange(gen, this->stages[this->stage].weight_ranges[j].first, this->stages[this->stage].weight_ranges[j].second);
+                    double range = this->stages[this->stage].weight_ranges[j].second - this->stages[this->stage].weight_ranges[j].first;
+                    new_data->c[j] += randomInNormal(gen, 0, this->stages[this->stage].mutation_weight) * range;
                 } else {
                     // We want to multiply this gene by some power of e
                     new_data->c[j] *= exp(randomInNormal(gen, 0, this->stages[this->stage].mutation_weight));
-                    new_data->c[j] = min(new_data->c[j], this->stages[this->stage].weight_ranges[j].second);
-                    new_data->c[j] = max(new_data->c[j], this->stages[this->stage].weight_ranges[j].first);
                 }
+                new_data->c[j] = min(new_data->c[j], this->stages[this->stage].weight_ranges[j].second);
+                new_data->c[j] = max(new_data->c[j], this->stages[this->stage].weight_ranges[j].first);
             }
         }
         // Add this new entity to the next generation
@@ -325,7 +357,7 @@ void Trainer::processStages(const json &stage_configs, const json &evaluation_co
         stage.combination_count = stage_config["combination_count"];
         stage.memory = stage_config["memory"];
         stage.mutation_rate = stage_config["mutation_rate"];
-        stage.reroll_mutation_rate = stage_config["reroll_mutation_rate"];
+        stage.shift_mutation_rate = stage_config["shift_mutation_rate"];
         stage.mutation_weight = stage_config["mutation_weight"];
         stage.softmax_weight = stage_config["softmax_weight"];
         for (int j = 0; j < EVALUATION_METRICS; j++) {
