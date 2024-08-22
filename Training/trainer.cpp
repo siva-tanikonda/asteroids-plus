@@ -1,24 +1,12 @@
 #include <climits>
 #include "trainer.h"
 
-// Calculates the net fitness value (including carry-over generation fitness) of a particular agent 
-double calculateTrainerGenerationDataFitness(const TrainerGenerationData *data) {
-    double fitness = 0;
-    for (double metric : data->metrics) {
-        fitness += metric;
-    }
-    fitness /= data->metrics.size();
-    return fitness;
-}
-
 // Compares the net fitness of two entities (returns true if the first fitness is greater than the second one)
 bool compareTrainerGenerationDataPointers(const TrainerGenerationData *data1, const TrainerGenerationData *data2) {
-    double fitness1 = calculateTrainerGenerationDataFitness(data1);
-    double fitness2 = calculateTrainerGenerationDataFitness(data2);
-    return fitness1 > fitness2;
+    return data1->fitness > data2->fitness;
 }
 
-Trainer::Trainer(const json &config) : generation_size(config["training_config"]["generation_size"]), current_generation(1), viewing_generation(1), stage(0), seed(0), evaluation_progress(0), evaluation_index(0), old_click(false), done(false), save(config["training_config"]["save"]) {
+Trainer::Trainer(const json &config) : generation_size(config["training_config"]["generation_size"]), current_generation(1), viewing_generation(1), stage(0), seed(0), evaluation_progress(0), evaluation_index(0), top_fitness(0), old_click(false), done(false), progressed_seed(true), save(config["training_config"]["save"]) {
     // Loads each stage of the training configuration
     this->processStages(config["training_config"]["training_generations"], config["training_config"]["evaluation_generation"]);
     this->deleteSavedData();
@@ -65,22 +53,22 @@ void Trainer::update(bool rendering, EvaluationManager *evaluation_manager, Even
             if (request_sent) {
                 // If we sent the request, we reduce the number of seeds remaining and if there are no more seeds left for the current agent, we go to evaluate the next agent
                 this->data[this->evaluation_index]->seeds_remaining--;
-                if (this->data[this->evaluation_index]->seeds_remaining == 0) {
+                while (this->evaluation_index < this->generation_size && this->data[this->evaluation_index]->seeds_remaining == 0) {
                     this->evaluation_index++;
                 }
             }
         }
         //Attempt to get the next result if there is one
-        double results[EVALUATION_METRICS];
-        int result_index = evaluation_manager->getResult(results);
+        double metrics[EVALUATION_METRICS];
+        int result_index = evaluation_manager->getResult(metrics);
         if (result_index != -1) {
             // If there is a result, we calculate the fitness metric for this generation and seed
-            double metric = 0;
+            double result = 0;
             for (int i = 0; i < EVALUATION_METRICS; i++) {
-                metric += this->stages[this->stage].fitness_weights[i] * results[i];
+                result += this->stages[this->stage].fitness_weights[i] * metrics[i];
             }
             // We add the metric to the list of metrics
-            this->data[result_index]->new_metrics.push_back(metric);
+            this->data[result_index]->trial_results.push_back(result);
             // We update our progress meter
             this->evaluation_progress++;
         }
@@ -163,22 +151,15 @@ void Trainer::renderProgressionGraph(Renderer *renderer, int x, int y, int width
         max_value = max(max_value, this->displayed_data[i].statistics.mean_fitness);
         max_value = max(max_value, this->displayed_data[i].statistics.max_fitness);
         max_value = max(max_value, this->displayed_data[i].statistics.min_fitness);
-        max_value = max(max_value, this->displayed_data[i].statistics.mean_fitness + this->displayed_data[i].statistics.std_fitness);
     }
     // Render the line plot to cover all data points
     Vector previous_mean(x, y + height);
     Vector previous_min(x, y + height);
     Vector previous_max(x, y + height);
-    Vector previous_pstd(x, y + height);
-    Vector previous_nstd(x, y + height);
-    vector<Vector> std_points;
-    std_points.emplace_back(x, y + height);
     for (int i = 0; i < this->current_generation - 1; i++) {
         Vector mean_point(x + (i + 1) * ((double)width / max(1, this->current_generation - 1)), y + height);
         Vector min_point(x + (i + 1) * ((double)width / max(1, this->current_generation - 1)), y + height);
         Vector max_point(x + (i + 1) * ((double)width / max(1, this->current_generation - 1)), y + height);
-        Vector pstd_point(x + (i + 1) * ((double)width / max(1, this->current_generation - 1)), y + height);
-        Vector nstd_point(x + (i + 1) * ((double)width / max(1, this->current_generation - 1)), y + height);
         min_point.y -= max(0.0, (this->displayed_data[i].statistics.min_fitness / max_value) * height);
         renderer->requestLine(previous_min.x, previous_min.y, min_point.x, min_point.y, 120, 135, 235, 255);
         previous_min = min_point;
@@ -188,24 +169,11 @@ void Trainer::renderProgressionGraph(Renderer *renderer, int x, int y, int width
         mean_point.y -= max(0.0, (this->displayed_data[i].statistics.mean_fitness / max_value) * height);
         renderer->requestLine(previous_mean.x, previous_mean.y, mean_point.x, mean_point.y, 255, 255, 255, 255);
         previous_mean = mean_point;
-        pstd_point.y -= max(0.0, ((this->displayed_data[i].statistics.mean_fitness + this->displayed_data[i].statistics.std_fitness) / max_value) * height);
-        std_points.push_back(pstd_point);
-        previous_pstd = pstd_point;
-        nstd_point.y -= max(0.0, ((this->displayed_data[i].statistics.mean_fitness - this->displayed_data[i].statistics.std_fitness) / max_value) * height);
-        std_points.insert(std_points.begin(), nstd_point);
-        previous_nstd = nstd_point;
     }
     // Render text to show what each line represents
     renderer->requestText(TINY, "Mean", previous_mean.x + 5, previous_mean.y - 7, LEFT, 255, 255, 255, 255);
     renderer->requestText(TINY, "Max", previous_max.x + 5, previous_max.y - 7, LEFT, 235, 125, 120, 255);
     renderer->requestText(TINY, "Min", previous_min.x + 5, previous_min.y - 7, LEFT, 120, 135, 235, 255);
-    Vector meanpstd = std_points.back();
-    renderer->requestText(TINY, "Mean + STD", meanpstd.x + 5, meanpstd.y - 7, LEFT, 255, 255, 255, 255);
-    Vector meannstd = std_points[0];
-    renderer->requestText(TINY, "Mean - STD", meannstd.x + 5, meannstd.y - 7, LEFT, 255, 255, 255, 255);
-    // Render standard deviation range polygon
-    Polygon std_shape(std_points);
-    renderFilledPolygon(renderer, std_shape, Vector(), 255, 255, 255, 255 * 0.2);
     // Render axis names and axis labels
     renderer->requestLine(x, y, x, y + height, 255, 255, 255, 255);
     renderer->requestLine(x, y + height, x + width, y + height, 255, 255, 255, 255);
@@ -238,31 +206,25 @@ void Trainer::createFirstGeneration(const json &training_config, bool random_sta
 }
 
 void Trainer::createNewGeneration() {
-    mt19937 gen(-this->seed);
+    mt19937 gen(this->current_generation);
     vector<TrainerGenerationData*> new_generation;
     vector<double> distribution;
     if (this->displayed_data.back().statistics.std_fitness > 0) {
         // If we have a non-zero variance
         double softmax_sum = 0;
         for (int i = 0; i < this->generation_size; i++) {
-            double fitness = calculateTrainerGenerationDataFitness(this->data[i]);
+            double fitness = this->data[i]->fitness;
             fitness -= this->displayed_data.back().statistics.mean_fitness;
             fitness /= this->displayed_data.back().statistics.std_fitness;
-            // Create the softmax denominator with the z-scores of each fitness (only include agents that score at least average)
-            if (fitness >= 0) {
-                softmax_sum += exp(this->stages[this->stage].softmax_weight * fitness);
-            }
+            // Create the softmax denominator with the z-scores of each fitness
+            softmax_sum += exp(this->stages[this->stage].softmax_weight * fitness);
         }
         for (int i = 0; i < this->generation_size; i++) {
-            double fitness = calculateTrainerGenerationDataFitness(this->data[i]);
+            double fitness = this->data[i]->fitness;
             fitness -= this->displayed_data.back().statistics.mean_fitness;
             fitness /= this->displayed_data.back().statistics.std_fitness;
-            // State the probability of picking this agent based on the z-score of the fitness (0 for below-average agents)
-            if (fitness >= 0) {
-                distribution.push_back(exp(this->stages[this->stage].softmax_weight * fitness) / softmax_sum);
-            } else {
-                distribution.push_back(0);
-            }
+            // State the probability of picking this agent based on the z-score of the fitness
+            distribution.push_back(exp(this->stages[this->stage].softmax_weight * fitness) / softmax_sum);
         }
     } else {
         // If we have no variance, just define a uniform distribution to pick agents for recombination
@@ -270,47 +232,46 @@ void Trainer::createNewGeneration() {
             distribution.push_back(1.0 / this->generation_size);
         }
     }
+    // If the difference between max and mean fitness is too low, then we increase mutation rate to encourage exploration
+    bool exploration_multiplier = (this->displayed_data.back().statistics.max_fitness - this->displayed_data.back().statistics.mean_fitness < this->stages[this->stage].exploration_threshold * this->displayed_data.back().statistics.std_fitness) ? this->stages[this->stage].exploration_multiplier : 1;
     // Create new agents 
     for (int i = 0; i < this->generation_size - this->stages[this->stage].carry_over_count; i++) {
         TrainerGenerationData *new_data = new TrainerGenerationData();
         new_data->seeds_remaining = this->stages[this->stage].trial_count;
-        for (int j = 0; j < C_LENGTH; j++) {
-            new_data->c[j] = 0;
-        }
         // Pick combination_count number of parents for the new agent
+        vector<int> parents;
+        vector<double> parent_distribution;
+        double parent_normalization = 0;
         for (int j = 0; j < this->stages[this->stage].combination_count; j++) {
-            double generated = randomDouble(gen);
-            double accumulated_sum = 0;
-            int index = 0;
-            for (int k = 0; k < this->generation_size - 1; k++) {
-                if (accumulated_sum + distribution[k] > generated) {
-                    break;
-                }
-                index++;
-                accumulated_sum += distribution[k];
-            }
-            for (int k = 0; k < C_LENGTH; k++) {
-                new_data->c[k] += this->data[index]->c[k];
-            }
+            int index = randomInDistribution(gen, distribution);
+            parents.push_back(index);
+            parent_distribution.push_back(distribution[index]);
+            parent_normalization += distribution[index];
+        }
+        for (int j = 0; j < this->stages[this->stage].combination_count; j++) {
+            parent_distribution[j] /= parent_normalization;
         }
         double generated;
-        for (int j = 0; j < C_LENGTH; j++) {
-            // Normalize combination of traits from parents
-            new_data->c[j] /= this->stages[this->stage].combination_count;
-            generated = randomDouble(gen);
-            if (generated <= this->stages[this->stage].mutation_rate) {
-                // In this case, we want to mutate the gene in some way
+        for (vector<int> &group : this->stages[this->stage].c_groups) {
+            // Pick a parent to get this trait from
+            int parent = parents[randomInDistribution(gen, parent_distribution)];
+            for (int index : group) {
+                new_data->c[index] = this->data[parent]->c[index];
                 generated = randomDouble(gen);
-                if (generated <= this->stages[this->stage].shift_mutation_rate) {
-                    // We want to randomly pick a value for this gene
-                    double range = this->stages[this->stage].weight_ranges[j].second - this->stages[this->stage].weight_ranges[j].first;
-                    new_data->c[j] += randomInNormal(gen, 0, this->stages[this->stage].mutation_weight) * range;
-                } else {
-                    // We want to multiply this gene by some power of e
-                    new_data->c[j] *= exp(randomInNormal(gen, 0, this->stages[this->stage].mutation_weight));
+                if (generated <= this->stages[this->stage].mutation_rate * exploration_multiplier) {
+                    // In this case, we want to mutate the gene in some way
+                    generated = randomDouble(gen);
+                    if (generated <= this->stages[this->stage].shift_mutation_rate) {
+                        // We want to randomly pick a value for this gene
+                        double range = this->stages[this->stage].weight_ranges[index].second - this->stages[this->stage].weight_ranges[index].first;
+                        new_data->c[index] += randomInNormal(gen, 0, this->stages[this->stage].mutation_weight) * range;
+                    } else {
+                        // We want to multiply this gene by some power of e
+                        new_data->c[index] *= exp(randomInNormal(gen, 0, this->stages[this->stage].mutation_weight));
+                    }
+                    new_data->c[index] = min(new_data->c[index], this->stages[this->stage].weight_ranges[index].second);
+                    new_data->c[index] = max(new_data->c[index], this->stages[this->stage].weight_ranges[index].first);
                 }
-                new_data->c[j] = min(new_data->c[j], this->stages[this->stage].weight_ranges[j].second);
-                new_data->c[j] = max(new_data->c[j], this->stages[this->stage].weight_ranges[j].first);
             }
         }
         // Add this new entity to the next generation
@@ -319,11 +280,13 @@ void Trainer::createNewGeneration() {
     // Pick some agents from the previous generation to just let live to this generation
     for (int i = 0; i < this->generation_size; i++) {
         if (i < this->stages[this->stage].carry_over_count) {
-            while (this->data[i]->metrics.size() >= this->stages[this->stage].memory) {
-                this->data[i]->metrics.erase(this->data[i]->metrics.begin());
+            this->data[i]->fitness = 0;
+            if (this->progressed_seed) {
+                this->data[i]->seeds_remaining = this->stages[this->stage].trial_count;
+                this->data[i]->trial_results.clear();
+            } else {
+                this->evaluation_progress += this->stages[this->stage].trial_count;
             }
-            this->data[i]->seeds_remaining = this->stages[this->stage].trial_count;
-            this->data[i]->new_metrics.clear();
             new_generation.push_back(this->data[i]);
         } else {
             // If the performance of this agent is sub-par we deallocate its memory
@@ -337,9 +300,9 @@ void Trainer::createNewGeneration() {
 // If we are entering the final "generation" (this is just the evaluation phase), then we just carry-over every agent
 void Trainer::prepareEvaluation() {
     for (int i = 0; i < this->generation_size; i++) {
-        this->data[i]->metrics.clear();
+        this->data[i]->fitness = 0;
         this->data[i]->seeds_remaining = this->stages[this->stage].trial_count;
-        this->data[i]->new_metrics.clear();
+        this->data[i]->trial_results.clear();
     }
 }
 
@@ -355,16 +318,24 @@ void Trainer::processStages(const json &stage_configs, const json &evaluation_co
         stage.generations_count = stage_config["generations_count"];
         stage.carry_over_count = stage_config["carry_over_count"];
         stage.combination_count = stage_config["combination_count"];
-        stage.memory = stage_config["memory"];
+        stage.catch_up_threshold = stage_config["catch_up_threshold"];
         stage.mutation_rate = stage_config["mutation_rate"];
         stage.shift_mutation_rate = stage_config["shift_mutation_rate"];
         stage.mutation_weight = stage_config["mutation_weight"];
         stage.softmax_weight = stage_config["softmax_weight"];
+        stage.exploration_threshold = stage_config["exploration_threshold"];
+        stage.exploration_multiplier = stage_config["exploration_multiplier"];
         for (int j = 0; j < EVALUATION_METRICS; j++) {
             stage.fitness_weights[j] = stage_config["fitness_weights"][j];
         }
         for (int j = 0; j < C_LENGTH; j++) {
             stage.weight_ranges[j] = static_cast<pair<double, double>>(make_pair(stage_config["weight_ranges"][j][0], stage_config["weight_ranges"][j][1]));
+        }
+        for (int j = 0; j < stage_config["c_groups"].size(); j++) {
+            stage.c_groups.push_back(vector<int>());
+            for (int k = 0; k < stage_config["c_groups"][j].size(); k++) {
+                stage.c_groups[j].push_back(stage_config["c_groups"][j][k]);
+            }
         }
         this->stages.push_back(stage);
     }
@@ -384,6 +355,7 @@ void Trainer::processStages(const json &stage_configs, const json &evaluation_co
 // Progresses to the next generation (and updates the viewing_generation too) and updates the stage if necessary
 bool Trainer::progressGeneration() {
     // If we are looking at the latest generation, we progress to the next generation
+    this->progressed_seed = true;
     if (this->current_generation == this->viewing_generation) {
         this->viewing_generation++;
     }
@@ -408,9 +380,15 @@ bool Trainer::progressGeneration() {
         // If we are in a new stage, set the seed to the first seed of that generation
         this->stage = new_stage;
         this->seed = this->stages[new_stage].seed;
+        this->top_fitness = 0;
     } else {
         // If we haven't changed our stage, then just progress the seed
-        this->seed = this->stages[this->stage].seed + (this->seed - this->stages[this->stage].seed + 1) % this->stages[this->stage].seed_count;
+        if (this->top_fitness - this->displayed_data.back().statistics.max_fitness <= this->displayed_data.back().statistics.std_fitness * this->stages[this->stage].catch_up_threshold) {
+            this->seed = this->stages[this->stage].seed + (this->seed - this->stages[this->stage].seed + 1) % this->stages[this->stage].seed_count;
+        } else {
+            this->progressed_seed = false;
+        }
+        this->top_fitness = max(this->top_fitness, this->displayed_data.back().statistics.max_fitness);
     }
     // Reset evaluation progress to prepare for the next generation
     this->evaluation_progress = 0;
@@ -422,13 +400,12 @@ bool Trainer::progressGeneration() {
 void Trainer::performGenerationPostProcessing() {
     for (TrainerGenerationData *generation_data : this->data) {
         // We sort the new metrics to avoid issues with floating point addition giving different results based on the order of evaluation completion (so we have deterministic output based on training seeds)
-        sort(generation_data->new_metrics.begin(), generation_data->new_metrics.end());
-        // Add all metrics and average them out
-        double metric_sum = 0;
-        for (double metric : generation_data->new_metrics) {
-            metric_sum += metric;
+        sort(generation_data->trial_results.begin(), generation_data->trial_results.end());
+        // Add all results and average them out
+        for (double result : generation_data->trial_results) {
+            generation_data->fitness += result;
         }
-        generation_data->metrics.push_back(metric_sum / this->stages[this->stage].trial_count);
+        generation_data->fitness /= generation_data->trial_results.size();
     }
 }
 
@@ -442,7 +419,7 @@ void Trainer::addDisplayedData() {
     generation_displayed_data.statistics.max_fitness = DBL_MIN;
     generation_displayed_data.statistics.median_fitness = generation_displayed_data.statistics.mean_fitness = generation_displayed_data.statistics.std_fitness = 0;
     for (int i = 0; i < this->generation_size; i++) {
-        double fitness = calculateTrainerGenerationDataFitness(this->data[i]);
+        double fitness = this->data[i]->fitness;
         generation_displayed_data.statistics.min_fitness = min(generation_displayed_data.statistics.min_fitness, fitness);
         generation_displayed_data.statistics.max_fitness = max(generation_displayed_data.statistics.max_fitness, fitness);
         generation_displayed_data.statistics.mean_fitness += fitness;
@@ -461,7 +438,7 @@ void Trainer::addDisplayedData() {
     }
     fill(generation_displayed_data.histogram_bars, generation_displayed_data.histogram_bars + HISTOGRAM_BARS, 0);
     for (int i = 0; i < this->generation_size; i++) {
-        double fitness = calculateTrainerGenerationDataFitness(this->data[i]);
+        double fitness = this->data[i]->fitness;
         int histogram_bar = (int)floor((fitness - generation_displayed_data.statistics.min_fitness) / histogram_bar_length);
         histogram_bar = min(histogram_bar, HISTOGRAM_BARS - 1);
         histogram_bar = max(histogram_bar, 0);
@@ -499,7 +476,7 @@ void Trainer::saveGeneration() const {
     for (int i = 0; i < this->generation_size; i++) {
         json output_agent;
         output_agent["c"] = this->data[i]->c;
-        output_agent["metrics"] = this->data[i]->metrics;
+        output_agent["fitness"] = this->data[i]->fitness;
         output_data["data"][i] = output_agent;
     }
     // State the file name and save by dumping JSON into folder to read later (through this application or through file viewer)

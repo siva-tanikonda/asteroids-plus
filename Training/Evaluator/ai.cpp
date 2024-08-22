@@ -130,7 +130,7 @@ vector<double> AI::calculateDangerLevels(const AIDangerData &danger) {
             double ship_velocity_term = max(0.0, p.comp(this->ship.velocity));
             result += this->c[6] * exp(this->c[7] * ship_velocity_term);
             ship_velocity_term = max(0.0, -p.comp(this->ship.velocity));
-            result += this->c[8] * exp(this->c[9] * ship_velocity_term);
+            result -= this->c[8] * exp(this->c[9] * ship_velocity_term);
             Vector ship_direction(cos(this->ship.angle), -sin(this->ship.angle));
             double ship_direction_term = max(0.0, p.comp(ship_direction));
             result += this->c[10] * exp(this->c[11] * ship_direction_term);
