@@ -73,6 +73,8 @@ double randomInRange(mt19937 &gen, double left, double right);
 
 double randomInNormal(mt19937 &gen, double mean, double std);
 
+int randomInDistribution(mt19937 &gen, vector<double> distribution);
+
 void wrap(Vector &v, int width, int height, bool wrap_x = true, bool wrap_y = true);
 
 vector<double> solveQuadratic(double a, double b, double c);

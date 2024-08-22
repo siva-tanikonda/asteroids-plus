@@ -330,6 +330,19 @@ double randomInNormal(mt19937 &gen, double mean, double std) {
     return distribution(gen);
 }
 
+// Generates a random integer within [0, size of weights) based on the weights provided
+int randomInDistribution(mt19937 &gen, vector<double> distribution) {
+    double generated = randomDouble(gen);
+    double sum = 0;
+    for (int i = 0; i < distribution.size(); i++) {
+        if (sum + distribution[i] > generated) {
+            return i;
+        }
+        sum += distribution[i];
+    }
+    return distribution.size();
+}
+
 // Generates solutions for x given the form ax^2 + bx + c = 0
 vector<double> solveQuadratic(double a, double b, double c) {
     double discriminant = b * b - 4 * a * c;

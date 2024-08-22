@@ -698,7 +698,7 @@ void Game::analyzeGameConfiguration(json &config) {
     Saucer::analyzeSaucerConfigurations(config);
 }
 
-Game::Game(const json &config, int seed) : ship(config), wave(0), score(0), extra_lives(0), saucer_cooldown(0), gen1(seed), gen2(INT_MAX - seed), time(0) {
+Game::Game(const json &config, int seed) : ship(config), wave(0), score(0), extra_lives(0), saucer_cooldown(0), gen1(seed), gen2(-seed), time(0) {
     this->extra_life_point_value = config["game_config"]["game_extra_life_point_value"];
     this->asteroid_point_value = config["game_config"]["game_asteroid_point_value"];
     this->saucer_point_value = config["game_config"]["game_saucer_point_value"];
