@@ -31,20 +31,6 @@ struct AIDangerData {
     bool entered_x, entered_y;
 };
 
-class Bullet {
-    public:
-        Vector position, velocity;
-        double life, radius;
-        bool dead;
-        Bullet(const json &config, Vector position, Vector velocity, double life);
-        void update(double delay);
-        void render(Renderer *renderer) const;
-        bool checkAsteroidCollision(const json &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid);
-        bool checkSaucerCollision(Saucer *saucer);
-    private:
-        void renderBullet(Renderer *renderer, Vector offset) const;
-};
-
 class ObjectWithId {
     public:
         int id;
@@ -57,6 +43,20 @@ class ObjectId {
         int id;
         ObjectId();
         int get(ObjectWithId *obj);
+};
+
+class Bullet {
+    public:
+        Vector position, velocity;
+        double life, radius;
+        bool dead;
+        Bullet(const json &config, Vector position, Vector velocity, double life);
+        void update(double delay);
+        void render(Renderer *renderer) const;
+        bool checkAsteroidCollision(const json &config, vector<Asteroid*> *split_asteroids, int wave, Asteroid *asteroid);
+        bool checkSaucerCollision(Saucer *saucer);
+    private:
+        void renderBullet(Renderer *renderer, Vector offset) const;
 };
 
 class Asteroid : public ObjectWithId {

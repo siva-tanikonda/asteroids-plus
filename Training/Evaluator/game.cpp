@@ -360,7 +360,7 @@ Vector Saucer::bestFireDirection(const Ship &ship) const {
             if (i == 0 && j == 0) {
                 continue;
             }
-            Vector shifted_position = this->position + Vector(horizontal[i], vertical[i]);
+            Vector shifted_position = this->position + Vector(horizontal[i], vertical[j]);
             Vector choice = ship.position - shifted_position;
             if (choice.mag() < best.mag()) {
                 best = choice;

@@ -124,7 +124,7 @@ class AIDebug {
 
     //Draws the flee values (the importance of how much we have to move in a certain direction for the AI)
     static drawFleeValues(ship) {
-        if (game.getTitleScreen() || game.getShipDead()) {
+        if (game.getTitleScreen() || game.isShipDead()) {
             return;
         }
         ctx.strokeStyle = "#d28cf0";
@@ -196,7 +196,7 @@ class AIDebug {
 
     //Draws the nudge values (the nudges added by different directions onto certain directions)
     static drawNudgeValues(ship) {
-        if (game.getTitleScreen() || game.getShipDead()) {
+        if (game.getTitleScreen() || game.isShipDead()) {
             return;
         }
         ctx.strokeStyle = "#74f3f7";
@@ -222,15 +222,7 @@ class AIDebug {
         ctx.moveTo(scale_flee, 0);
         ctx.lineTo(scale_flee - 5, 0 + 5);
         ctx.stroke();
-        scale_flee = Math.min(ai.nudge_values[3] * 75, 75);
         ctx.rotate(-Math.PI / 2);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(scale_flee, 0);
-        ctx.lineTo(scale_flee - 5, 0 - 5);
-        ctx.moveTo(scale_flee, 0);
-        ctx.lineTo(scale_flee - 5, 0 + 5);
-        ctx.stroke();
         scale_flee = Math.min(ai.nudge_values[1] * 75, 75);
         ctx.rotate(-Math.PI / 2);
         ctx.beginPath();
@@ -254,11 +246,7 @@ class AIDebug {
         text = ai.nudge_values[0].toFixed(1);
         text_size = ctx.measureText(text);
         ctx.fillText(text, text_position.x - text_size.width / 2, text_position.y);
-        text_position.rotate(Math.PI / 2, new Vector());
-        text = ai.nudge_values[3].toFixed(1);
-        text_size = ctx.measureText(text);
-        ctx.fillText(text, text_position.x - text_size.width / 2, text_position.y);
-        text_position.rotate(Math.PI / 2, new Vector());
+        text_position.rotate(Math.PI, new Vector());
         text = ai.nudge_values[1].toFixed(1);
         text_size = ctx.measureText(text);
         ctx.fillText(text, text_position.x - text_size.width / 2, text_position.y);
@@ -279,13 +267,13 @@ class AIDebug {
 
     //Draws the minimum fire range of the ship
     static drawTargetMinDistance(ship) {
-        if (game.getTitleScreen() || game.getShipDead()) {
+        if (game.getTitleScreen() || game.isShipDead()) {
             return;
         }
         ctx.fillStyle = "#f59445";
         ctx.globalAlpha = 0.1;
         ctx.beginPath();
-        ctx.arc(ship.position.x, ship.position.y, ai.C[26], 0, 2 * Math.PI);
+        ctx.arc(ship.position.x, ship.position.y, ai.c[26], 0, 2 * Math.PI);
         ctx.fill();
         ctx.globalAlpha = 1.0;
     }
@@ -296,27 +284,6 @@ class AIDebug {
         ctx.fillStyle = "#f59445";
         const size = ctx.measureText("X");
         ctx.fillText("X", marker.position.x - size.width / 2, marker.position.y + 8);
-    }
-
-    //Draws status of the AI
-    static drawAIData() {
-        let status;
-        if (ai.in_danger) {
-            status = "Fleeing";
-            ctx.fillStyle = "#d28cf0";
-        }
-        else {
-            status = "Aiming";
-            ctx.fillStyle = "#f59445";
-        }
-        ctx.font = "400 15px Roboto Mono";
-        const text = "AI Mode: " + status;
-        const text_size = ctx.measureText(text);
-        if (settings.debug.show_game_data) {
-            ctx.fillText(text, canvas_bounds.width - text_size.width - 10, 160);
-        } else {
-            ctx.fillText(text, canvas_bounds.width - text_size.width - 10, 20);
-        }
     }
 
     //Draws the crosshair of the AI

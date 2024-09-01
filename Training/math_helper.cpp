@@ -319,7 +319,6 @@ double randomDouble(mt19937 &gen) {
     return (double)gen() / mt19937::max();
 }
 
-// Generates a random double in the range [left, right) using a seeded random number generator
 double randomInRange(mt19937 &gen, double left, double right) {
     return left + randomDouble(gen) * (right - left);
 }
@@ -343,7 +342,6 @@ int randomInDistribution(mt19937 &gen, vector<double> distribution) {
     return distribution.size();
 }
 
-// Generates solutions for x given the form ax^2 + bx + c = 0
 vector<double> solveQuadratic(double a, double b, double c) {
     double discriminant = b * b - 4 * a * c;
     vector<double> result;
