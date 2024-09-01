@@ -5,8 +5,6 @@ You can play the game for yourself and see the observe an AI trained by the algo
 
 *Note: The amount of asteroids on-screen scales with the resolution of the game window, so your results may vary from the training results. In addition, the game-speed variable doesn't change the rate at which the AI updates its decision, which is intentional and is another way of stress-testing the AI.*
 ### Using the Trainer
-#### Install Node.js
-You can install this at [nodejs.org](https://nodejs.org/).
 #### Install Packages
 You need to install C++, SDL2, and the nlohmann JSON library
 #### Run Trainer
