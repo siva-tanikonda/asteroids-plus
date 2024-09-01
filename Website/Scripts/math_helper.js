@@ -380,7 +380,7 @@ function wrap(v, wrap_x = true, wrap_y = true) {
     }
 }
 
-//Solves a quadratic and gives a list of solutions
+// Generates solutions for x given the form ax^2 + bx + c = 0
 function solveQuadratic(a, b, c) {
     let discriminant = b ** 2 - 4 * a * c;
     if (discriminant < 0) {
@@ -394,17 +394,4 @@ function solveQuadratic(a, b, c) {
         }
         return result;
     }
-}
-
-//Sample from a normal distribution
-function sampleNormalDistribution(mean, std) {
-    let inc_high = 1 - Math.random();
-    let inc_low = Math.random();
-    let z = Math.sqrt(-2 * Math.log(inc_high)) * Math.cos(2 * Math.PI * inc_low);
-    return mean + z * std;
-}
-
-//Sample from an exponential distribution
-function sampleExponentialDistribution(lambda) {
-    return -Math.log(1 - Math.random()) / lambda;
 }

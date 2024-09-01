@@ -1,7 +1,21 @@
-//Virtual ship for AI to use for calculations
-class VirtualShip {
+const C_LENGTH = 34;
 
-    constructor(ship) {
+//Allows us to just run a function in the wrapping system
+function runInWrap(action) {
+    const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
+    const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
+    for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+            const offset = new Vector(horizontal[i], vertical[j]);
+            action(offset);
+        }
+    }
+}
+
+//Virtual ship for AI to use for calculations
+class AIShip {
+
+    constructor(ship, target_safety_radius) {
         this.position = ship.position.copy();
         this.angle = ship.angle;
         this.width = ship.width;
@@ -12,103 +26,83 @@ class VirtualShip {
         this.velocity = ship.velocity.copy();
         this.rotation_speed = ship.rotation_speed;
         this.acceleration = ship.acceleration;
-        this.size = AI.danger_radius[1];
+        this.size = AI.DANGER_RADIUS[1];
+        this.lives = ship.lives;
+        this.target_safety_radius = target_safety_radius;
+        this.teleport_buffer = ship.teleport_buffer;
+        this.flee_values = [ -1, -1, -1, -1 ];
+        this.nudge_values = [ -1, -1, -1 ];
     }
     
 }
 
 //Danger class for AI to analyze dangers
-class Danger {
+class AIDanger {
 
-    constructor(item, size_index) {
-        this.size = AI.danger_radius[size_index];
-        this.position = item.position.copy();
-        this.velocity = item.velocity.copy();
-        this.danger_levels = ai.calculateDanger(this);
+    constructor(danger, size_index, danger_levels) {
+        this.size = AI.DANGER_RADIUS[size_index];
+        this.position = danger.position.copy();
+        this.velocity = danger.velocity.copy();
+        this.danger_levels = structuredClone(danger_levels);
+        this.entered_x = danger.entered_x;
+        this.entered_y = danger.entered_y;
     }
 
 }
 
 //Target class for AI to use for targeting
-class Target {
+class AITarget {
 
-    constructor(item, size_index) {
-        this.position = item.position.copy();
+    constructor(target, size_index, size) {
+        this.position = target.position.copy();
         this.size_index = size_index;
-        this.size = ai.C[29 + this.size_index];
-        this.pessimistic_size = AI.pessimistic_radius[this.size_index];
-        this.velocity = item.velocity.copy();
-        this.invincibility = item.invincibility;
-        if (this.size_index == 0 || this.size_index == 1) {
-            ai.size_groups[this.size_index]++;
-        }
-        this.id = item.id;
+        this.size = size;
+        this.pessimistic_size = AI.PESSIMISTIC_RADIUS[size_index];
+        this.velocity = target.velocity.copy();
+        this.invincibility = target.invincibility;
+        this.id = target.id;
+        this.entered_x = target.entered_x;
+        this.entered_y = target.entered_y;
     }
 
 }
 
 //Marker class for AI to track targets it has shot
-class Marker {
+class AIMarker {
 
-    constructor(min_time, target) {
-        this.life = min_time;
-        this.id = target.id;
+    constructor(target, life) {
         this.position = target.position.copy();
+        this.life = life;
+        this.id = target.id;
+        this.size_index = target.size_index;
     }
 
 }
 
 //Crosshair class for AI to track target it is aiming
-class Crosshair {
+class AICrosshair {
 
-    constructor(id, position, angle) {
+    constructor(id, angle, ship_rotation_speed, position) {
+        this.position = position.copy();
         this.id = id;
         this.angle = angle;
-        this.life = Math.PI / ai.ship.rotation_speed;
-        this.position = position.copy();
+        this.life = Math.PI / ship_rotation_speed;
     }
 
-}
-
-//Allows us to just run a function in the wrapping system
-function runInWrap(action) {
-    const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
-    const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-            action(new Vector(horizontal[i], vertical[j]));
-        }
-    }
-}
-
-//Allows us to find the min/max of a function within the border wrapping system
-function optimizeInWrap(func, cmp) {
-    const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
-    const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
-    let best = null;
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-            const value = func(new Vector(horizontal[i], vertical[j]));
-            if (cmp(best, value)) {
-                best = value;
-            }
-        }
-    }
-    return best;
 }
 
 class AI {
 
     //AI constants (unrelated to C)
-    static danger_radius = [ 0, 18, 14, 34, 53, 60, 70 ];
-    static pessimistic_radius = [ 14, 34, 53, 27, 32 ];
-    static rotation_precision = 2;
-    static random_walk_speed_limit = 1;
-    static random_walk_rotation_probability = 0.1;
-    static floating_point_aim_compensation = 2.5;
+    static DANGER_RADIUS = [ 0, 18, 14, 34, 53, 60, 70 ];
+    static PESSIMISTIC_RADIUS = [ 14, 34, 53, 27, 32 ];
+    static ROTATION_PRECISION = 2;
+    static RANDOM_WALK_SPEED_LIMIT = 1;
+    static RANDOM_WALK_ROTATION_PROBABILITY = 0.1;
+    static FLOATING_POINT_COMPENSATION = 2.5;
 
     //Constructor
-    constructor(C) {
+    constructor(c, ship) {
         //Control choices of the AI
         this.controls = {
             left: false,
@@ -117,49 +111,50 @@ class AI {
             fire: false
         };
         //These are constants (that are meant to be optimized through a training algorithm)
-        this.C = C;
+        this.c = c;
         //Variables for the AI
         this.max_danger = 0;
         this.dangers = [];
         this.targets = [];
         this.markers = [];
         this.crosshair = null;
-        this.ship = null;
         this.flee_values = [ 0, 0, 0, 0 ];
-        this.nudge_values = [ 0, 0, 0, 0 ];
+        this.nudge_values = [ 0, 0, 0 ];
         this.size_groups = [ 0, 0 ];
+        this.ship = new AIShip(ship, c[26]);
     }
 
     //Calculates the danger value of a danger
-    calculateDanger(danger) {
+    calculateDangerLevels(danger) {
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
         const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         let results = [];
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
-                let result = 0;
-                const p = Vector.sub(Vector.add(danger.position, new Vector(horizontal[i], vertical[j])), this.ship.position);
+                let result = 0.0;
+                const offset = new Vector(horizontal[i], vertical[j]);
+                const p = Vector.sub(Vector.add(danger.position, offset), this.ship.position);
                 //Add danger velocity term
                 let danger_velocity_term = Math.max(0, -p.comp(danger.velocity));
-                result += this.C[2] * (Math.E ** (danger_velocity_term * this.C[3]));
+                result += this.c[2] * (danger_velocity_term ** Math.round(this.c[3]));
                 danger_velocity_term = Math.max(0, p.comp(danger.velocity));
-                result -= this.C[4] * (Math.E ** (danger_velocity_term * this.C[5]));
+                result -= this.c[4] * (danger_velocity_term ** Math.round(this.c[5]));
                 //Add ship velocity term
                 let ship_velocity_term = Math.max(0, p.comp(this.ship.velocity));
-                result += this.C[6] * (Math.E ** (ship_velocity_term * this.C[7]));
+                result += this.c[6] * (ship_velocity_term ** Math.round(this.c[7]));
                 ship_velocity_term = Math.max(0, -p.comp(this.ship.velocity));
-                result -= this.C[8] * (Math.E ** (ship_velocity_term * this.C[9]));
+                result -= this.c[8] * (ship_velocity_term ** Math.round(this.c[9]));
                 //Add ship direction term
                 let ship_direction_term = new Vector(Math.cos(this.ship.angle), -Math.sin(this.ship.angle));
                 ship_direction_term = Math.max(0, p.comp(ship_direction_term)); 
-                result += this.C[10] * (Math.E ** (ship_direction_term * this.C[11]));
+                result += this.c[10] * (ship_direction_term ** Math.round(this.c[11]));
                 ship_direction_term = new Vector(Math.cos(this.ship.angle), -Math.sin(this.ship.angle));
                 ship_direction_term = Math.max(0, -p.comp(ship_direction_term)); 
-                result -= this.C[12] * (Math.E ** (ship_direction_term * this.C[13]));
+                result -= this.c[12] * (ship_direction_term ** Math.round(this.c[13]));
                 //Add distance term
-                let distance_term = Math.max(0, p.mag() - this.ship.size - danger.size);
-                result += this.C[1];
-                result *= Math.E ** (-distance_term * this.C[0]);
+                let distance_term = 1 / Math.max(1, p.mag() - this.ship.size - danger.size);
+                result += this.c[1];
+                result *= distance_term ** Math.round(this.c[0]);
                 result = Math.max(0, result);
                 this.max_danger = Math.max(this.max_danger, result);
                 results.push(result);
@@ -171,35 +166,46 @@ class AI {
     //Generates all virtual entities to use for the game
     generateVirtualEntities() {
         if (!game.getTitleScreen()) {
-            this.ship = new VirtualShip(game.getShip());
+            this.ship = new AIShip(game.getAIShipData(), this.c[26]);
         }
         this.dangers = [];
         this.targets = [];
         this.max_danger = 0;
         this.flee_values = [ 0, 0, 0, 0 ];
-        this.nudge_values = [ 0, 0, 0, 0 ];
+        this.nudge_values = [ 0, 0, 0 ];
         this.size_groups = [ 0, 0 ];
-        let asteroids = game.getAsteroids();
-        for (let i = 0; i < asteroids.length; i++) {
-            this.dangers.push(new Danger(asteroids[i], 2 + asteroids[i].size));
-            this.targets.push(new Target(asteroids[i], asteroids[i].size));
+        let asteroids_data = game.getAIAsteroidsData();
+        for (let i = 0; i < asteroids_data.length; i++) {
+            if (asteroids_data[i].size == 0 || asteroids_data[i].size == 1) {
+                this.size_groups[asteroids_data[i].size]++;
+            }
+            const danger_levels = this.calculateDangerLevels(asteroids_data[i]);
+            this.dangers.push(new AIDanger(asteroids_data[i], 2 + asteroids_data[i].size, danger_levels));
+            this.targets.push(new AITarget(asteroids_data[i], asteroids_data[i].size, this.c[29 + asteroids_data[i].size]));
         }
-        let saucers = game.getSaucers();
-        for (let i = 0; i < saucers.length; i++) {
-            this.dangers.push(new Danger(saucers[i], 5 + saucers[i].size));
-            this.targets.push(new Target(saucers[i], 3 + saucers[i].size));
+        let saucers_data = game.getAISaucersData();
+        for (let i = 0; i < saucers_data.length; i++) {
+            const danger_levels = this.calculateDangerLevels(saucers_data[i]);
+            this.dangers.push(new AIDanger(saucers_data[i], 5 + saucers_data[i].size, danger_levels));
+            this.targets.push(new AITarget(saucers_data[i], 3 + saucers_data[i].size, this.c[32 + saucers_data[i].size]));
         }
-        let saucer_bullets = game.getSaucerBullets();
-        for (let i = 0; i < saucer_bullets.length; i++) {
-            this.dangers.push(new Danger(saucer_bullets[i], 0));
+        let saucer_bullets_data = game.getAISaucerBulletsData();
+        for (let i = 0; i < saucer_bullets_data.length; i++) {
+            const danger_levels = this.calculateDangerLevels(saucer_bullets_data[i]);
+            this.dangers.push(new AIDanger(saucer_bullets_data[i], 0, danger_levels));
         }
-        this.getFleeAndNudgeValues();
+        for (let i = 0; i < this.markers.length; i++) {
+            if (this.markers[i].size_index == 2) {
+                this.size_groups[1] += 2;
+            } else if (this.markers[i].size_index == 1) {
+                this.size_groups[0] += 2;
+                this.size_groups[1]--;
+            }
+        }
     }
 
     //Creates flee values
-    getFleeAndNudgeValues() {
-        this.flee_values = [ 0, 0, 0, 0 ];
-        this.nudge_values = [ 0, 0, 0, 0 ];
+    calculateFleeAndNudgeValues() {
         const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
         const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         for (let k = 0; k < this.dangers.length; k++) {
@@ -208,34 +214,38 @@ class AI {
                     if (this.dangers[k].danger_levels[i * 3 + j] < 1) {
                         continue;
                     }
-                    const p = Vector.sub(this.ship.position, Vector.add(this.dangers[k].position, new Vector(horizontal[i], vertical[j])));
+                    const offset = new Vector(horizontal[i], vertical[j]);
+                    const p = Vector.sub(this.ship.position, Vector.add(this.dangers[k].position, offset));
                     p.normalize();
                     p.mul(this.dangers[k].danger_levels[i * 3 + j]);
                     p.rotate(-this.ship.angle, new Vector());
                     if (p.y < 0) {
-                        this.flee_values[0] = Math.max(this.flee_values[0], this.C[14] * (Math.E ** (-p.y * this.C[15])));
+                        this.flee_values[0] = Math.max(this.flee_values[0], this.c[14] * ((-p.y) ** Math.round(this.c[15])));
                     } else {
-                        this.flee_values[1] = Math.max(this.flee_values[1], this.C[14] * (Math.E ** (p.y * this.C[15])));
+                        this.flee_values[1] = Math.max(this.flee_values[1], this.c[14] * (p.y ** Math.round(this.c[15])));
                     }
-                    this.nudge_values[2] = Math.max(this.nudge_values[2], this.C[22] * (Math.E ** (Math.abs(p.y) * this.C[23])));
+                    this.nudge_values[2] = Math.max(this.nudge_values[2], this.c[24] * (Math.abs(p.y) * Math.round(this.c[25])));
                     if (p.x > 0) {
-                        this.flee_values[2] = Math.max(this.flee_values[2], this.C[16] * (Math.E ** (p.x * this.C[17])));
-                        this.nudge_values[0] = Math.max(this.nudge_values[0], this.C[24] * (Math.E ** (p.x * this.C[25])));
-                        this.nudge_values[1] = Math.max(this.nudge_values[1], this.C[24] * (Math.E ** (p.x * this.C[25])));
+                        this.flee_values[2] = Math.max(this.flee_values[2], this.c[16] * (p.x ** Math.round(this.c[17])));
+                        this.nudge_values[0] = Math.max(this.nudge_values[0], this.c[22] * (p.x ** Math.round(this.c[23])));
+                        this.nudge_values[1] = Math.max(this.nudge_values[1], this.c[22] * (p.x ** Math.round(this.c[23])));
                     } else {
                         p.x *= -1;
-                        this.flee_values[3] = Math.max(this.flee_values[3], this.C[18] * (Math.E ** (p.x * this.C[19])));
-                        this.nudge_values[0] = Math.max(this.nudge_values[0], this.C[20] * (Math.E ** (p.x * this.C[21])));
-                        this.nudge_values[1] = Math.max(this.nudge_values[1], this.C[20] * (Math.E ** (p.x * this.C[21])));
+                        this.flee_values[3] = Math.max(this.flee_values[3], this.c[18] * (p.x ** Math.round(this.c[19])));
+                        this.nudge_values[0] = Math.max(this.nudge_values[0], this.c[20] * (p.x ** Math.round(this.c[21])));
+                        this.nudge_values[1] = Math.max(this.nudge_values[1], this.c[20] * (p.x ** Math.round(this.c[21])));
                     }
                 }
             }
         }
+        this.ship.flee_values = structuredClone(this.flee_values);
+        this.ship.nudge_values = structuredClone(this.nudge_values);
     }
 
     //Fleeing strategy
     manageFleeing() {
         this.crosshair = null;
+        this.calculateFleeAndNudgeValues();
         if (this.flee_values[0] + this.nudge_values[0] >= 1 && this.flee_values[1] < 1) {
             this.controls.left = true;
         }
@@ -245,8 +255,7 @@ class AI {
         if (this.controls.left && this.controls.right) {
             if (this.flee_values[0] >= this.flee_values[1]) {
                 this.controls.right = false;
-            }
-            else {
+            } else {
                 this.controls.left = false;
             }
         }
@@ -263,88 +272,45 @@ class AI {
     }
 
     //Formula for calculating the time it takes for a circle and point to collide (each with a unique constant velocity)
-    findCirclePointCollision(p1, v1, r1, p2, v2) {
+    calculateCirclePointCollisionTime(p1, v1, r1, p2, v2) {
+        const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
+        const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
         let vd = Vector.sub(v2, v1);
-        return optimizeInWrap((offset) => {
-            let pd = Vector.sub(p2, Vector.add(p1, offset));
-            if (pd.mag() <= r1) {
-                return 0;
-            }
-            const a = vd.x ** 2 + vd.y ** 2;
-            const b = 2 * (pd.x * vd.x + pd.y * vd.y);
-            const c = pd.x ** 2 + pd.y ** 2 - r1 ** 2;
-            const results = solveQuadratic(a, b, c);
-            if (results.length > 0 && results[0] > 0) {
-                return results[0];
-            }
-            if (results.length > 1 && results[1] > 0) {
-                return results[1];
-            }
-            return null;
-        }, (best, next) => {
-            return (best == null || (next != null && best > next));
-        });
-    }
-
-    //Predict the future states of objects
-    predictStates(step) {
-        //Predict ship state
-        if (this.controls.left) {
-            this.ship.angle += step * this.ship.rotation_speed;
-        }
-        if (this.controls.right) {
-            this.ship.angle -= step * this.ship.rotation_speed;
-        }
-        while (this.ship.angle >= Math.PI * 2) {
-            this.ship.angle -= Math.PI * 2;
-        }
-        while (this.ship.angle < 0) {
-            this.ship.angle += Math.PI * 2;
-        }
-        const ship_direction = new Vector(Math.cos(this.ship.angle), -Math.sin(this.ship.angle));
-        if (this.controls.forward) {
-            ship_direction.mul(this.ship.acceleration);
-            this.ship.velocity.add(Vector.mul(ship_direction, step));
-        }
-        const ship_initial_velocity = this.ship.velocity.copy();
-        this.ship.velocity.mul(1 / (Math.E ** (this.ship.drag_coefficient * step)));
-        this.ship.position = Vector.div(Vector.add(Vector.mul(this.ship.position, this.ship.drag_coefficient), Vector.sub(ship_initial_velocity, this.ship.velocity)), this.ship.drag_coefficient);
-        wrap(this.ship.position);
-        //Progress target positions
-        for (let i = 0; i < this.targets.length; i++) {
-            this.targets[i].position.add(Vector.mul(this.targets[i].velocity, step));
-            wrap(this.targets[i].position);
-        }
-    }
-
-    //Checks if a target has already been marked
-    targetMarked(target) {
-        for (let i = 0; i < this.markers.length; i++) {
-            if (this.markers[i].id == target.id) {
-                return true;
+        let min_time = Infinity;
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                const offset = new Vector(horizontal[i], vertical[j]);
+                const pd = Vector.sub(p2, Vector.add(p1, offset));
+                if (pd.mag() <= r1) {
+                    return 0;
+                }
+                const a = vd.x * vd.x + vd.y * vd.y;
+                const b = 2 * (pd.x * vd.x + pd.y * vd.y);
+                const c = pd.x * pd.x + pd.y * pd.y - r1 * r1;
+                const results = solveQuadratic(a, b, c);
+                if (results.length > 0 && results[0] > 0) {
+                    min_time = Math.min(min_time, results[0]);
+                } else if (results.length > 1 && results[1] > 0) {
+                    min_time = Math.min(min_time, results[1]);
+                }
             }
         }
-        for (let i = 0; i < this.targets.length; i++) {
-            if (this.targets[i].id == target.id) {
-                return false;
-            }
-        }
-        return true;
+        return min_time;
     }
 
     //Checks if a bullet will hit a target in current ship state and state where it will hit the target
-    checkBulletCollisionTime(target, pessimistic_size = false, aiming = false) {
+    calculateBulletCollisionTime(target, pessimistic_size = false, aiming = false) {
         //Check if there is a bullet collision
         const p1 = target.position.copy();
+        const v1 = target.velocity.copy();
         const p2 = this.ship.position.copy();
-        const direction = new Vector(Math.cos(this.ship.angle), -Math.sin(this.ship.angle));
-        direction.mul(this.ship.width / 2 + 5);
-        p2.add(direction);
-        direction.normalize();
+        const ship_direction = new Vector(Math.cos(this.ship.angle), -Math.sin(this.ship.angle));
+        ship_direction.mul(this.ship.width / 2 + 5);
+        p2.add(ship_direction);
+        ship_direction.normalize();
         wrap(p2);
-        const v2 = Vector.mul(direction, this.ship.bullet_speed);
+        const v2 = Vector.mul(ship_direction, this.ship.bullet_speed);
         v2.add(this.ship.velocity);
-        const v1 = target.velocity;
         let r1;
         if (!pessimistic_size) {
             r1 = target.size;
@@ -352,44 +318,61 @@ class AI {
             r1 = target.pessimistic_size;
         }
         if (aiming) {
-            r1 = Math.max(0, r1 - AI.floating_point_aim_compensation);
+            r1 = Math.max(0, r1);
         }
-        const result = this.findCirclePointCollision(p1, v1, r1, p2, v2);
-        if (result == null || result >= this.ship.bullet_life) {
-            return null;
+        const result = this.calculateCirclePointCollisionTime(p1, v1, r1, p2, v2);
+        if (result >= this.ship.bullet_life) {
+            return [ Infinity, new Vector() ];
         }
-        let collision_location = Vector.add(p2, Vector.mul(v2, result));
         if (target.size_index > 0 && target.size_index < 3) {
             let explosion_location = Vector.add(p1, Vector.mul(v1, result));
             wrap(explosion_location);
-            const explosion_distance = optimizeInWrap((offset) => {
-                return Vector.sub(Vector.add(explosion_location, offset), this.ship.position).mag();
-            }, (best, next) => {
-                return (best == null || (next != null && best > next));
-            });
-            if (explosion_distance < this.C[26]) {
-                return null;
+            const horizontal = [ 0, canvas_bounds.width, -canvas_bounds.width ];
+            const vertical = [ 0, canvas_bounds.height, -canvas_bounds.height ];
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    const offset = new Vector(horizontal[i], vertical[j]);
+                    if (Vector.sub(Vector.add(explosion_location, offset), this.ship.position).mag() < this.c[26]) {
+                        return [ Infinity, new Vector() ];
+                    }
+                }
             }
         }
+        const collision_location = Vector.add(p2, Vector.mul(v2, result));
         return [ result, collision_location ];
     }
 
     //Checks if shooting an object will cause collateral damage
-    checkCollateralDamage(target, collision_time) {
+    predictCollateralDamage(target, collision_time) {
         for (let i = 0; i < this.targets.length; i++) {
             if (target.id == this.targets[i].id) {
                 continue;
             }
-            const result = this.checkBulletCollisionTime(this.targets[i], true);
-            if (result != null && result[0] < collision_time) {
+            const result = this.calculateBulletCollisionTime(this.targets[i], true);
+            if (result[0] < collision_time) {
                 return true;
             }
         }
         return false;
     }
 
+    //Checks if a target has already been marked
+    isTargetMarked(id) {
+        for (let i = 0; i < this.markers.length; i++) {
+            if (this.markers[i].id == id) {
+                return true;
+            }
+        }
+        for (let i = 0; i < this.targets.length; i++) {
+            if (this.targets[i].id == id) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     //Checks if destroying the target will violate the clutter optimization rules
-    checkClutterViolation(target) {
+    predictClutterViolation(target) {
         if (target.size_index >= 3 || target.size_index == 0) {
             return false;
         }
@@ -397,14 +380,14 @@ class AI {
             if (this.size_groups[0] == 0) {
                 return false;
             }
-            if (this.size_groups[0] + 2 > this.C[27]) {
-                return true;
-            }
-            if (this.size_groups[0] + this.size_groups[1] + 1 > this.C[28]) {
+            if (this.size_groups[0] + 2 > this.c[27] || this.size_groups[0] + this.size_groups[1] + 1 > this.c[28]) {
                 return true;
             }
         } else if (target.size_index == 2) {
-            if (this.size_groups[0] + this.size_groups[1] + 2 > this.C[28]) {
+            if (this.size_groups[0] + this.size_groups[1] == 0) {
+                return false;
+            }
+            if (this.size_groups[0] + this.size_groups[1] + 2 > this.c[28]) {
                 return true;
             }
         }
@@ -412,44 +395,50 @@ class AI {
     }
 
     //Checks if you should shoot with current object position
-    checkShootingOpportunity(aiming = false) {
+    generateFiringOpportunity(aiming = false) {
         let destroyed = null;
-        let destruction_location = null;
+        let collision_location = null;
         let min_time = Infinity;
         for (let i = 0; i < this.targets.length; i++) {
-            if (this.targets[i].size_index < 3 && this.targets[i].invincibility > 0) {
+            if (this.targets[i].invincibility > 0) {
                 continue;
             }
-            const result = this.checkBulletCollisionTime(this.targets[i], false, aiming);
-            if (result != null && result[0] < min_time) {
+            const result = this.calculateBulletCollisionTime(this.targets[i], false, aiming);
+            if (result[0] < min_time) {
                 destroyed = this.targets[i];
-                destruction_location = result[1];
                 min_time = result[0];
+                collision_location = result[1];
             }
         }
-        if (destroyed != null && (this.targetMarked(destroyed) || this.checkCollateralDamage(destroyed, min_time) || this.checkClutterViolation(destroyed))) {
-            return [ null, Infinity, null ];
+        if (min_time != Infinity && (this.isTargetMarked(destroyed.id) || this.predictCollateralDamage(destroyed, min_time) || this.predictClutterViolation(destroyed))) {
+            return [ null, Infinity, collision_location ];
         }
-        return [ destroyed, min_time, destruction_location ];
+        return [ destroyed, min_time, collision_location ];
     }
 
     //Shooting strategy
-    manageShooting(delay) {
+    manageFiring(delay) {
         if (this.ship.bullet_cooldown < 1) {
             return;
         }
-        this.predictStates(delay / config.game_precision);
-        const opportunity = this.checkShootingOpportunity();
+        const opportunity = this.generateFiringOpportunity();
         if (opportunity[0] != null) {
             this.controls.fire = true;
-            this.markers.push(new Marker(opportunity[1] + 5, opportunity[0]));
+            const new_marker = new AIMarker(opportunity[0], opportunity[1] + AI.FLOATING_POINT_COMPENSATION);
+            if (new_marker.size_index == 2) {
+                this.size_groups[1] += 2;
+            } else if (new_marker.size_index == 1) {
+                this.size_groups[0] += 2;
+                this.size_groups[1]--;
+            }
+            this.markers.push(new_marker);
             this.crosshair = null;
         }
     }
 
     //Updates target markers
     updateMarkers(delay) {
-        if (game.getShipDead() && game.getShipLives() <= 0) {
+        if (this.ship.lives <= 0) {
             this.markers = [];
             return;
         }
@@ -473,102 +462,146 @@ class AI {
         this.markers = new_markers;
     }
 
+    //Predict the future states of objects
+    predictEntityStates(delay) {
+        //Predict ship state
+        if (this.controls.left) {
+            this.ship.angle += delay * this.ship.rotation_speed;
+        }
+        if (this.controls.right) {
+            this.ship.angle -= delay * this.ship.rotation_speed;
+        }
+        while (this.ship.angle >= Math.PI * 2) {
+            this.ship.angle -= Math.PI * 2;
+        }
+        while (this.ship.angle < 0) {
+            this.ship.angle += Math.PI * 2;
+        }
+        const ship_direction = new Vector(Math.cos(this.ship.angle), -Math.sin(this.ship.angle));
+        if (this.controls.forward) {
+            ship_direction.mul(this.ship.acceleration);
+            this.ship.velocity.add(Vector.mul(ship_direction, delay));
+        }
+        const ship_initial_velocity = this.ship.velocity.copy();
+        this.ship.velocity.mul(1 / (Math.exp(this.ship.drag_coefficient * delay)));
+        this.ship.position = Vector.div(Vector.add(Vector.mul(this.ship.position, this.ship.drag_coefficient), Vector.sub(ship_initial_velocity, this.ship.velocity)), this.ship.drag_coefficient);
+        wrap(this.ship.position);
+        //Progress target positions
+        for (let i = 0; i < this.targets.length; i++) {
+            this.targets[i].position.add(Vector.mul(this.targets[i].velocity, delay));
+            wrap(this.targets[i].position);
+        }
+    }
+
+    generateAimTarget(delay) {
+        let angle_offset = 0;
+        let target = null;
+        let collision_time = null;
+        let aim_angle = null;
+        let collision_location = null;
+        let found_target = false;
+        let first_iteration = true;
+        this.predictEntityStates(delay / config.game_precision);
+        while (angle_offset <= Math.PI) {
+            this.ship.angle += angle_offset;
+            while (this.ship.angle >= Math.PI * 2) {
+                this.ship.angle -= Math.PI * 2;
+            }
+            let opportunity = this.generateFiringOpportunity(true);
+            target = opportunity[0];
+            collision_time = opportunity[1];
+            collision_location = opportunity[2];
+            if (collision_time != Infinity) {
+                found_target = true;
+                aim_angle = this.ship.angle;
+                this.ship.angle -= angle_offset;
+                while (this.ship.angle < 0) {
+                    this.ship.angle += Math.PI * 2;
+                }
+                break;
+            }
+            this.ship.angle -= 2 * angle_offset;
+            while (this.ship.angle < 0) {
+                this.ship.angle += Math.PI * 2;
+            }
+            opportunity = this.generateFiringOpportunity(true);
+            target = opportunity[0];
+            collision_time = opportunity[1];
+            collision_location = opportunity[2];
+            if (collision_time != Infinity) {
+                found_target = true;
+                aim_angle = this.ship.angle;
+                this.ship.angle += angle_offset;
+                while (this.ship.angle >= Math.PI * 2) {
+                    this.ship.angle -= Math.PI * 2;
+                }
+                break;
+            }
+            this.ship.angle += angle_offset;
+            angle_offset += this.ship.rotation_speed / AI.ROTATION_PRECISION;
+            if (first_iteration) {
+                this.predictEntityStates(Math.max(0, 1 / AI.ROTATION_PRECISION - delay / config.game_precision));
+                first_iteration = false;
+            } else {
+                this.predictEntityStates(1 / AI.ROTATION_PRECISION);
+            }
+        }
+        this.generateVirtualEntities();
+        if (found_target) {
+            return new AICrosshair(target.id, aim_angle, this.ship.rotation_speed, collision_location);
+        }
+        return null;
+    }
+
     //Aiming strategy
     manageAim(delay) {
         //Iterate through different angles off from our current angle
-        if (this.crosshair != null && (this.targetMarked(this.crosshair) || this.crosshair.life <= 0)) {
+        if (this.crosshair != null && (this.isTargetMarked(this.crosshair.id) || this.crosshair.life <= 0)) {
             this.crosshair = null;
         }
         
         //Pick a new target if no current target
         if (this.crosshair == null) {
-            let angle_offset = 0;
-            let position = null;
-            let id = null;
-            let aim_angle = null;
-            this.predictStates(delay);
-            let first_iteration = true;
-            while (angle_offset <= Math.PI) {
-                //Check if we rotate left
-                this.ship.angle += angle_offset;
-                while (this.ship.angle >= Math.PI * 2) {
-                    this.ship.angle -= Math.PI * 2;
-                }
-                let result = this.checkShootingOpportunity();
-                if (result[1] < Infinity) {
-                    position = result[2];
-                    id = result[0].id;
-                    this.ship.angle -= angle_offset;
-                    aim_angle = this.ship.angle + angle_offset;
-                    break;
-                }
-                //Check if we rotate right
-                this.ship.angle -= 2 * angle_offset;
-                while (this.ship.angle < 0) {
-                    this.ship.angle += Math.PI * 2;
-                }
-                result = this.checkShootingOpportunity();
-                if (result[1] < Infinity) {
-                    position = result[2];
-                    id = result[0].id;
-                    this.ship.angle += angle_offset;
-                    aim_angle = this.ship.angle - angle_offset;
-                    break;
-                }
-                this.ship.angle += angle_offset;
-                if (!first_iteration) {
-                    angle_offset += this.ship.rotation_speed / AI.rotation_precision;
-                    this.predictStates(1 / AI.rotation_precision);
-                } else {
-                    let random_shift = Math.random() / AI.rotation_precision;
-                    angle_offset += this.ship.rotation_speed * random_shift;
-                    this.predictStates(random_shift);
-                    first_iteration = false;
-                }
-            }
-            this.generateVirtualEntities();
-            if (position != null) {
-                this.crosshair = new Crosshair(id, position, aim_angle);
-            }
+            this.crosshair = this.generateAimTarget(delay);
         }
         //Actually rotate towards the target
         if (this.crosshair == null) {
             let rotation_choice = Math.random();
-            if (rotation_choice <= AI.random_walk_rotation_probability / 2) {
+            if (rotation_choice <= AI.RANDOM_WALK_ROTATION_PROBABILITY) {
                 this.controls.left = true;
-            } else if (rotation_choice <= AI.random_walk_rotation_probability) {
-                this.controls.right = true;
             }
-            if (this.ship.velocity.mag() < AI.random_walk_speed_limit) {
+            if (this.ship.velocity.mag() < AI.RANDOM_WALK_SPEED_LIMIT) {
                 this.controls.forward = true;
             }
             return;
         }
-        const goal_angle = this.crosshair.angle;
-        let time_left;
-        if (goal_angle >= this.ship.angle) {
-            time_left = goal_angle - this.ship.angle;
-        } else {
-            time_left = Math.PI * 2 - this.ship.angle + goal_angle;
+        let time_left = this.crosshair.angle - this.ship.angle;
+        while (time_left < 0) {
+            time_left += Math.PI * 2;
         }
-        let time_right;
-        if (goal_angle <= this.ship.angle) {
-            time_right = this.ship.angle - goal_angle;
-        } else {
-            time_right = this.ship.angle + Math.PI * 2 - goal_angle;
+        let time_right = this.ship.angle - this.crosshair.angle;
+        while (time_right < 0) {
+            time_right += Math.PI * 2;
         }
         if (time_left < time_right) {
             this.controls.left = true;
-        } else if (time_left > time_right) {
+        } else {
             this.controls.right = true;
         }
+        this.crosshair.life -= delay;
         //Update the crosshair
-        if (this.crosshair != null && !game.getPaused()) {
-            this.crosshair.life -= delay;
-            if (this.crosshair.life <= 0) {
-                this.crosshair = null;
-            }
+        if (this.crosshair.life <= 0) {
+            this.crosshair = null;
         }
+    }
+
+    resetControls() {
+        this.controls = {
+            left: false,
+            right: false,
+            forward: false,
+            fire: false
+        };
     }
 
     //AI makes decision and applies controls
@@ -581,22 +614,27 @@ class AI {
         if (this.ship.teleport_buffer > 0) {
             return;
         }
-        if (this.max_danger >= 1) {
-            this.manageFleeing();
-        } else {
-            this.manageAim(delay);
+        if (this.ship.lives > 0) {
+            if (this.max_danger >= 1) {
+                this.manageFleeing();
+            } else {
+                this.manageAim(delay);
+            }
+            this.predictEntityStates(delay / config.game_precision);
+            this.manageFiring(delay);
+            this.updateMarkers(delay);
         }
-        this.predictStates(delay / config.game_precision);
-        this.manageShooting(delay);
-        this.updateMarkers(delay);
     }
 
     //AI draws debug info if it wants to
     drawDebug() {
-        if (game.getTitleScreen() || game.getShipDead()) {
+        if (game.getTitleScreen() || game.isShipDead()) {
             return;
         }
         this.generateVirtualEntities();
+        if (this.max_danger >= 1) {
+            this.calculateFleeAndNudgeValues();
+        }
         this.updateMarkers(0);
         runInWrap((offset) => {
             ctx.translate(offset.x, offset.y);
@@ -621,21 +659,6 @@ class AI {
             }
             ctx.translate(-offset.x, -offset.y);
         });
-    }
-
-    //AI draws overlay info for debugging
-    drawDebugOverlay() {
-        if (game.getTitleScreen() || game.getShipDead()) {
-            return;
-        }
-        AIDebug.drawAIData();
-    }
-
-    //Resets AI controls
-    resetControls() {
-        for (let i in this.controls) {
-            this.controls[i] = false;
-        }
     }
 
     //Applies the AI controls to the actual player

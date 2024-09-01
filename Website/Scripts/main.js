@@ -14,41 +14,41 @@ const fps_reset_rate = 2e-2;
 
 //This is the set of constants for the AI
 
-const C = [ 
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
+const c = [
+    2,
+    1291.145791273453,
+    32.23526585564162,
     1,
+    111.09537111091456,
     1,
+    94.3496383832352,
+    1,
+    0.14892791990652504,
+    2,
+    0.1,
+    2,
     0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
+    2,
+    0.45032563356067007,
+    1,
+    0.574957150858413,
+    2,
+    0.21534787885974632,
+    1,
+    1.339729100705285,
+    1,
+    0.90315100413843,
+    2,
+    0.033932958332917984,
+    2,
     100,
-    100,
-    5, 
-    17.5, 
-    25, 
-    10, 
-    12
+    5,
+    10,
+    9.577048531766428,
+    22.62230017174059,
+    22.19262960578817,
+    12.240252379993821,
+    15.520887296916765
 ];
 
 //Do initial setup steps for the game/game window
@@ -57,7 +57,7 @@ Game.analyzeGameConfiguration();
 
 //Create the game and AI
 let game = new Game(true);
-let ai = new AI(C);
+let ai = new AI(c, game.getAIShipData());
 
 //Resizes the HTML5 canvas when needed
 function resizeCanvas() {
@@ -112,9 +112,6 @@ function draw() {
         ai.drawDebug();
     }
     game.drawOverlay();
-    if (settings.ai_settings.show_strategy) {
-        ai.drawDebugOverlay();
-    }
 }
 
 //The game loop is created and executed

@@ -124,21 +124,21 @@ vector<double> AI::calculateDangerLevels(const AIDangerData &danger) {
             Vector offset(horizontal[i], vertical[j]);
             Vector p = (danger.position + offset) - this->ship.position;
             double danger_velocity_term = max(0.0, -p.comp(danger.velocity));
-            result += this->c[2] * exp(this->c[3] * danger_velocity_term);
+            result += this->c[2] * pow(danger_velocity_term, round(this->c[3]));
             danger_velocity_term = max(0.0, p.comp(danger.velocity));
-            result -= this->c[4] * exp(this->c[5] * danger_velocity_term);
+            result -= this->c[4] * pow(danger_velocity_term, round(this->c[5]));
             double ship_velocity_term = max(0.0, p.comp(this->ship.velocity));
-            result += this->c[6] * exp(this->c[7] * ship_velocity_term);
+            result += this->c[6] * pow(ship_velocity_term, round(this->c[7]));
             ship_velocity_term = max(0.0, -p.comp(this->ship.velocity));
-            result -= this->c[8] * exp(this->c[9] * ship_velocity_term);
+            result -= this->c[8] * pow(ship_velocity_term, round(this->c[9]));
             Vector ship_direction(cos(this->ship.angle), -sin(this->ship.angle));
             double ship_direction_term = max(0.0, p.comp(ship_direction));
-            result += this->c[10] * exp(this->c[11] * ship_direction_term);
+            result += this->c[10] * pow(ship_direction_term, round(this->c[11]));
             ship_direction_term = max(0.0, -p.comp(ship_direction_term));
-            result -= this->c[12] * exp(this->c[13] * ship_direction_term);
-            double distance_term = max(0.0, p.mag() - this->ship.size - danger.size);
+            result -= this->c[12] * pow(ship_direction_term, round(this->c[13]));
+            double distance_term = 1 / max(1.0, p.mag() - this->ship.size - danger.size);
             result += this->c[1];
-            result *= exp(-this->c[0] * distance_term);
+            result *= pow(distance_term, round(this->c[0]));
             result = max(0.0, result);
             this->max_danger = max(this->max_danger, result);
             results.push_back(result);
@@ -207,20 +207,20 @@ void AI::calculateFleeAndNudgeValues() {
                 Vector zero;
                 p.rotate(-this->ship.angle, zero);
                 if (p.y < 0) {
-                    this->flee_values[0] = max(this->flee_values[0], this->c[14] * exp(-this->c[15] * p.y));
+                    this->flee_values[0] = max(this->flee_values[0], this->c[14] * pow(-p.y, round(this->c[15])));
                 } else {
-                    this->flee_values[1] = max(this->flee_values[1], this->c[14] * exp(this->c[15] * p.y));
+                    this->flee_values[1] = max(this->flee_values[1], this->c[14] * pow(p.y, round(this->c[15])));
                 }
-                this->nudge_values[2] = max(this->nudge_values[2], this->c[24] * exp(this->c[25] * abs(p.y)));
+                this->nudge_values[2] = max(this->nudge_values[2], this->c[24] * pow(abs(p.y), round(this->c[25])));
                 if (p.x > 0) {
-                    this->flee_values[2] = max(this->flee_values[2], this->c[16] * exp(this->c[17] * p.x));
-                    this->nudge_values[0] = max(this->nudge_values[0], this->c[22] * exp(this->c[23] * p.x));
-                    this->nudge_values[1] = max(this->nudge_values[1], this->c[22] * exp(this->c[23] * p.x));
+                    this->flee_values[2] = max(this->flee_values[2], this->c[16] * pow(p.x, round(this->c[17])));
+                    this->nudge_values[0] = max(this->nudge_values[0], this->c[22] * pow(p.x, round(this->c[23])));
+                    this->nudge_values[1] = max(this->nudge_values[1], this->c[22] * pow(p.x, round(this->c[23])));
                 } else {
                     p.x *= -1;
-                    this->flee_values[3] = max(this->flee_values[3], this->c[18] * exp(this->c[19] * p.x));
-                    this->nudge_values[0] = max(this->nudge_values[0], this->c[20] * exp(this->c[21] * p.x));
-                    this->nudge_values[1] = max(this->nudge_values[1], this->c[20] * exp(this->c[21] * p.x));
+                    this->flee_values[3] = max(this->flee_values[3], this->c[18] * pow(p.x, round(this->c[19])));
+                    this->nudge_values[0] = max(this->nudge_values[0], this->c[20] * pow(p.x, round(this->c[21])));
+                    this->nudge_values[1] = max(this->nudge_values[1], this->c[20] * pow(p.x, round(this->c[21])));
                 }
             }
         }
@@ -370,8 +370,13 @@ bool AI::predictClutterViolation(const AITarget &target) const {
         if (this->size_groups[0] + 2 > this->c[27] || this->size_groups[0] + this->size_groups[1] + 1 > this->c[28]) {
             return true;
         }
-    } else if (target.size_index == 2 && this->size_groups[0] + this->size_groups[1] + 2 > this->c[28]) {
-        return true;
+    } else if (target.size_index == 2) {
+        if (this->size_groups[0] + this->size_groups[1] == 0) {
+            return false;
+        }
+        if (this->size_groups[0] + this->size_groups[1] + 2 > this->c[28]) {
+            return true;
+        }
     }
     return false;
 }
