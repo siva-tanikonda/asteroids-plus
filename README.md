@@ -1,7 +1,7 @@
 # Asteroids+
 ## How to Use
 ### Play Game/View AI
-You can play the game for yourself and see the observe an AI trained by the algorithm at [siva-tanikonda.github.io/asteroids-ai](https://siva-tanikonda.github.io/asteroids-ai/).
+You can play the game for yourself and see the observe an AI trained by the algorithm at [siva-tanikonda.github.io/asteroids-plus](https://siva-tanikonda.github.io/asteroids-plus/).
 
 *Note: The amount of asteroids on-screen scales with the resolution of the game window, so your results may vary from the training results. In addition, the game-speed variable doesn't change the rate at which the AI updates its decision, which is intentional and is another way of stress-testing the AI.*
 ### Using the Trainer
